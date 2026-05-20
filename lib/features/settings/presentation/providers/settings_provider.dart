@@ -6,12 +6,14 @@ import '../../../../core/notifications/notification_service.dart';
 
 class SettingsState {
   final bool notificationsEnabled;
+  final bool nightNotifEnabled;
   final TimeOfDay morningTime;
   final TimeOfDay noonTime;
   final TimeOfDay eveningTime;
 
   const SettingsState({
     required this.notificationsEnabled,
+    required this.nightNotifEnabled,
     required this.morningTime,
     required this.noonTime,
     required this.eveningTime,
@@ -19,12 +21,14 @@ class SettingsState {
 
   SettingsState copyWith({
     bool? notificationsEnabled,
+    bool? nightNotifEnabled,
     TimeOfDay? morningTime,
     TimeOfDay? noonTime,
     TimeOfDay? eveningTime,
   }) =>
       SettingsState(
         notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+        nightNotifEnabled:    nightNotifEnabled    ?? this.nightNotifEnabled,
         morningTime:          morningTime          ?? this.morningTime,
         noonTime:             noonTime             ?? this.noonTime,
         eveningTime:          eveningTime          ?? this.eveningTime,
@@ -40,6 +44,7 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   Future<SettingsState> build() async {
     return SettingsState(
       notificationsEnabled: await _notifService.isEnabled(),
+      nightNotifEnabled:    await _notifService.isNightEnabled(),
       morningTime:          await _notifService.getMorningTime(),
       noonTime:             await _notifService.getNoonTime(),
       eveningTime:          await _notifService.getEveningTime(),
@@ -49,6 +54,11 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   Future<void> setNotificationsEnabled(bool value) async {
     await _notifService.setEnabled(value);
     state = AsyncData(state.value!.copyWith(notificationsEnabled: value));
+  }
+
+  Future<void> setNightEnabled(bool value) async {
+    await _notifService.setNightEnabled(value);
+    state = AsyncData(state.value!.copyWith(nightNotifEnabled: value));
   }
 
   Future<void> setMorningTime(TimeOfDay time) async {

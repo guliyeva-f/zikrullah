@@ -15,10 +15,14 @@ class NotificationService {
   static const _keyMorning = 'notif_morning';
   static const _keyNoon    = 'notif_noon';
   static const _keyEvening = 'notif_evening';
+  static const _keyNight   = 'notif_night';
 
   static const _channelId   = 'amal_channel';
   static const _channelName = 'Əməl Xatırlatmaları';
   static const _channelDesc = 'Gündəlik əməl xatırlatmaları';
+
+  // Generic tip tək sətirdə — parse xətasının qarşısını alır
+  AndroidFlutterLocalNotificationsPlugin? get _androidImpl => _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
   // ─── INIT ────────────────────────────────────────────────────────────────
 
@@ -29,12 +33,9 @@ class NotificationService {
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidSettings);
 
-    // v21: 'settings' named parametr oldu
     await _plugin.initialize(settings: initSettings);
 
-    // resolvePlatformSpecificImplementation<T> tək sətirdə yazılmalıdır
-    final androidImpl = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    await androidImpl?.createNotificationChannel(
+    await _androidImpl?.createNotificationChannel(
       const AndroidNotificationChannel(
         _channelId,
         _channelName,
@@ -45,8 +46,24 @@ class NotificationService {
   }
 
   Future<void> requestPermission() async {
-    final androidImpl = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    await androidImpl?.requestNotificationsPermission();
+    try {
+      await _androidImpl?.requestNotificationsPermission();
+      await _androidImpl?.requestExactAlarmsPermission();
+    } catch (e) {
+      debugPrint('İcazə xətası: $e');
+    }
+  }
+
+  // ─── EXACT ALARM YOXLAMA ─────────────────────────────────────────────────
+
+  Future<bool> _canUseExactAlarms() async {
+    try {
+      final canSchedule = await _androidImpl?.canScheduleExactNotifications();
+      return canSchedule ?? false;
+    } catch (e) {
+      debugPrint('Exact alarm yoxlama xətası: $e');
+      return false;
+    }
   }
 
   // ─── PREFERENCES ─────────────────────────────────────────────────────────
@@ -60,6 +77,17 @@ class NotificationService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEnabled, value);
     value ? await reschedule() : await _plugin.cancelAll();
+  }
+
+  Future<bool> isNightEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyNight) ?? true;
+  }
+
+  Future<void> setNightEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyNight, value);
+    await reschedule();
   }
 
   Future<TimeOfDay> _getTime(String key, int defaultHour) async {
@@ -99,21 +127,44 @@ class NotificationService {
   }
 
   Future<void> reschedule() async {
-    await _plugin.cancelAll();
-    if (!await isEnabled()) return;
+    try {
+      await _plugin.cancelAll();
+      if (!await isEnabled()) return;
 
-    final morning = await getMorningTime();
-    final noon    = await getNoonTime();
-    final evening = await getEveningTime();
+      final morning = await getMorningTime();
+      final noon    = await getNoonTime();
+      final evening = await getEveningTime();
 
-    await _scheduleDaily(id: 1, hour: morning.hour, minute: morning.minute,
-        body: 'Günün əməlləri sənini gözləyir 🤲');
-    await _scheduleDaily(id: 2, hour: noon.hour, minute: noon.minute,
-        body: 'Əməllərini tamamlamağı unutma');
-    await _scheduleDaily(id: 3, hour: evening.hour, minute: evening.minute,
-        body: 'Günün hələ bitməyib');
-    await _scheduleDaily(id: 4, hour: 23, minute: 0,
-        body: 'Günün bitmə vaxtı yaxınlaşır ⏳');
+      await _scheduleDaily(
+        id: 1,
+        hour: morning.hour,
+        minute: morning.minute,
+        body: 'Günün əməlləri sənini gözləyir 🤲',
+      );
+      await _scheduleDaily(
+        id: 2,
+        hour: noon.hour,
+        minute: noon.minute,
+        body: 'Əməllərini tamamlamağı unutma',
+      );
+      await _scheduleDaily(
+        id: 3,
+        hour: evening.hour,
+        minute: evening.minute,
+        body: 'Günün hələ bitməyib',
+      );
+
+      if (await isNightEnabled()) {
+        await _scheduleDaily(
+          id: 4,
+          hour: 23,
+          minute: 0,
+          body: 'Günün bitmə vaxtı yaxınlaşır ⏳',
+        );
+      }
+    } catch (e) {
+      debugPrint('Reschedule xətası: $e');
+    }
   }
 
   Future<void> _scheduleDaily({
@@ -122,21 +173,25 @@ class NotificationService {
     required int minute,
     required String body,
   }) async {
-    final now = tz.TZDateTime.now(tz.local);
-    var scheduled = tz.TZDateTime(
-      tz.local, now.year, now.month, now.day, hour, minute,
-    );
-    if (scheduled.isBefore(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
-    }
+    try {
+      final now = tz.TZDateTime.now(tz.local);
+      var scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        hour,
+        minute,
+      );
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
 
-    // v21: bütün parametrlər named oldu
-    await _plugin.zonedSchedule(
-      id: id,
-      title: 'Şəxsi Əməllər',
-      body: body,
-      scheduledDate: scheduled,
-      notificationDetails: const NotificationDetails(
+      final scheduleMode = await _canUseExactAlarms()
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+
+      const details = NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
@@ -144,9 +199,20 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
         ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
+      );
+
+      // Hamısı named parametr
+      await _plugin.zonedSchedule(
+        id: id,
+        title: 'Şəxsi Əməllər',
+        body: body,
+        scheduledDate: scheduled,
+        notificationDetails: details,
+        androidScheduleMode: scheduleMode,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      debugPrint('Notification schedule xətası (id=$id): $e');
+    }
   }
 }
