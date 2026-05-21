@@ -111,21 +111,36 @@ class AmalRepository {
 
   // ─── STREAK ───────────────────────────────────────────────────────────────
 
-  /// Bu gün tamamlanıbsa bugündən, tamamlanmayıbsa dünəndən ardıcıl sayır.
-  /// 0 qaytardıqda badge göstərilmir.
   Future<int> calculateStreak(int amalId) async {
-    final todayRecord = await getRecord(amalId, _today);
+    final db = await _db;
+    final today = _today;
+    final todayRecord = await getRecord(amalId, today);
     final completedToday = todayRecord?.isCompleted ?? false;
 
     final startDate = completedToday
         ? DateTime.now()
         : DateTime.now().subtract(const Duration(days: 1));
 
+    // 60 günlük bütün recordları bir sorğuda gətiririk
+    final dates = List.generate(
+      60,
+      (i) => _formatDate(startDate.subtract(Duration(days: i))),
+    );
+
+    final placeholders = List.filled(60, '?').join(',');
+    final maps = await db.query(
+      'amal_records',
+      where: 'amal_id = ? AND record_date IN ($placeholders)',
+      whereArgs: [amalId, ...dates],
+    );
+
+    final recordMap = {for (final m in maps) m['record_date'] as String: m};
+
     int streak = 0;
-    for (int i = 0; i < 365; i++) {
+    for (int i = 0; i < 60; i++) {
       final date = _formatDate(startDate.subtract(Duration(days: i)));
-      final record = await getRecord(amalId, date);
-      if (record?.isCompleted == true) {
+      final rec = recordMap[date];
+      if (rec != null && (rec['is_completed'] as int) == 1) {
         streak++;
       } else {
         break;

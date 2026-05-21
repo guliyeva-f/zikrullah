@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
 import 'amal_form_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 
 class ManageScreen extends ConsumerWidget {
   const ManageScreen({super.key});
@@ -37,6 +38,17 @@ class ManageScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(
+              Icons.settings_outlined,
+              color: AppColors.textSecondary,
+              size: 22,
+            ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.add, color: AppColors.accent, size: 26),
             onPressed: () => _openForm(context, ref, null),
           ),
@@ -50,20 +62,29 @@ class ManageScreen extends ConsumerWidget {
         data: (state) {
           if (state.amals.isEmpty) {
             return Center(
-              child: Text(
-                'Hələ əməl yoxdur.\nYuxarıdakı + ilə əlavə et.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.nunito(
-                  color: AppColors.textHint,
-                  fontSize: 15,
-                  height: 1.6,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add_circle_outline,
+                      size: 52, color: AppColors.textHint),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Hələ əməl yoxdur.\nYuxarıdakı + ilə əlavə et.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.nunito(
+                      color: AppColors.textHint,
+                      fontSize: 15,
+                      height: 1.6,
+                    ),
+                  ),
+                ],
               ),
             );
           }
+
           return ReorderableListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            buildDefaultDragHandles: false, // özümüz handle əlavə edirik
+            buildDefaultDragHandles: false,
             onReorder: (oldIndex, newIndex) {
               if (newIndex > oldIndex) newIndex--;
               final list = [...state.amals];
@@ -78,7 +99,8 @@ class ManageScreen extends ConsumerWidget {
                   amal: state.amals[i],
                   index: i,
                   onEdit: () => _openForm(context, ref, state.amals[i]),
-                  onDelete: () => _confirmDelete(context, ref, state.amals[i]),
+                  onDelete: () =>
+                      _confirmDelete(context, ref, state.amals[i]),
                 ),
             ],
           );
@@ -99,7 +121,8 @@ class ManageScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Silmək istəyirsiniz?',
           style: GoogleFonts.nunito(
@@ -161,12 +184,9 @@ class _AmalManageRow extends StatelessWidget {
 
   String get _typeLabel {
     switch (amal.type) {
-      case AmalType.checkbox:
-        return 'Checkbox';
-      case AmalType.counter:
-        return 'Sayğac';
-      case AmalType.text:
-        return 'Mətnli';
+      case AmalType.checkbox: return 'Checkbox';
+      case AmalType.counter:  return 'Sayğac';
+      case AmalType.text:     return 'Mətnli';
     }
   }
 
@@ -181,7 +201,7 @@ class _AmalManageRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Drag handle — ReorderableDragStartListener ilə işləyir
+          // Drag handle
           ReorderableDragStartListener(
             index: index,
             child: const Padding(
@@ -195,7 +215,8 @@ class _AmalManageRow extends StatelessWidget {
           ),
           // Type badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: AppColors.accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
@@ -231,7 +252,8 @@ class _AmalManageRow extends StatelessWidget {
             ),
             onPressed: onEdit,
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            constraints:
+                const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
           // Delete
           IconButton(
@@ -242,7 +264,8 @@ class _AmalManageRow extends StatelessWidget {
             ),
             onPressed: onDelete,
             padding: const EdgeInsets.only(right: 4),
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            constraints:
+                const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
         ],
       ),

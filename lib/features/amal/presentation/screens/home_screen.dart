@@ -20,28 +20,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _tabIndex = 0;
 
   static const _months = [
-    'Yanvar',
-    'Fevral',
-    'Mart',
-    'Aprel',
-    'May',
-    'İyun',
-    'İyul',
-    'Avqust',
-    'Sentyabr',
-    'Oktyabr',
-    'Noyabr',
-    'Dekabr',
+    'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun',
+    'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr',
   ];
   static const _weekdays = [
-    '',
-    'Bazar ertəsi',
-    'Çərşənbə axşamı',
-    'Çərşənbə',
-    'Cümə axşamı',
-    'Cümə',
-    'Şənbə',
-    'Bazar',
+    '', 'Bazar ertəsi', 'Çərşənbə axşamı', 'Çərşənbə',
+    'Cümə axşamı', 'Cümə', 'Şənbə', 'Bazar',
   ];
 
   String get _todayLabel {
@@ -67,10 +51,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: AppColors.bgCard,
       selectedItemColor: AppColors.accent,
       unselectedItemColor: AppColors.textSecondary,
-      selectedLabelStyle: GoogleFonts.nunito(
-        fontWeight: FontWeight.w600,
-        fontSize: 12,
-      ),
+      selectedLabelStyle:
+          GoogleFonts.nunito(fontWeight: FontWeight.w600, fontSize: 12),
       unselectedLabelStyle: GoogleFonts.nunito(fontSize: 12),
       elevation: 0,
       items: const [
@@ -126,8 +108,8 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = state.totalCount;
-    final done = state.completedCount;
+    final total    = state.totalCount;
+    final done     = state.completedCount;
     final progress = total == 0 ? 0.0 : done / total;
 
     return Padding(
@@ -161,26 +143,22 @@ class _Header extends StatelessWidget {
                   ],
                 ),
               ),
-              Builder(
-                builder: (ctx) {
-                  return IconButton(
-                    icon: const Icon(
-                      Icons.settings_outlined,
-                      color: AppColors.textSecondary,
-                      size: 22,
-                    ),
-                    onPressed: () {
-                      final container = ProviderScope.containerOf(ctx);
-                      Navigator.push(
-                        ctx,
-                        MaterialPageRoute(builder: (_) => const ManageScreen()),
-                      ).then(
-                        (_) => container.read(amalProvider.notifier).refresh(),
-                      );
-                    },
-                  );
-                },
-              ),
+              // FIX: context async gap-dən əvvəl saxlanılır
+              Builder(builder: (ctx) {
+                return IconButton(
+                  icon: const Icon(Icons.settings_outlined,
+                      color: AppColors.textSecondary, size: 22),
+                  onPressed: () {
+                    final container = ProviderScope.containerOf(ctx);
+                    Navigator.push(
+                      ctx,
+                      MaterialPageRoute(
+                          builder: (_) => const ManageScreen()),
+                    ).then((_) =>
+                        container.read(amalProvider.notifier).refresh());
+                  },
+                );
+              }),
             ],
           ),
           const SizedBox(height: 12),
@@ -212,7 +190,8 @@ class _Header extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: AppColors.bgElevated,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.accent),
               minHeight: 6,
             ),
           ),
@@ -236,11 +215,8 @@ class _AmalList extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.add_circle_outline,
-              size: 52,
-              color: AppColors.textHint,
-            ),
+            const Icon(Icons.add_circle_outline,
+                size: 52, color: AppColors.textHint),
             const SizedBox(height: 14),
             Text(
               'Hələ əməl yoxdur.\nSağ üstdəki ⚙️ ilə əlavə et.',
@@ -261,12 +237,12 @@ class _AmalList extends ConsumerWidget {
       itemCount: state.amals.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, i) {
-        final amal = state.amals[i];
+        final amal   = state.amals[i];
         final record = state.records[amal.id];
         final streak = state.streaks[amal.id] ?? 0;
 
         return _AmalCard(
-          amal: amal,
+          amal:   amal,
           record: record,
           streak: streak,
           onCheckboxTap: () =>
@@ -326,11 +302,8 @@ class _AmalCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(child: _buildMiddle()),
               if (amal.type == AmalType.text)
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textHint,
-                  size: 20,
-                ),
+                const Icon(Icons.chevron_right,
+                    color: AppColors.textHint, size: 20),
             ],
           ),
         ),
@@ -364,14 +337,16 @@ class _AmalCard extends StatelessWidget {
         );
 
       case AmalType.counter:
-        final done = record?.countDone ?? 0;
+        final done   = record?.countDone ?? 0;
         final target = amal.countTarget ?? 1;
 
         return GestureDetector(
           onTap: _done ? null : onCounterTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
+              // FIX: withOpacity → withValues
               color: AppColors.accent.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -380,7 +355,8 @@ class _AmalCard extends StatelessWidget {
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.add, color: AppColors.accent, size: 15),
+                      const Icon(Icons.add,
+                          color: AppColors.accent, size: 15),
                       const SizedBox(width: 2),
                       Text(
                         '$done/$target',
@@ -410,8 +386,8 @@ class _AmalCard extends StatelessWidget {
     final streakText = streak == 0
         ? null
         : streak == 1
-        ? 'ilk gün 🔥'
-        : '$streak gün ardıcıl 🔥';
+            ? 'ilk gün 🔥'
+            : '$streak gün ardıcıl 🔥';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
