@@ -65,8 +65,11 @@ class ManageScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.add_circle_outline,
-                      size: 52, color: AppColors.textHint),
+                  const Icon(
+                    Icons.add_circle_outline,
+                    size: 52,
+                    color: AppColors.textHint,
+                  ),
                   const SizedBox(height: 14),
                   Text(
                     'Hələ əməl yoxdur.\nYuxarıdakı + ilə əlavə et.',
@@ -85,8 +88,7 @@ class ManageScreen extends ConsumerWidget {
           return ReorderableListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             buildDefaultDragHandles: false,
-            onReorder: (oldIndex, newIndex) {
-              if (newIndex > oldIndex) newIndex--;
+            onReorderItem: (oldIndex, newIndex) {
               final list = [...state.amals];
               final item = list.removeAt(oldIndex);
               list.insert(newIndex, item);
@@ -99,8 +101,7 @@ class ManageScreen extends ConsumerWidget {
                   amal: state.amals[i],
                   index: i,
                   onEdit: () => _openForm(context, ref, state.amals[i]),
-                  onDelete: () =>
-                      _confirmDelete(context, ref, state.amals[i]),
+                  onDelete: () => _confirmDelete(context, ref, state.amals[i]),
                 ),
             ],
           );
@@ -121,8 +122,7 @@ class ManageScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgCard,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Silmək istəyirsiniz?',
           style: GoogleFonts.nunito(
@@ -184,9 +184,12 @@ class _AmalManageRow extends StatelessWidget {
 
   String get _typeLabel {
     switch (amal.type) {
-      case AmalType.checkbox: return 'Checkbox';
-      case AmalType.counter:  return 'Sayğac';
-      case AmalType.text:     return 'Mətnli';
+      case AmalType.checkbox:
+        return 'Checkbox';
+      case AmalType.counter:
+        return 'Sayğac';
+      case AmalType.text:
+        return 'Mətnli';
     }
   }
 
@@ -215,8 +218,7 @@ class _AmalManageRow extends StatelessWidget {
           ),
           // Type badge
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: AppColors.accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
@@ -252,8 +254,7 @@ class _AmalManageRow extends StatelessWidget {
             ),
             onPressed: onEdit,
             padding: EdgeInsets.zero,
-            constraints:
-                const BoxConstraints(minWidth: 36, minHeight: 36),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
           // Delete
           IconButton(
@@ -264,8 +265,7 @@ class _AmalManageRow extends StatelessWidget {
             ),
             onPressed: onDelete,
             padding: const EdgeInsets.only(right: 4),
-            constraints:
-                const BoxConstraints(minWidth: 36, minHeight: 36),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
         ],
       ),

@@ -9,6 +9,8 @@ class Amal {
   final int sortOrder;
   final bool isActive;
   final String createdAt;
+  final String? intention; // YENİ: niyyət mətni
+  final int? durationDays; // YENİ: null = daimi, rəqəm = müddət (gün)
 
   const Amal({
     required this.id,
@@ -19,30 +21,78 @@ class Amal {
     required this.sortOrder,
     required this.isActive,
     required this.createdAt,
+    this.intention,
+    this.durationDays,
   });
 
-  factory Amal.fromMap(Map<String, dynamic> map) {
-    return Amal(
-      id:          map['id'] as int,
-      title:       map['title'] as String,
-      type:        AmalType.values.firstWhere((e) => e.name == map['type']),
-      countTarget: map['count_target'] as int?,
-      content:     map['content'] as String?,
-      sortOrder:   map['sort_order'] as int,
-      isActive:    (map['is_active'] as int) == 1,
-      createdAt:   map['created_at'] as String,
-    );
+  // ─── COMPUTED ─────────────────────────────────────────────────────────────
+
+  DateTime get _startDate => DateTime.parse(createdAt.substring(0, 10));
+
+  DateTime? get endDate {
+    if (durationDays == null) return null;
+    return _startDate.add(Duration(days: durationDays!));
   }
 
+  bool get isExpired {
+    if (endDate == null) return false;
+    final today = DateTime.now();
+    return endDate!.isBefore(DateTime(today.year, today.month, today.day));
+  }
+
+  int get daysSinceStart {
+    final today = DateTime.now();
+    return DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).difference(_startDate).inDays;
+  }
+
+  int? get remainingDays {
+    if (durationDays == null) return null;
+    final r = durationDays! - daysSinceStart;
+    return r < 0 ? 0 : r;
+  }
+
+  /// 0.0 – 1.0, müddətsiz əməllər üçün null
+  double? get durationProgress {
+    if (durationDays == null || durationDays == 0) return null;
+    return (daysSinceStart / durationDays!).clamp(0.0, 1.0);
+  }
+
+  String get durationLabel {
+    if (durationDays == null) return 'Daimi';
+    if (isExpired) return 'Tamamlandı';
+    return '$remainingDays gün qaldı';
+  }
+
+  // ─── SERIALIZATION ────────────────────────────────────────────────────────
+
+  factory Amal.fromMap(Map<String, dynamic> map) => Amal(
+    id: map['id'] as int,
+    title: map['title'] as String,
+    type: AmalType.values.firstWhere((e) => e.name == map['type']),
+    countTarget: map['count_target'] as int?,
+    content: map['content'] as String?,
+    sortOrder: map['sort_order'] as int,
+    isActive: (map['is_active'] as int) == 1,
+    createdAt: map['created_at'] as String,
+    intention: map['intention'] as String?,
+    durationDays: map['duration_days'] as int?,
+  );
+
   Map<String, dynamic> toMap() => {
-        'title':        title,
-        'type':         type.name,
-        'count_target': countTarget,
-        'content':      content,
-        'sort_order':   sortOrder,
-        'is_active':    isActive ? 1 : 0,
-        'created_at':   createdAt,
-      };
+    'title': title,
+    'type': type.name,
+    'count_target': countTarget,
+    'content': content,
+    'sort_order': sortOrder,
+    'is_active': isActive ? 1 : 0,
+    'created_at': createdAt,
+    'intention': intention,
+    'duration_days': durationDays,
+  };
 
   Amal copyWith({
     int? id,
@@ -53,15 +103,34 @@ class Amal {
     int? sortOrder,
     bool? isActive,
     String? createdAt,
-  }) =>
-      Amal(
-        id:          id ?? this.id,
-        title:       title ?? this.title,
-        type:        type ?? this.type,
-        countTarget: countTarget ?? this.countTarget,
-        content:     content ?? this.content,
-        sortOrder:   sortOrder ?? this.sortOrder,
-        isActive:    isActive ?? this.isActive,
-        createdAt:   createdAt ?? this.createdAt,
-      );
+    String? intention,
+    int? durationDays,
+  }) => Amal(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    type: type ?? this.type,
+    countTarget: countTarget ?? this.countTarget,
+    content: content ?? this.content,
+    sortOrder: sortOrder ?? this.sortOrder,
+    isActive: isActive ?? this.isActive,
+    createdAt: createdAt ?? this.createdAt,
+    intention: intention ?? this.intention,
+    durationDays: durationDays ?? this.durationDays,
+  );
+
+  // Import/export üçün tam JSON (records olmadan)
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'type': type.name,
+    'count_target': countTarget,
+    'content': content,
+    'sort_order': sortOrder,
+    'is_active': isActive ? 1 : 0,
+    'created_at': createdAt,
+    'intention': intention,
+    'duration_days': durationDays,
+  };
+
+  factory Amal.fromJson(Map<String, dynamic> json) => Amal.fromMap(json);
 }

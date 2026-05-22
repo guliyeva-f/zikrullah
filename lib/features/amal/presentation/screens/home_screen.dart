@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../calendar/presentation/providers/heatmap_provider.dart';
 import '../../domain/amal.dart';
 import '../../domain/amal_record.dart';
 import '../providers/amal_provider.dart';
-import 'text_screen.dart';
+import '../widgets/heatmap_widget.dart';
+import 'amal_detail_screen.dart';
 import 'manage_screen.dart';
-import '../../../calendar/presentation/screens/calendar_screen.dart';
+import 'text_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -17,15 +19,29 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _tabIndex = 0;
-
   static const _months = [
-    'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun',
-    'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr',
+    'Yanvar',
+    'Fevral',
+    'Mart',
+    'Aprel',
+    'May',
+    'İyun',
+    'İyul',
+    'Avqust',
+    'Sentyabr',
+    'Oktyabr',
+    'Noyabr',
+    'Dekabr',
   ];
   static const _weekdays = [
-    '', 'Bazar ertəsi', 'Çərşənbə axşamı', 'Çərşənbə',
-    'Cümə axşamı', 'Cümə', 'Şənbə', 'Bazar',
+    '',
+    'Bazar ertəsi',
+    'Çərşənbə axşamı',
+    'Çərşənbə',
+    'Cümə axşamı',
+    'Cümə',
+    'Şənbə',
+    'Bazar',
   ];
 
   String get _todayLabel {
@@ -35,85 +51,110 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final asyncAmals = ref.watch(amalProvider);
+    final asyncHeatmap = ref.watch(heatmapProvider);
+
+    // Arxivlənmiş əməllər → snackbar
+    ref.listen<AsyncValue<AmalState>>(amalProvider, (prev, next) {
+      next.whenData((state) {
+        if (state.recentlyArchived.isNotEmpty) {
+          final names = state.recentlyArchived.map((a) => a.title).join(', ');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '$names — proqram tamamlandı 🎉',
+                style: GoogleFonts.nunito(color: Colors.white),
+              ),
+              backgroundColor: AppColors.accent,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          ref.read(amalProvider.notifier).clearArchived();
+        }
+        // Tamamlama baş verdikdə heatmap-i yenilə
+        final prevCount = prev?.value?.completedCount ?? 0;
+        if (state.completedCount > prevCount) {
+          ref.read(heatmapProvider.notifier).refresh();
+        }
+      });
+    });
+
     return Scaffold(
       backgroundColor: AppColors.bgBase,
-      body: _tabIndex == 0
-          ? _HomeBody(todayLabel: _todayLabel)
-          : const CalendarScreen(),
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return BottomNavigationBar(
-      currentIndex: _tabIndex,
-      onTap: (i) => setState(() => _tabIndex = i),
-      backgroundColor: AppColors.bgCard,
-      selectedItemColor: AppColors.accent,
-      unselectedItemColor: AppColors.textSecondary,
-      selectedLabelStyle:
-          GoogleFonts.nunito(fontWeight: FontWeight.w600, fontSize: 12),
-      unselectedLabelStyle: GoogleFonts.nunito(fontSize: 12),
-      elevation: 0,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.wb_sunny_outlined),
-          activeIcon: Icon(Icons.wb_sunny),
-          label: 'Bu gün',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month_outlined),
-          activeIcon: Icon(Icons.calendar_month),
-          label: 'Tarixçə',
-        ),
-      ],
-    );
-  }
-}
-
-// ─── HOME BODY ────────────────────────────────────────────────────────────────
-
-class _HomeBody extends ConsumerWidget {
-  final String todayLabel;
-  const _HomeBody({required this.todayLabel});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncState = ref.watch(amalProvider);
-
-    return SafeArea(
-      child: asyncState.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
-        ),
-        error: (e, _) => Center(child: Text('Xəta: $e')),
-        data: (state) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Header(state: state, todayLabel: todayLabel),
-            Expanded(child: _AmalList(state: state)),
-          ],
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: AppColors.accent,
+          backgroundColor: AppColors.bgCard,
+          onRefresh: () async {
+            await ref.read(amalProvider.notifier).refresh();
+            await ref.read(heatmapProvider.notifier).refresh();
+          },
+          child: asyncAmals.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.accent),
+            ),
+            error: (e, _) => Center(child: Text('Xəta: $e')),
+            data: (state) => ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildHeader(state),
+                if (state.amals.isEmpty)
+                  _buildEmptyState()
+                else
+                  ...state.amals.map((amal) {
+                    final record = state.records[amal.id];
+                    final streak = state.streaks[amal.id] ?? 0;
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: _AmalCard(
+                        amal: amal,
+                        record: record,
+                        streak: streak,
+                        onCheckboxTap: () => ref
+                            .read(amalProvider.notifier)
+                            .completeCheckbox(amal.id),
+                        onCounterTap: () => ref
+                            .read(amalProvider.notifier)
+                            .incrementCounter(amal.id),
+                        onTextTap: () =>
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    TextScreen(amal: amal, record: record),
+                              ),
+                            ).then(
+                              (_) => ref.read(amalProvider.notifier).refresh(),
+                            ),
+                        onInfoTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AmalDetailScreen(amal: amal),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                const SizedBox(height: 8),
+                _buildHeatmapSection(asyncHeatmap),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
-}
 
-// ─── HEADER ───────────────────────────────────────────────────────────────────
+  // ─── HEADER ───────────────────────────────────────────────────────────────
 
-class _Header extends StatelessWidget {
-  final AmalState state;
-  final String todayLabel;
-  const _Header({required this.state, required this.todayLabel});
-
-  @override
-  Widget build(BuildContext context) {
-    final total    = state.totalCount;
-    final done     = state.completedCount;
+  Widget _buildHeader(AmalState state) {
+    final total = state.totalCount;
+    final done = state.completedCount;
     final progress = total == 0 ? 0.0 : done / total;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -124,7 +165,7 @@ class _Header extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      todayLabel,
+                      _todayLabel,
                       style: GoogleFonts.nunito(
                         fontSize: 13,
                         color: AppColors.textSecondary,
@@ -143,25 +184,30 @@ class _Header extends StatelessWidget {
                   ],
                 ),
               ),
-              // FIX: context async gap-dən əvvəl saxlanılır
-              Builder(builder: (ctx) {
-                return IconButton(
-                  icon: const Icon(Icons.settings_outlined,
-                      color: AppColors.textSecondary, size: 22),
-                  onPressed: () {
-                    final container = ProviderScope.containerOf(ctx);
-                    Navigator.push(
-                      ctx,
-                      MaterialPageRoute(
-                          builder: (_) => const ManageScreen()),
-                    ).then((_) =>
-                        container.read(amalProvider.notifier).refresh());
-                  },
-                );
-              }),
+              Builder(
+                builder: (ctx) {
+                  return IconButton(
+                    icon: const Icon(
+                      Icons.settings_outlined,
+                      color: AppColors.textSecondary,
+                      size: 22,
+                    ),
+                    onPressed: () {
+                      final container = ProviderScope.containerOf(ctx);
+                      Navigator.push(
+                        ctx,
+                        MaterialPageRoute(builder: (_) => const ManageScreen()),
+                      ).then((_) {
+                        container.read(amalProvider.notifier).refresh();
+                        container.read(heatmapProvider.notifier).refresh();
+                      });
+                    },
+                  );
+                },
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -190,73 +236,88 @@ class _Header extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: AppColors.bgElevated,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.accent),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
               minHeight: 6,
             ),
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
-}
 
-// ─── AMAL LIST ────────────────────────────────────────────────────────────────
+  // ─── EMPTY STATE ──────────────────────────────────────────────────────────
 
-class _AmalList extends ConsumerWidget {
-  final AmalState state;
-  const _AmalList({required this.state});
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.add_circle_outline,
+            size: 52,
+            color: AppColors.textHint,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Hələ əməl yoxdur.\nSağ üstdəki ⚙️ ilə əlavə et.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+              color: AppColors.textHint,
+              fontSize: 15,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (state.amals.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.add_circle_outline,
-                size: 52, color: AppColors.textHint),
-            const SizedBox(height: 14),
-            Text(
-              'Hələ əməl yoxdur.\nSağ üstdəki ⚙️ ilə əlavə et.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(
-                color: AppColors.textHint,
-                fontSize: 15,
-                height: 1.6,
+  // ─── HEATMAP SECTION ──────────────────────────────────────────────────────
+
+  Widget _buildHeatmapSection(AsyncValue<HeatmapState> asyncHeatmap) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(color: AppColors.separator, height: 1),
+          const SizedBox(height: 16),
+          Text(
+            'İllik aktivlik',
+            style: GoogleFonts.nunito(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          asyncHeatmap.when(
+            loading: () => const SizedBox(
+              height: 80,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.accent,
+                  strokeWidth: 2,
+                ),
               ),
             ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-      itemCount: state.amals.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, i) {
-        final amal   = state.amals[i];
-        final record = state.records[amal.id];
-        final streak = state.streaks[amal.id] ?? 0;
-
-        return _AmalCard(
-          amal:   amal,
-          record: record,
-          streak: streak,
-          onCheckboxTap: () =>
-              ref.read(amalProvider.notifier).completeCheckbox(amal.id),
-          onCounterTap: () =>
-              ref.read(amalProvider.notifier).incrementCounter(amal.id),
-          onTextTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TextScreen(amal: amal, record: record),
-            ),
-          ).then((_) => ref.read(amalProvider.notifier).refresh()),
-        );
-      },
+            error: (_, _) => const SizedBox.shrink(),
+            data: (hState) => hState.data.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Text(
+                      'Hələ aktivlik yoxdur.',
+                      style: GoogleFonts.nunito(
+                        color: AppColors.textHint,
+                        fontSize: 13,
+                      ),
+                    ),
+                  )
+                : HeatmapWidget(data: hState.data),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -270,6 +331,7 @@ class _AmalCard extends StatelessWidget {
   final VoidCallback onCheckboxTap;
   final VoidCallback onCounterTap;
   final VoidCallback onTextTap;
+  final VoidCallback onInfoTap;
 
   const _AmalCard({
     required this.amal,
@@ -278,40 +340,64 @@ class _AmalCard extends StatelessWidget {
     required this.onCheckboxTap,
     required this.onCounterTap,
     required this.onTextTap,
+    required this.onInfoTap,
   });
 
   bool get _done => record?.isCompleted ?? false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: amal.type == AmalType.text ? onTextTap : null,
-      child: AnimatedOpacity(
-        opacity: _done ? 0.55 : 1.0,
-        duration: const Duration(milliseconds: 300),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.bgCard,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              _buildLeading(),
-              const SizedBox(width: 12),
-              Expanded(child: _buildMiddle()),
-              if (amal.type == AmalType.text)
-                const Icon(Icons.chevron_right,
-                    color: AppColors.textHint, size: 20),
-            ],
-          ),
+    return AnimatedOpacity(
+      opacity: _done ? 0.55 : 1.0,
+      duration: const Duration(milliseconds: 300),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.bgCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            // ── Action + content area ────────────────────────────
+            Expanded(
+              child: GestureDetector(
+                onTap: amal.type == AmalType.text ? onTextTap : null,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 0, 12),
+                  child: Row(
+                    children: [
+                      _buildLeading(),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildMiddle()),
+                      if (amal.type == AmalType.text)
+                        const Icon(
+                          Icons.chevron_right,
+                          color: AppColors.textHint,
+                          size: 18,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // ── ℹ️ info düyməsi ──────────────────────────────────
+            IconButton(
+              icon: const Icon(
+                Icons.info_outline,
+                size: 16,
+                color: AppColors.textHint,
+              ),
+              onPressed: onInfoTap,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              padding: const EdgeInsets.only(right: 10),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ─── LEADING ──────────────────────────────────────────────────────────────
+  // ─── LEADING ────────────────────────────────────────────────────────────
 
   Widget _buildLeading() {
     switch (amal.type) {
@@ -337,16 +423,13 @@ class _AmalCard extends StatelessWidget {
         );
 
       case AmalType.counter:
-        final done   = record?.countDone ?? 0;
+        final cnt = record?.countDone ?? 0;
         final target = amal.countTarget ?? 1;
-
         return GestureDetector(
           onTap: _done ? null : onCounterTap,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              // FIX: withOpacity → withValues
               color: AppColors.accent.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -355,11 +438,10 @@ class _AmalCard extends StatelessWidget {
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.add,
-                          color: AppColors.accent, size: 15),
+                      const Icon(Icons.add, color: AppColors.accent, size: 15),
                       const SizedBox(width: 2),
                       Text(
-                        '$done/$target',
+                        '$cnt/$target',
                         style: GoogleFonts.nunito(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -380,14 +462,14 @@ class _AmalCard extends StatelessWidget {
     }
   }
 
-  // ─── MIDDLE ───────────────────────────────────────────────────────────────
+  // ─── MIDDLE ─────────────────────────────────────────────────────────────
 
   Widget _buildMiddle() {
     final streakText = streak == 0
         ? null
         : streak == 1
-            ? 'ilk gün 🔥'
-            : '$streak gün ardıcıl 🔥';
+        ? 'ilk gün 🔥'
+        : '$streak gün ardıcıl 🔥';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,6 +492,17 @@ class _AmalCard extends StatelessWidget {
               fontSize: 12,
               color: AppColors.accentLight,
               fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+        // Müddət badge-i
+        if (amal.durationDays != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            amal.durationLabel,
+            style: GoogleFonts.nunito(
+              fontSize: 11,
+              color: amal.isExpired ? AppColors.accent : AppColors.textHint,
             ),
           ),
         ],

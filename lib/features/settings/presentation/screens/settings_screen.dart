@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../amal/data/import_export_service.dart';
+import '../../../amal/presentation/providers/amal_provider.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -42,7 +44,7 @@ class SettingsScreen extends ConsumerWidget {
         data: (state) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ── Master toggle ──────────────────────────────────
+            // ── Bildirişlər ────────────────────────────────────────
             _SectionHeader(title: 'Bildirişlər'),
             _ToggleRow(
               title: 'Bildirişlər',
@@ -54,7 +56,6 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // ── Vaxtlar ────────────────────────────────────────
             AnimatedOpacity(
               opacity: state.notificationsEnabled ? 1.0 : 0.4,
               duration: const Duration(milliseconds: 200),
@@ -100,8 +101,6 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // ── Gecə 23:00 — sabit, yalnız toggle ─────
                     _SectionHeader(title: 'Gecə xəbərdarlığı'),
                     _ToggleRow(
                       title: 'Gecə 23:00',
@@ -115,10 +114,76 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+
+            // ── Məlumat ────────────────────────────────────────────
+            _SectionHeader(title: 'Məlumat'),
+            _ActionRow(
+              icon: Icons.upload_outlined,
+              title: 'İxrac et (Export)',
+              subtitle: 'Əməlləri JSON faylı kimi paylaş',
+              onTap: () => _export(context),
+            ),
+            const SizedBox(height: 8),
+            _ActionRow(
+              icon: Icons.download_outlined,
+              title: 'İdxal et (Import)',
+              subtitle: 'JSON fayldan məlumatları bərpa et',
+              onTap: () => _import(context, ref),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  // ─── ACTIONS ──────────────────────────────────────────────────────────────
+
+  Future<void> _export(BuildContext context) async {
+    final ok = await ImportExportService.instance.exportData();
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok ? 'Məlumatlar ixrac edildi ✓' : 'İxrac zamanı xəta baş verdi',
+          style: GoogleFonts.nunito(color: Colors.white),
+        ),
+        backgroundColor: ok ? AppColors.accent : Colors.red.shade400,
+      ),
+    );
+  }
+
+  Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final result = await ImportExportService.instance.importData();
+    if (!context.mounted) {
+      return;
+    }
+
+    final msg = switch (result) {
+      ImportResult.success => 'Məlumatlar uğurla idxal edildi ✓',
+      ImportResult.cancelled => null,
+      ImportResult.invalid => 'Fayl düzgün format deyil',
+      ImportResult.error => 'İdxal zamanı xəta baş verdi',
+    };
+
+    if (msg == null) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: GoogleFonts.nunito(color: Colors.white)),
+        backgroundColor: result == ImportResult.success
+            ? AppColors.accent
+            : Colors.red.shade400,
+      ),
+    );
+
+    if (result == ImportResult.success) {
+      await ref.read(amalProvider.notifier).refresh();
+    }
   }
 
   Future<void> _pickTime(
@@ -150,7 +215,9 @@ class SettingsScreen extends ConsumerWidget {
         child: child!,
       ),
     );
-    if (picked != null) onPicked(picked);
+    if (picked != null) {
+      onPicked(picked);
+    }
   }
 }
 
@@ -246,11 +313,8 @@ class _TimeRow extends StatelessWidget {
     required this.onTap,
   });
 
-  String _formatTime(TimeOfDay t) {
-    final h = t.hour.toString().padLeft(2, '0');
-    final m = t.minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
+  String _fmt(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +341,7 @@ class _TimeRow extends StatelessWidget {
               ),
             ),
             Text(
-              _formatTime(time),
+              _fmt(time),
               style: GoogleFonts.nunito(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
@@ -285,6 +349,68 @@ class _TimeRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.textHint,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ActionRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.bgCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.accent, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.nunito(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.nunito(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const Icon(
               Icons.chevron_right,
               color: AppColors.textHint,

@@ -50,7 +50,6 @@ class AmalRepository {
     await db.delete('amals', where: 'id = ?', whereArgs: [id]);
   }
 
-  /// Sürükle-bırak sonrası bütün sort_order-ləri batch ilə yazar
   Future<void> updateSortOrders(List<Amal> amals) async {
     final db = await _db;
     final batch = db.batch();
@@ -63,6 +62,34 @@ class AmalRepository {
       );
     }
     await batch.commit(noResult: true);
+  }
+
+  // ─── MÜDDƏTİ BITMIŞ ƏMƏLLƏR ──────────────────────────────────────────────
+
+  /// Müddəti bitmiş əməlləri arxivləşdirir.
+  /// Qaytarır: arxivlənmiş əməllərin siyahısı (bildiriş üçün).
+  Future<List<Amal>> archiveExpiredAmals() async {
+    final db = await _db;
+
+    final maps = await db.query(
+      'amals',
+      where: 'is_active = 1 AND duration_days IS NOT NULL',
+    );
+
+    final archived = <Amal>[];
+    for (final m in maps) {
+      final amal = Amal.fromMap(m);
+      if (amal.isExpired) {
+        await db.update(
+          'amals',
+          {'is_active': 0},
+          where: 'id = ?',
+          whereArgs: [amal.id],
+        );
+        archived.add(amal);
+      }
+    }
+    return archived;
   }
 
   // ─── AMAL RECORDS ─────────────────────────────────────────────────────────
@@ -87,19 +114,6 @@ class AmalRepository {
     return maps.map(AmalRecord.fromMap).toList();
   }
 
-  Future<List<AmalRecord>> getRecordsForMonth(int year, int month) async {
-    final db = await _db;
-    final prefix =
-        '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
-    final maps = await db.query(
-      'amal_records',
-      where: 'record_date LIKE ?',
-      whereArgs: ['$prefix%'],
-    );
-    return maps.map(AmalRecord.fromMap).toList();
-  }
-
-  /// UPSERT — mövcuddursa replace edir, yoxdursa insert edir
   Future<void> upsertRecord(AmalRecord record) async {
     final db = await _db;
     await db.insert(
@@ -107,6 +121,68 @@ class AmalRepository {
       record.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  // ─── HEATMAP ──────────────────────────────────────────────────────────────
+
+  /// Heatmap üçün: hər tarix → tamamlanma nisbəti (0.0 – 1.0)
+  /// [from] – [to] aralığında bütün tamamlanmış günlər.
+  Future<Map<String, double>> getHeatmapData({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final db = await _db;
+
+    // Cari aktiv əməllərin sayı (məxrəc)
+    final totalResult = await db.rawQuery(
+      'SELECT COUNT(*) as cnt FROM amals WHERE is_active = 1',
+    );
+    final total = (totalResult.first['cnt'] as int?) ?? 0;
+    if (total == 0) return {};
+
+    final fromStr = _formatDate(from);
+    final toStr = _formatDate(to);
+
+    // Hər tarix üçün tamamlanan əməllərin sayı
+    final rows = await db.rawQuery(
+      '''
+      SELECT record_date, COUNT(*) AS cnt
+      FROM amal_records
+      WHERE record_date >= ? AND record_date <= ?
+        AND is_completed = 1
+      GROUP BY record_date
+    ''',
+      [fromStr, toStr],
+    );
+
+    return {
+      for (final r in rows)
+        r['record_date'] as String: ((r['cnt'] as int) / total).clamp(0.0, 1.0),
+    };
+  }
+
+  // ─── DETAIL SCREEN TƏQVİM ─────────────────────────────────────────────────
+
+  /// Bir əməlin konkret ay üzrə tamamlama map-i: date → isCompleted
+  Future<Map<String, bool>> getAmalCalendarMonth(
+    int amalId,
+    int year,
+    int month,
+  ) async {
+    final db = await _db;
+    final prefix =
+        '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
+
+    final maps = await db.query(
+      'amal_records',
+      where: 'amal_id = ? AND record_date LIKE ?',
+      whereArgs: [amalId, '$prefix%'],
+    );
+
+    return {
+      for (final m in maps)
+        m['record_date'] as String: (m['is_completed'] as int) == 1,
+    };
   }
 
   // ─── STREAK ───────────────────────────────────────────────────────────────
@@ -121,7 +197,6 @@ class AmalRepository {
         ? DateTime.now()
         : DateTime.now().subtract(const Duration(days: 1));
 
-    // 60 günlük bütün recordları bir sorğuda gətiririk
     final dates = List.generate(
       60,
       (i) => _formatDate(startDate.subtract(Duration(days: i))),
@@ -147,5 +222,83 @@ class AmalRepository {
       }
     }
     return streak;
+  }
+
+  // ─── "GERİ QAYT" BİLDİRİŞİ ÜÇÜN ──────────────────────────────────────────
+
+  /// Dünən streak qırılan əməlləri qaytarır.
+  Future<List<Amal>> getStreakBrokenAmals() async {
+    final yesterday = _formatDate(
+      DateTime.now().subtract(const Duration(days: 1)),
+    );
+    final dayBefore = _formatDate(
+      DateTime.now().subtract(const Duration(days: 2)),
+    );
+
+    final amals = await getActiveAmals();
+    final broken = <Amal>[];
+
+    for (final amal in amals) {
+      final yesterdayRec = await getRecord(amal.id, yesterday);
+      final dayBeforeRec = await getRecord(amal.id, dayBefore);
+
+      // Dünən tamamlanmayıb + əvvəlki gün tamamlanmışdı = streak qırıldı
+      final yesterdayFailed = !(yesterdayRec?.isCompleted ?? false);
+      final dayBeforeDone = dayBeforeRec?.isCompleted ?? false;
+
+      if (yesterdayFailed && dayBeforeDone) {
+        broken.add(amal);
+      }
+    }
+    return broken;
+  }
+
+  // ─── IMPORT / EXPORT ──────────────────────────────────────────────────────
+
+  Future<List<AmalRecord>> getAllRecords() async {
+    final db = await _db;
+    final maps = await db.query(
+      'amal_records',
+      orderBy: 'amal_id ASC, record_date ASC',
+    );
+    return maps.map(AmalRecord.fromMap).toList();
+  }
+
+  /// Import: mövcud məlumatları silmədən əlavə edir (id conflict-i skip edir)
+  Future<void> importData({
+    required List<Amal> amals,
+    required List<AmalRecord> records,
+  }) async {
+    final db = await _db;
+    final batch = db.batch();
+
+    for (final amal in amals) {
+      batch.insert(
+        'amals',
+        amal.toJson(),
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+    for (final rec in records) {
+      batch.insert(
+        'amal_records',
+        rec.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  // amal_repository.dart-ın sonuna əlavə et:
+  Future<int> countCompletedDays(int amalId) async {
+    final db = await _db;
+    final result = await db.rawQuery(
+      '''
+    SELECT COUNT(*) AS cnt FROM amal_records
+    WHERE amal_id = ? AND is_completed = 1
+  ''',
+      [amalId],
+    );
+    return (result.first['cnt'] as int?) ?? 0;
   }
 }

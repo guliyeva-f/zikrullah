@@ -61,8 +61,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
             child: LinearProgressIndicator(
               value: _scrollProgress,
               backgroundColor: AppColors.bgElevated,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.accent),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
               minHeight: 3,
             ),
           ),
@@ -124,8 +123,11 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new,
-            size: 18, color: AppColors.textPrimary),
+        icon: const Icon(
+          Icons.arrow_back_ios_new,
+          size: 18,
+          color: AppColors.textPrimary,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       titleSpacing: 0,

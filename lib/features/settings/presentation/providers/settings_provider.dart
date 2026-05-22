@@ -25,14 +25,13 @@ class SettingsState {
     TimeOfDay? morningTime,
     TimeOfDay? noonTime,
     TimeOfDay? eveningTime,
-  }) =>
-      SettingsState(
-        notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
-        nightNotifEnabled:    nightNotifEnabled    ?? this.nightNotifEnabled,
-        morningTime:          morningTime          ?? this.morningTime,
-        noonTime:             noonTime             ?? this.noonTime,
-        eveningTime:          eveningTime          ?? this.eveningTime,
-      );
+  }) => SettingsState(
+    notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+    nightNotifEnabled: nightNotifEnabled ?? this.nightNotifEnabled,
+    morningTime: morningTime ?? this.morningTime,
+    noonTime: noonTime ?? this.noonTime,
+    eveningTime: eveningTime ?? this.eveningTime,
+  );
 }
 
 // ─── NOTIFIER ────────────────────────────────────────────────────────────────
@@ -44,10 +43,10 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
   Future<SettingsState> build() async {
     return SettingsState(
       notificationsEnabled: await _notifService.isEnabled(),
-      nightNotifEnabled:    await _notifService.isNightEnabled(),
-      morningTime:          await _notifService.getMorningTime(),
-      noonTime:             await _notifService.getNoonTime(),
-      eveningTime:          await _notifService.getEveningTime(),
+      nightNotifEnabled: await _notifService.isNightEnabled(),
+      morningTime: await _notifService.getMorningTime(),
+      noonTime: await _notifService.getNoonTime(),
+      eveningTime: await _notifService.getEveningTime(),
     );
   }
 
@@ -79,5 +78,6 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
 
 // ─── PROVIDER ────────────────────────────────────────────────────────────────
 
-final settingsProvider =
-    AsyncNotifierProvider<SettingsNotifier, SettingsState>(SettingsNotifier.new);
+final settingsProvider = AsyncNotifierProvider<SettingsNotifier, SettingsState>(
+  SettingsNotifier.new,
+);

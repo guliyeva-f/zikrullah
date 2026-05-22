@@ -9,33 +9,37 @@ import '../../../../core/notifications/notification_service.dart';
 
 class AmalState {
   final List<Amal> amals;
-  final Map<int, AmalRecord?> records; // amalId → bu günkü record
-  final Map<int, int> streaks;         // amalId → streak günü
+  final Map<int, AmalRecord?> records;
+  final Map<int, int> streaks;
   final String today;
+  final List<Amal> recentlyArchived; // müddəti bitən əməllər → UI snackbar
 
   const AmalState({
     required this.amals,
     required this.records,
     required this.streaks,
     required this.today,
+    this.recentlyArchived = const [],
   });
 
-  int get totalCount     => amals.length;
-  int get completedCount => records.values.where((r) => r?.isCompleted == true).length;
-  bool get allCompleted  => totalCount > 0 && completedCount == totalCount;
+  int get totalCount => amals.length;
+  int get completedCount =>
+      records.values.where((r) => r?.isCompleted == true).length;
+  bool get allCompleted => totalCount > 0 && completedCount == totalCount;
 
   AmalState copyWith({
     List<Amal>? amals,
     Map<int, AmalRecord?>? records,
     Map<int, int>? streaks,
     String? today,
-  }) =>
-      AmalState(
-        amals:   amals   ?? this.amals,
-        records: records ?? this.records,
-        streaks: streaks ?? this.streaks,
-        today:   today   ?? this.today,
-      );
+    List<Amal>? recentlyArchived,
+  }) => AmalState(
+    amals: amals ?? this.amals,
+    records: records ?? this.records,
+    streaks: streaks ?? this.streaks,
+    today: today ?? this.today,
+    recentlyArchived: recentlyArchived ?? this.recentlyArchived,
+  );
 }
 
 // ─── NOTIFIER ────────────────────────────────────────────────────────────────
@@ -51,6 +55,14 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
   }
 
   Future<AmalState> _load() async {
+    // Müddəti bitmiş əməlləri arxivlə
+    final archived = await _repo.archiveExpiredAmals();
+
+    final broken = await _repo.getStreakBrokenAmals();
+    if (broken.isNotEmpty) {
+      await _notifService.scheduleReturnNotifications(broken);
+    }
+
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final amals = await _repo.getActiveAmals();
 
@@ -62,13 +74,24 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     }
 
     return AmalState(
-      amals: amals, records: records, streaks: streaks, today: today,
+      amals: amals,
+      records: records,
+      streaks: streaks,
+      today: today,
+      recentlyArchived: archived,
     );
   }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(_load);
+  }
+
+  /// UI snackbar-ı göstərdikdən sonra çağırılır
+  void clearArchived() {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(current.copyWith(recentlyArchived: []));
   }
 
   // ─── TAMAMLAMA HƏRƏKƏTLƏRİ ───────────────────────────────────────────────
@@ -89,19 +112,19 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     final current = state.value;
     if (current == null) return;
 
-    final amal      = current.amals.firstWhere((a) => a.id == amalId);
-    final existing  = current.records[amalId];
-    final newCount  = (existing?.countDone ?? 0) + 1;
-    final target    = amal.countTarget ?? 1;
-    final completed = newCount >= target;
+    final amal = current.amals.firstWhere((a) => a.id == amalId);
+    final existing = current.records[amalId];
+    final newCount = (existing?.countDone ?? 0) + 1;
+    final target = amal.countTarget ?? 1;
+    final done = newCount >= target;
 
     final record = AmalRecord(
-      id:          existing?.id,
-      amalId:      amalId,
-      recordDate:  current.today,
-      isCompleted: completed,
-      countDone:   newCount,
-      completedAt: completed ? DateTime.now().toIso8601String() : null,
+      id: existing?.id,
+      amalId: amalId,
+      recordDate: current.today,
+      isCompleted: done,
+      countDone: newCount,
+      completedAt: done ? DateTime.now().toIso8601String() : null,
     );
     await _repo.upsertRecord(record);
     await _patchRecord(amalId, record);
@@ -119,25 +142,25 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     await _patchRecord(amalId, record);
   }
 
-  /// Yalnız dəyişən amalı yeniləyir — bütün state-i yenidən yükləmir
   Future<void> _patchRecord(int amalId, AmalRecord record) async {
     final current = state.value;
     if (current == null) return;
 
-    final newRecords = Map<int, AmalRecord?>.from(current.records)..[amalId] = record;
-    final newStreak  = await _repo.calculateStreak(amalId);
-    final newStreaks  = Map<int, int>.from(current.streaks)..[amalId] = newStreak;
-    final newState   = current.copyWith(records: newRecords, streaks: newStreaks);
+    final newRecords = Map<int, AmalRecord?>.from(current.records)
+      ..[amalId] = record;
+    final newStreak = await _repo.calculateStreak(amalId);
+    final newStreaks = Map<int, int>.from(current.streaks)
+      ..[amalId] = newStreak;
+    final newState = current.copyWith(records: newRecords, streaks: newStreaks);
 
     state = AsyncData(newState);
 
-    // Hamısı tamamlandısa bildirişləri ləğv et
     if (newState.allCompleted) {
       await _notifService.cancelTodayIfAllDone();
     }
   }
 
-  // ─── CRUD (ManageScreen üçün) ─────────────────────────────────────────────
+  // ─── CRUD ─────────────────────────────────────────────────────────────────
 
   Future<void> addAmal(Amal amal) async {
     await _repo.insertAmal(amal);
@@ -162,5 +185,6 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
 
 // ─── PROVIDER ────────────────────────────────────────────────────────────────
 
-final amalProvider =
-    AsyncNotifierProvider<AmalNotifier, AmalState>(AmalNotifier.new);
+final amalProvider = AsyncNotifierProvider<AmalNotifier, AmalState>(
+  AmalNotifier.new,
+);

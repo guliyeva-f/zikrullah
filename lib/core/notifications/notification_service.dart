@@ -13,16 +13,19 @@ class NotificationService {
 
   static const _keyEnabled = 'notif_enabled';
   static const _keyMorning = 'notif_morning';
-  static const _keyNoon    = 'notif_noon';
+  static const _keyNoon = 'notif_noon';
   static const _keyEvening = 'notif_evening';
-  static const _keyNight   = 'notif_night';
+  static const _keyNight = 'notif_night';
 
-  static const _channelId   = 'amal_channel';
+  static const _channelId = 'amal_channel';
   static const _channelName = 'Əməl Xatırlatmaları';
   static const _channelDesc = 'Gündəlik əməl xatırlatmaları';
 
   // Generic tip tək sətirdə — parse xətasının qarşısını alır
-  AndroidFlutterLocalNotificationsPlugin? get _androidImpl => _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  AndroidFlutterLocalNotificationsPlugin? get _androidImpl => _plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
 
   // ─── INIT ────────────────────────────────────────────────────────────────
 
@@ -30,7 +33,9 @@ class NotificationService {
     tz_data.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Baku'));
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const initSettings = InitializationSettings(android: androidSettings);
 
     await _plugin.initialize(settings: initSettings);
@@ -102,7 +107,7 @@ class NotificationService {
   }
 
   Future<TimeOfDay> getMorningTime() => _getTime(_keyMorning, 9);
-  Future<TimeOfDay> getNoonTime()    => _getTime(_keyNoon, 13);
+  Future<TimeOfDay> getNoonTime() => _getTime(_keyNoon, 13);
   Future<TimeOfDay> getEveningTime() => _getTime(_keyEvening, 20);
 
   Future<void> setMorningTime(TimeOfDay t) async {
@@ -132,7 +137,7 @@ class NotificationService {
       if (!await isEnabled()) return;
 
       final morning = await getMorningTime();
-      final noon    = await getNoonTime();
+      final noon = await getNoonTime();
       final evening = await getEveningTime();
 
       await _scheduleDaily(
@@ -213,6 +218,57 @@ class NotificationService {
       );
     } catch (e) {
       debugPrint('Notification schedule xətası (id=$id): $e');
+    }
+  }
+
+  // ─── GERİ QAYT BİLDİRİŞİ ─────────────────────────────────────────────────
+
+  /// Streak qırılan əməllər üçün sabah səhər bildiriş planlaşdırır.
+  Future<void> scheduleReturnNotifications(List<dynamic> brokenAmals) async {
+    if (brokenAmals.isEmpty) {
+      return;
+    }
+    if (!await isEnabled()) {
+      return;
+    }
+
+    await _plugin.cancel(id: 5);
+
+    final names = brokenAmals.map((a) => a.title as String).toList();
+    final body = names.length == 1
+        ? '"${names.first}" dünən qırıldı. Bu gün yenidən başla 💪'
+        : '${names.join(', ')} — dünən qırıldı. Bu gün yenidən başla 💪';
+
+    final morning = await getMorningTime();
+    final now = tz.TZDateTime.now(tz.local);
+    final tomorrow = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      morning.hour,
+      morning.minute,
+    ).add(const Duration(days: 1));
+
+    try {
+      await _plugin.zonedSchedule(
+        id: 5,
+        title: 'Yenidən başla',
+        body: body,
+        scheduledDate: tomorrow,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            channelDescription: _channelDesc,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } catch (e) {
+      debugPrint('Return notification xətası: $e');
     }
   }
 }
