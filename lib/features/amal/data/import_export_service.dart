@@ -22,7 +22,16 @@ class ImportExportService {
 
   // ─── EXPORT ──────────────────────────────────────────────────────────────
 
+  /// BUG #15 DÜZƏLİŞİ:
+  /// Əvvəlki kod faylı getDatabasesPath() qovluğuna yazırdı — bu
+  /// /data/data/com.example.amal_app/databases/ daxili sistem qovluğudur.
+  /// Fayl paylaşımdan sonra orada qalırdı, istifadəçi onu görə bilmirdi.
+  ///
+  /// Həll:
+  /// 1. Directory.systemTemp — müvəqqəti qovluq istifadə edilir
+  /// 2. SharePlus ilə paylaşımdan SONRA fayl silinir (cleanup)
   Future<bool> exportData() async {
+    File? tempFile;
     try {
       final amals = await _repo.getAllAmals();
       final records = await _repo.getAllRecords();
@@ -34,12 +43,20 @@ class ImportExportService {
         'records': records.map((r) => r.toMap()).toList(),
       });
 
-      // path_provider olmadan — DB qovluğuna yazırıq
-      final dbDir = await getDatabasesPath();
+      // FIX #15: getDatabasesPath() → Directory.systemTemp
+      // Müvəqqəti qovluq — paylaşımdan sonra silinir
       final stamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-      final filePath = p.join(dbDir, 'amal_yedeyi_$stamp.json');
+      String tempDirPath;
+      try {
+        tempDirPath = Directory.systemTemp.path;
+      } catch (_) {
+        // Fallback: əgər systemTemp əlçatmazdırsa DB qovluğuna yaz
+        tempDirPath = await getDatabasesPath();
+      }
 
-      await File(filePath).writeAsString(jsonStr, flush: true);
+      final filePath = p.join(tempDirPath, 'amal_yedeyi_$stamp.json');
+      tempFile = File(filePath);
+      await tempFile.writeAsString(jsonStr, flush: true);
 
       final result = await SharePlus.instance.share(
         ShareParams(
@@ -53,6 +70,15 @@ class ImportExportService {
     } catch (e) {
       debugPrint('Export xətası: $e');
       return false;
+    } finally {
+      // FIX #15: paylaşımdan sonra müvəqqəti faylı sil
+      try {
+        if (tempFile != null && await tempFile.exists()) {
+          await tempFile.delete();
+        }
+      } catch (e) {
+        debugPrint('Temp fayl silmə xətası: $e');
+      }
     }
   }
 

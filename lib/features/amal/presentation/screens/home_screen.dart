@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../calendar/presentation/providers/heatmap_provider.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../domain/amal.dart';
 import '../../domain/amal_record.dart';
 import '../providers/amal_provider.dart';
@@ -71,7 +72,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           );
           ref.read(amalProvider.notifier).clearArchived();
         }
-        // Tamamlama baş verdikdə heatmap-i yenilə
         final prevCount = prev?.value?.completedCount ?? 0;
         if (state.completedCount > prevCount) {
           ref.read(heatmapProvider.notifier).refresh();
@@ -113,9 +113,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         onCheckboxTap: () => ref
                             .read(amalProvider.notifier)
                             .completeCheckbox(amal.id),
+                        // FIX #9: Checkbox geri alma — uzun basma
+                        onCheckboxUndo: () => ref
+                            .read(amalProvider.notifier)
+                            .undoCheckbox(amal.id),
                         onCounterTap: () => ref
                             .read(amalProvider.notifier)
                             .incrementCounter(amal.id),
+                        // FIX #8: Counter azaltma — uzun basma
+                        onCounterDecrement: () => ref
+                            .read(amalProvider.notifier)
+                            .decrementCounter(amal.id),
                         onTextTap: () =>
                             Navigator.push(
                               context,
@@ -184,26 +192,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
               ),
+              // ── BUG #16 DÜZƏLİŞİ: iki ayrı ikon düyməsi ─────────────────
+              // Əvvəl: bir ⚙️ düymə → ManageScreen (istifadəçi Settings
+              //         gözləyir, amma ManageScreen açılır — çaşdırıcı UX)
+              // İndi: ✏️ → ManageScreen, ⚙️ → SettingsScreen (birbaşa)
               Builder(
-                builder: (ctx) {
-                  return IconButton(
-                    icon: const Icon(
-                      Icons.settings_outlined,
-                      color: AppColors.textSecondary,
-                      size: 22,
-                    ),
-                    onPressed: () {
-                      final container = ProviderScope.containerOf(ctx);
-                      Navigator.push(
-                        ctx,
-                        MaterialPageRoute(builder: (_) => const ManageScreen()),
-                      ).then((_) {
-                        container.read(amalProvider.notifier).refresh();
-                        container.read(heatmapProvider.notifier).refresh();
-                      });
-                    },
-                  );
-                },
+                builder: (ctx) => IconButton(
+                  icon: const Icon(
+                    Icons.edit_note_outlined,
+                    color: AppColors.textSecondary,
+                    size: 22,
+                  ),
+                  tooltip: 'Əməlləri idarə et',
+                  onPressed: () {
+                    final container = ProviderScope.containerOf(ctx);
+                    Navigator.push(
+                      ctx,
+                      MaterialPageRoute(builder: (_) => const ManageScreen()),
+                    ).then((_) {
+                      container.read(amalProvider.notifier).refresh();
+                      container.read(heatmapProvider.notifier).refresh();
+                    });
+                  },
+                ),
+              ),
+              Builder(
+                builder: (ctx) => IconButton(
+                  icon: const Icon(
+                    Icons.settings_outlined,
+                    color: AppColors.textSecondary,
+                    size: 22,
+                  ),
+                  tooltip: 'Ayarlar',
+                  onPressed: () {
+                    final container = ProviderScope.containerOf(ctx);
+                    Navigator.push(
+                      ctx,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    ).then((_) {
+                      container.read(amalProvider.notifier).refresh();
+                      container.read(heatmapProvider.notifier).refresh();
+                    });
+                  },
+                ),
               ),
             ],
           ),
@@ -260,7 +291,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(height: 14),
           Text(
-            'Hələ əməl yoxdur.\nSağ üstdəki ⚙️ ilə əlavə et.',
+            'Hələ əməl yoxdur.\n✏️ ilə əlavə et.',
             textAlign: TextAlign.center,
             style: GoogleFonts.nunito(
               color: AppColors.textHint,
@@ -329,7 +360,9 @@ class _AmalCard extends StatelessWidget {
   final AmalRecord? record;
   final int streak;
   final VoidCallback onCheckboxTap;
+  final VoidCallback onCheckboxUndo; // FIX #9: yeni callback
   final VoidCallback onCounterTap;
+  final VoidCallback onCounterDecrement; // FIX #8: yeni callback
   final VoidCallback onTextTap;
   final VoidCallback onInfoTap;
 
@@ -338,7 +371,9 @@ class _AmalCard extends StatelessWidget {
     required this.record,
     required this.streak,
     required this.onCheckboxTap,
+    required this.onCheckboxUndo,
     required this.onCounterTap,
+    required this.onCounterDecrement,
     required this.onTextTap,
     required this.onInfoTap,
   });
@@ -358,7 +393,6 @@ class _AmalCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // ── Action + content area ────────────────────────────
             Expanded(
               child: GestureDetector(
                 onTap: amal.type == AmalType.text ? onTextTap : null,
@@ -366,7 +400,7 @@ class _AmalCard extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(14, 12, 0, 12),
                   child: Row(
                     children: [
-                      _buildLeading(),
+                      _buildLeading(context),
                       const SizedBox(width: 12),
                       Expanded(child: _buildMiddle()),
                       if (amal.type == AmalType.text)
@@ -380,7 +414,6 @@ class _AmalCard extends StatelessWidget {
                 ),
               ),
             ),
-            // ── ℹ️ info düyməsi ──────────────────────────────────
             IconButton(
               icon: const Icon(
                 Icons.info_outline,
@@ -399,11 +432,29 @@ class _AmalCard extends StatelessWidget {
 
   // ─── LEADING ────────────────────────────────────────────────────────────
 
-  Widget _buildLeading() {
+  Widget _buildLeading(BuildContext context) {
     switch (amal.type) {
       case AmalType.checkbox:
+        // FIX #9: uzun basma ilə geri al
+        // Qısa tap → tamamla (əgər hələ tamamlanmayıbsa)
+        // Uzun tap → geri al (əgər tamamlanıbsa) + snackbar məlumat
         return GestureDetector(
           onTap: _done ? null : onCheckboxTap,
+          onLongPress: _done
+              ? () {
+                  onCheckboxUndo();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${amal.title} geri alındı',
+                        style: GoogleFonts.nunito(color: Colors.white),
+                      ),
+                      backgroundColor: AppColors.accent,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: 26,
@@ -425,8 +476,26 @@ class _AmalCard extends StatelessWidget {
       case AmalType.counter:
         final cnt = record?.countDone ?? 0;
         final target = amal.countTarget ?? 1;
+        // FIX #8: uzun basma ilə counter azalt
+        // Qısa tap → artır (əgər hədəfə çatmayıbsa)
+        // Uzun tap → bir azalt (cnt > 0 olduqda)
         return GestureDetector(
           onTap: _done ? null : onCounterTap,
+          onLongPress: cnt > 0
+              ? () {
+                  onCounterDecrement();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${amal.title}: ${cnt - 1}/$target',
+                        style: GoogleFonts.nunito(color: Colors.white),
+                      ),
+                      backgroundColor: AppColors.accent,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              : null,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
@@ -495,7 +564,6 @@ class _AmalCard extends StatelessWidget {
             ),
           ),
         ],
-        // Müddət badge-i
         if (amal.durationDays != null) ...[
           const SizedBox(height: 2),
           Text(

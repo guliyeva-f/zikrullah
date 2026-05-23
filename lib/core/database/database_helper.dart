@@ -8,18 +8,26 @@ class DatabaseHelper {
 
   static Database? _db;
 
+  // Test mühitində ':memory:' olaraq təyin edilir
+  static String? _overridePath;
+
   Future<Database> get database async {
     _db ??= await _initDb();
     return _db!;
   }
 
   Future<Database> _initDb() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'amal_app.db');
+    final String path;
+    if (_overridePath != null) {
+      path = _overridePath!;
+    } else {
+      final dbPath = await getDatabasesPath();
+      path = join(dbPath, 'amal_app.db');
+    }
 
     return await openDatabase(
       path,
-      version: 2, // v1 → v2
+      version: 2,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
       onOpen: (db) async {
@@ -27,8 +35,6 @@ class DatabaseHelper {
       },
     );
   }
-
-  // ─── v1: ilk quruluş ──────────────────────────────────────────────────────
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
@@ -60,13 +66,27 @@ class DatabaseHelper {
     ''');
   }
 
-  // ─── v2: niyyət + müddət sütunları ────────────────────────────────────────
-
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('ALTER TABLE amals ADD COLUMN intention TEXT');
       await db.execute('ALTER TABLE amals ADD COLUMN duration_days INTEGER');
-      // Mövcud əməllər: intention = NULL, duration_days = NULL (daimi)
     }
+  }
+
+  // ─── TEST KÖMƏKÇI METODLAR ────────────────────────────────────────────────
+
+  /// Test mühitində in-memory DB istifadə etmək üçün çağır.
+  /// sqflite_common_ffi ilə birlikdə istifadə edilir.
+  static void useInMemoryForTesting() {
+    _overridePath = inMemoryDatabasePath;
+  }
+
+  /// Hər testdən sonra DB bağlantısını sıfırla.
+  /// In-memory DB olduqda növbəti test tamamilə təmiz DB alır.
+  Future<void> resetForTesting() async {
+    if (_db != null && _db!.isOpen) {
+      await _db!.close();
+    }
+    _db = null;
   }
 }

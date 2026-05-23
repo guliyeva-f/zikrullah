@@ -21,7 +21,6 @@ class NotificationService {
   static const _channelName = 'Əməl Xatırlatmaları';
   static const _channelDesc = 'Gündəlik əməl xatırlatmaları';
 
-  // Generic tip tək sətirdə — parse xətasının qarşısını alır
   AndroidFlutterLocalNotificationsPlugin? get _androidImpl => _plugin
       .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin
@@ -37,7 +36,6 @@ class NotificationService {
       '@mipmap/ic_launcher',
     );
     const initSettings = InitializationSettings(android: androidSettings);
-
     await _plugin.initialize(settings: initSettings);
 
     await _androidImpl?.createNotificationChannel(
@@ -59,14 +57,12 @@ class NotificationService {
     }
   }
 
-  // ─── EXACT ALARM YOXLAMA ─────────────────────────────────────────────────
+  // ─── BUG #1: exact alarm icazəsi yoxlanılır ──────────────────────────────
 
   Future<bool> _canUseExactAlarms() async {
     try {
-      final canSchedule = await _androidImpl?.canScheduleExactNotifications();
-      return canSchedule ?? false;
-    } catch (e) {
-      debugPrint('Exact alarm yoxlama xətası: $e');
+      return await _androidImpl?.canScheduleExactNotifications() ?? false;
+    } catch (_) {
       return false;
     }
   }
@@ -127,9 +123,8 @@ class NotificationService {
 
   // ─── SCHEDULE ────────────────────────────────────────────────────────────
 
-  Future<void> cancelTodayIfAllDone() async {
-    await _plugin.cancelAll();
-  }
+  // BUG #2: cancelAll() deyil, reschedule() — sabahkı bildirişlər qorunur
+  Future<void> cancelTodayIfAllDone() async => reschedule();
 
   Future<void> reschedule() async {
     try {
@@ -192,45 +187,41 @@ class NotificationService {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
-      final scheduleMode = await _canUseExactAlarms()
+      // BUG #1: exact alarm yoxlanılır
+      final mode = await _canUseExactAlarms()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
 
-      const details = NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          channelDescription: _channelDesc,
-          importance: Importance.high,
-          priority: Priority.high,
-        ),
-      );
-
-      // Hamısı named parametr
+      // flutter_local_notifications ^21: zonedSchedule() BÜTÜN parametrlər named-dir
       await _plugin.zonedSchedule(
         id: id,
         title: 'Şəxsi Əməllər',
         body: body,
         scheduledDate: scheduled,
-        notificationDetails: details,
-        androidScheduleMode: scheduleMode,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            channelDescription: _channelDesc,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+        androidScheduleMode: mode,
         matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {
-      debugPrint('Notification schedule xətası (id=$id): $e');
+      debugPrint('Schedule xətası (id=$id): $e');
     }
   }
 
   // ─── GERİ QAYT BİLDİRİŞİ ─────────────────────────────────────────────────
 
-  /// Streak qırılan əməllər üçün sabah səhər bildiriş planlaşdırır.
+  // BUG #1: exact alarm yoxlanılır
+  // ^21-də cancel() named parametrdir: cancel(id: X)
+  // ^21-də zonedSchedule() bütün parametrləri named qəbul edir
   Future<void> scheduleReturnNotifications(List<dynamic> brokenAmals) async {
-    if (brokenAmals.isEmpty) {
-      return;
-    }
-    if (!await isEnabled()) {
-      return;
-    }
+    if (brokenAmals.isEmpty || !await isEnabled()) return;
 
     await _plugin.cancel(id: 5);
 
@@ -250,6 +241,10 @@ class NotificationService {
       morning.minute,
     ).add(const Duration(days: 1));
 
+    final mode = await _canUseExactAlarms()
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.inexactAllowWhileIdle;
+
     try {
       await _plugin.zonedSchedule(
         id: 5,
@@ -265,7 +260,7 @@ class NotificationService {
             priority: Priority.high,
           ),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: mode,
       );
     } catch (e) {
       debugPrint('Return notification xətası: $e');
