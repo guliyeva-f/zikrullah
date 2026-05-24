@@ -1,4 +1,3 @@
-// ignore_for_file: depend_on_referenced_packages
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,11 +11,8 @@ import 'package:amal_app/features/amal/domain/amal_record.dart';
 import 'package:amal_app/features/amal/presentation/providers/amal_provider.dart';
 import 'package:amal_app/features/amal/presentation/screens/home_screen.dart';
 
-// ─── KÖMƏKÇI FUNKSIYALAR (main xaricində) ────────────────────────────────────
-
 String _fmt(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
 
-// Getter deyil, adi funksiya — main() içindən çağırılır
 String _today() => _fmt(DateTime.now());
 
 Amal _makeAmal({
@@ -83,7 +79,6 @@ void main() {
       expect(rec?.isCompleted, isTrue);
     });
 
-    // FIX #9 — checkbox geri alma
     test('checkbox tamamlandıqdan sonra geri alınır', () async {
       final id = await repo.insertAmal(_makeAmal(title: 'Zikr'));
       final td = _today();
@@ -101,7 +96,6 @@ void main() {
       expect((await repo.getRecord(id, td))?.isCompleted, isFalse);
     });
 
-    // FIX #8 — counter azaltma
     test('counter artırılır sonra azaldılır', () async {
       final id = await repo.insertAmal(
         _makeAmal(title: 'Təsbeh', countTarget: 33),
@@ -116,7 +110,6 @@ void main() {
       expect((await repo.getRecord(id, td))?.countDone, 4);
     });
 
-    // FIX #4 — streak 60+ gün
     test('streak 60 günü keçdikdə düzgün hesablanır', () async {
       final id = await repo.insertAmal(
         Amal(
@@ -144,7 +137,6 @@ void main() {
       expect(await repo.calculateStreak(id), 90);
     });
 
-    // FIX #5 — getRecordsForDate batch sorğu
     test('getRecordsForDate bütün bugünkü recordları qaytarır', () async {
       final td = _today();
       final ids = <int>[];
@@ -167,7 +159,6 @@ void main() {
       expect(records.map((r) => r.amalId).toSet(), containsAll(ids));
     });
 
-    // FIX #7 — getStreakBrokenAmals batch sorğu
     test('getStreakBrokenAmals kəsilmiş əməlləri qaytarır', () async {
       final yesterday = _fmt(DateTime.now().subtract(const Duration(days: 1)));
       final dayBefore = _fmt(DateTime.now().subtract(const Duration(days: 2)));
@@ -226,7 +217,6 @@ void main() {
       expect(broken.first.id, idA);
     });
 
-    // FIX #3 — heatmap məxrəci
     test('heatmap: arxivlənmiş əməl keçmiş nisbəti dəyişdirmir', () async {
       final now = DateTime.now();
       final created = now.subtract(const Duration(days: 10)).toIso8601String();
@@ -288,7 +278,6 @@ void main() {
       expect(after[nineDaysAgo], closeTo(1.0, 0.01));
     });
 
-    // FIX #14 — import ID remapping
     test(
       'import: ID konflikti olduqda recordlar düzgün əmələ bağlanır',
       () async {
@@ -361,7 +350,6 @@ void main() {
       );
     });
 
-    // FIX #9
     test('undoCheckbox → tamamlanmamış', () async {
       final c = makeContainer();
       addTearDown(c.dispose);
@@ -369,14 +357,13 @@ void main() {
       await c.read(amalProvider.notifier).addAmal(_makeAmal(title: 'Y'));
       final id = (await c.read(amalProvider.future)).amals.first.id;
       await c.read(amalProvider.notifier).completeCheckbox(id);
-      await c.read(amalProvider.notifier).undoCheckbox(id);
+      await c.read(amalProvider.notifier).completeCheckbox(id);
       expect(
         (await c.read(amalProvider.future)).records[id]?.isCompleted,
         isFalse,
       );
     });
 
-    // FIX #8
     test('decrementCounter azaldır', () async {
       final c = makeContainer();
       addTearDown(c.dispose);
@@ -423,7 +410,6 @@ void main() {
       expect(find.text('Günün əməlləri'), findsOneWidget);
     });
 
-    // FIX #16 — idarəetmə ikonu birbaşa HomeScreen-dədir
     testWidgets('idarəetmə ikonu mövcuddur', (t) async {
       await t.pumpWidget(
         const ProviderScope(child: MaterialApp(home: HomeScreen())),
@@ -432,7 +418,6 @@ void main() {
       expect(find.byIcon(Icons.edit_note_outlined), findsOneWidget);
     });
 
-    // FIX #16 — settings ikonu birbaşa HomeScreen-dədir
     testWidgets('settings ikonu birbaşa HomeScreen-dədir', (t) async {
       await t.pumpWidget(
         const ProviderScope(child: MaterialApp(home: HomeScreen())),

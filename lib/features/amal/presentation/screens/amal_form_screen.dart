@@ -23,7 +23,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   late final TextEditingController _customDurCtrl;
 
   late AmalType _type;
-  int? _durationPreset; // null=Daimi, 7, 21, 40, -1=Özün
+  int? _durationPreset;
   bool _submitted = false;
 
   bool get _isEditing => widget.amal != null;
@@ -72,35 +72,25 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   // ─── VALİDASİYA ───────────────────────────────────────────────────────────
 
   String? get _titleError {
-    if (!_submitted) {
-      return null;
-    }
+    if (!_submitted) return null;
     return _titleCtrl.text.trim().isEmpty ? 'Ad boş ola bilməz' : null;
   }
 
   String? get _countError {
-    if (!_submitted || _type != AmalType.counter) {
-      return null;
-    }
+    if (!_submitted || _type != AmalType.counter) return null;
     final v = int.tryParse(_countCtrl.text.trim());
     return (v == null || v < 1) ? 'Minimum 1 olmalıdır' : null;
   }
 
   String? get _customDurError {
-    if (!_submitted || _durationPreset != -1) {
-      return null;
-    }
+    if (!_submitted || _durationPreset != -1) return null;
     final v = int.tryParse(_customDurCtrl.text.trim());
     return (v == null || v < 1) ? 'Minimum 1 gün daxil et' : null;
   }
 
   int? get _resolvedDuration {
-    if (_durationPreset == null) {
-      return null;
-    }
-    if (_durationPreset == -1) {
-      return int.tryParse(_customDurCtrl.text.trim());
-    }
+    if (_durationPreset == null) return null;
+    if (_durationPreset == -1) return int.tryParse(_customDurCtrl.text.trim());
     return _durationPreset;
   }
 
@@ -123,9 +113,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
 
   Future<void> _save() async {
     setState(() => _submitted = true);
-    if (!_isValid) {
-      return;
-    }
+    if (!_isValid) return;
 
     final title = _titleCtrl.text.trim();
     final intention = _intentionCtrl.text.trim().isEmpty
@@ -150,7 +138,10 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
             ),
           );
     } else {
-      final count = ref.read(amalProvider).value?.amals.length ?? 0;
+      // FIX #10: arxivlənmiş əməlləri də nəzərə almaq üçün
+      // unikal və həmişə artan sortOrder — yeni əməl həmişə sonda olur
+      final sortOrder = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
       await ref
           .read(amalProvider.notifier)
           .addAmal(
@@ -160,7 +151,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               type: _type,
               countTarget: countTarget,
               content: content,
-              sortOrder: count,
+              sortOrder: sortOrder,
               isActive: true,
               createdAt: DateFormat(
                 "yyyy-MM-dd'T'HH:mm:ss",
@@ -171,9 +162,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
           );
     }
 
-    if (mounted) {
-      Navigator.pop(context);
-    }
+    if (mounted) Navigator.pop(context);
   }
 
   // ─── BUILD ────────────────────────────────────────────────────────────────
@@ -310,9 +299,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   Widget _titleField() => TextField(
     controller: _titleCtrl,
     onChanged: (_) {
-      if (_submitted) {
-        setState(() {});
-      }
+      if (_submitted) setState(() {});
     },
     style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
     decoration: _dec(hint: 'Məsələn: Sübh namazı', error: _titleError),
@@ -371,9 +358,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       onChanged: (_) {
-        if (_submitted) {
-          setState(() {});
-        }
+        if (_submitted) setState(() {});
       },
       style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
       decoration: _dec(hint: '1', error: _countError),
@@ -433,9 +418,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       onChanged: (_) {
-        if (_submitted) {
-          setState(() {});
-        }
+        if (_submitted) setState(() {});
       },
       style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
       decoration: _dec(hint: 'Neçə gün?', error: _customDurError),

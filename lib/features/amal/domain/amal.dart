@@ -55,7 +55,6 @@ class Amal {
     return r < 0 ? 0 : r;
   }
 
-  /// 0.0 – 1.0, müddətsiz əməllər üçün null
   double? get durationProgress {
     if (durationDays == null || durationDays == 0) return null;
     return (daysSinceStart / durationDays!).clamp(0.0, 1.0);

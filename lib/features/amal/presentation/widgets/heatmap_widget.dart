@@ -36,7 +36,6 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
   @override
   void initState() {
     super.initState();
-    // Ən son tarixə (sağa) avtomatik scroll
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
@@ -63,7 +62,6 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
 
-  /// Həftə sütunlarını qurur — Monday-first
   List<List<DateTime?>> _buildWeeks() {
     final today = DateTime.now();
     final todayNorm = DateTime(today.year, today.month, today.day);

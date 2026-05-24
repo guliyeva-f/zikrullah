@@ -57,8 +57,6 @@ class NotificationService {
     }
   }
 
-  // ─── BUG #1: exact alarm icazəsi yoxlanılır ──────────────────────────────
-
   Future<bool> _canUseExactAlarms() async {
     try {
       return await _androidImpl?.canScheduleExactNotifications() ?? false;
@@ -123,8 +121,46 @@ class NotificationService {
 
   // ─── SCHEDULE ────────────────────────────────────────────────────────────
 
-  // BUG #2: cancelAll() deyil, reschedule() — sabahkı bildirişlər qorunur
-  Future<void> cancelTodayIfAllDone() async => reschedule();
+  Future<void> cancelTodayIfAllDone() async {
+    try {
+      await _plugin.cancelAll();
+      if (!await isEnabled()) return;
+
+      final morning = await getMorningTime();
+      final noon = await getNoonTime();
+      final evening = await getEveningTime();
+
+      await _scheduleDailyFromTomorrow(
+        id: 1,
+        hour: morning.hour,
+        minute: morning.minute,
+        body: 'Günün əməlləri sənini gözləyir 🤲',
+      );
+      await _scheduleDailyFromTomorrow(
+        id: 2,
+        hour: noon.hour,
+        minute: noon.minute,
+        body: 'Əməllərini tamamlamağı unutma',
+      );
+      await _scheduleDailyFromTomorrow(
+        id: 3,
+        hour: evening.hour,
+        minute: evening.minute,
+        body: 'Günün hələ bitməyib',
+      );
+
+      if (await isNightEnabled()) {
+        await _scheduleDailyFromTomorrow(
+          id: 4,
+          hour: 23,
+          minute: 0,
+          body: 'Günün bitmə vaxtı yaxınlaşır ⏳',
+        );
+      }
+    } catch (e) {
+      debugPrint('cancelTodayIfAllDone xətası: $e');
+    }
+  }
 
   Future<void> reschedule() async {
     try {
@@ -187,12 +223,10 @@ class NotificationService {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
-      // BUG #1: exact alarm yoxlanılır
       final mode = await _canUseExactAlarms()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
 
-      // flutter_local_notifications ^21: zonedSchedule() BÜTÜN parametrlər named-dir
       await _plugin.zonedSchedule(
         id: id,
         title: 'Şəxsi Əməllər',
@@ -215,42 +249,33 @@ class NotificationService {
     }
   }
 
-  // ─── GERİ QAYT BİLDİRİŞİ ─────────────────────────────────────────────────
-
-  // BUG #1: exact alarm yoxlanılır
-  // ^21-də cancel() named parametrdir: cancel(id: X)
-  // ^21-də zonedSchedule() bütün parametrləri named qəbul edir
-  Future<void> scheduleReturnNotifications(List<dynamic> brokenAmals) async {
-    if (brokenAmals.isEmpty || !await isEnabled()) return;
-
-    await _plugin.cancel(id: 5);
-
-    final names = brokenAmals.map((a) => a.title as String).toList();
-    final body = names.length == 1
-        ? '"${names.first}" dünən qırıldı. Bu gün yenidən başla 💪'
-        : '${names.join(', ')} — dünən qırıldı. Bu gün yenidən başla 💪';
-
-    final morning = await getMorningTime();
-    final now = tz.TZDateTime.now(tz.local);
-    final tomorrow = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      morning.hour,
-      morning.minute,
-    ).add(const Duration(days: 1));
-
-    final mode = await _canUseExactAlarms()
-        ? AndroidScheduleMode.exactAllowWhileIdle
-        : AndroidScheduleMode.inexactAllowWhileIdle;
-
+  Future<void> _scheduleDailyFromTomorrow({
+    required int id,
+    required int hour,
+    required int minute,
+    required String body,
+  }) async {
     try {
+      final now = tz.TZDateTime.now(tz.local);
+
+      final scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        hour,
+        minute,
+      ).add(const Duration(days: 1));
+
+      final mode = await _canUseExactAlarms()
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+
       await _plugin.zonedSchedule(
-        id: 5,
-        title: 'Yenidən başla',
+        id: id,
+        title: 'Şəxsi Əməllər',
         body: body,
-        scheduledDate: tomorrow,
+        scheduledDate: scheduled,
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
@@ -261,9 +286,67 @@ class NotificationService {
           ),
         ),
         androidScheduleMode: mode,
+        matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {
-      debugPrint('Return notification xətası: $e');
+      debugPrint('Schedule tomorrow xətası (id=$id): $e');
+    }
+  }
+
+  // ─── GERİ QAYT BİLDİRİŞİ ─────────────────────────────────────────────────
+
+  Future<void> scheduleReturnNotifications(List<String> amalTitles) async {
+    // Siyahı boşdursa bildirişi ləğv et
+    if (amalTitles.isEmpty) {
+      await _plugin.cancel(id: 5);
+      return;
+    }
+
+    if (!await isEnabled()) return;
+
+    try {
+      final now = tz.TZDateTime.now(tz.local);
+
+      // Gün ərzində yalnız bir dəfə planlaşdır — artıq keçibsə sabah
+      var scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        10,
+        0,
+      );
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
+
+      final body = amalTitles.length == 1
+          ? '"${amalTitles.first}" əməlinə qayıt 🤲'
+          : '${amalTitles.length} əməlin sənini gözləyir 🤲';
+
+      final mode = await _canUseExactAlarms()
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+
+      await _plugin.zonedSchedule(
+        id: 5,
+        title: 'Şəxsi Əməllər',
+        body: body,
+        scheduledDate: scheduled,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            channelDescription: _channelDesc,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+        androidScheduleMode: mode,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      debugPrint('scheduleReturnNotifications xətası: $e');
     }
   }
 }

@@ -28,7 +28,6 @@ void main() async {
     await notifService.reschedule();
   } catch (e) {
     debugPrint('Bildiriş init xətası: $e');
-    // Xəta olsa belə app işləməyə davam edir
   }
 
   runApp(const ProviderScope(child: AmalApp()));

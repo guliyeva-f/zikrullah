@@ -4,7 +4,6 @@ import '../../../amal/data/amal_repository.dart';
 // ─── STATE ───────────────────────────────────────────────────────────────────
 
 class HeatmapState {
-  /// date ('YYYY-MM-DD') → tamamlanma nisbəti (0.0 – 1.0)
   final Map<String, double> data;
 
   const HeatmapState({required this.data});

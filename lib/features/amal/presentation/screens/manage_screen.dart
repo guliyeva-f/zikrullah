@@ -5,7 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
 import 'amal_form_screen.dart';
-import '../../../settings/presentation/screens/settings_screen.dart';
+import 'amal_detail_screen.dart';
 
 class ManageScreen extends ConsumerWidget {
   const ManageScreen({super.key});
@@ -37,17 +37,6 @@ class ManageScreen extends ConsumerWidget {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.settings_outlined,
-              color: AppColors.textSecondary,
-              size: 22,
-            ),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
-          ),
           IconButton(
             icon: const Icon(Icons.add, color: AppColors.accent, size: 26),
             onPressed: () => _openForm(context, ref, null),
@@ -100,6 +89,12 @@ class ManageScreen extends ConsumerWidget {
                   key: ValueKey(state.amals[i].id),
                   amal: state.amals[i],
                   index: i,
+                  onInfo: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AmalDetailScreen(amal: state.amals[i]),
+                    ),
+                  ),
                   onEdit: () => _openForm(context, ref, state.amals[i]),
                   onDelete: () => _confirmDelete(context, ref, state.amals[i]),
                 ),
@@ -173,11 +168,13 @@ class _AmalManageRow extends StatelessWidget {
   final int index;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onInfo;
 
   const _AmalManageRow({
     super.key,
     required this.amal,
     required this.index,
+    required this.onInfo,
     required this.onEdit,
     required this.onDelete,
   });
@@ -244,6 +241,16 @@ class _AmalManageRow extends StatelessWidget {
               ),
               overflow: TextOverflow.ellipsis,
             ),
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.info_outline,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
+            onPressed: onInfo,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
           // Edit
           IconButton(

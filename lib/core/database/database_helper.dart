@@ -8,7 +8,6 @@ class DatabaseHelper {
 
   static Database? _db;
 
-  // Test mühitində ':memory:' olaraq təyin edilir
   static String? _overridePath;
 
   Future<Database> get database async {
@@ -75,14 +74,9 @@ class DatabaseHelper {
 
   // ─── TEST KÖMƏKÇI METODLAR ────────────────────────────────────────────────
 
-  /// Test mühitində in-memory DB istifadə etmək üçün çağır.
-  /// sqflite_common_ffi ilə birlikdə istifadə edilir.
   static void useInMemoryForTesting() {
     _overridePath = inMemoryDatabasePath;
   }
-
-  /// Hər testdən sonra DB bağlantısını sıfırla.
-  /// In-memory DB olduqda növbəti test tamamilə təmiz DB alır.
   Future<void> resetForTesting() async {
     if (_db != null && _db!.isOpen) {
       await _db!.close();

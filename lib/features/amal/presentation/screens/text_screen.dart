@@ -44,7 +44,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
   bool get _isCompleted => widget.record?.isCompleted ?? false;
 
   Future<void> _complete() async {
-    await ref.read(amalProvider.notifier).completeText(widget.amal.id);
+    await ref.read(amalProvider.notifier).completeCheckbox(widget.amal.id);
     if (mounted) Navigator.pop(context);
   }
 
@@ -55,7 +55,6 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          // Scroll progress xətti — accent rəng, 3dp hündürlük
           AnimatedContainer(
             duration: const Duration(milliseconds: 100),
             child: LinearProgressIndicator(
@@ -72,7 +71,6 @@ class _TextScreenState extends ConsumerState<TextScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Mətn — Scheherazade New, 17px, line height 2.0
                   Text(
                     widget.amal.content ?? '',
                     style: GoogleFonts.scheherazadeNew(
@@ -83,7 +81,6 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                     textAlign: TextAlign.justify,
                   ),
                   const SizedBox(height: 48),
-                  // "Tamamladım" düyməsi — mətnin sonundadır, sabit deyil
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

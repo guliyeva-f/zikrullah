@@ -22,14 +22,6 @@ class ImportExportService {
 
   // ─── EXPORT ──────────────────────────────────────────────────────────────
 
-  /// BUG #15 DÜZƏLİŞİ:
-  /// Əvvəlki kod faylı getDatabasesPath() qovluğuna yazırdı — bu
-  /// /data/data/com.example.amal_app/databases/ daxili sistem qovluğudur.
-  /// Fayl paylaşımdan sonra orada qalırdı, istifadəçi onu görə bilmirdi.
-  ///
-  /// Həll:
-  /// 1. Directory.systemTemp — müvəqqəti qovluq istifadə edilir
-  /// 2. SharePlus ilə paylaşımdan SONRA fayl silinir (cleanup)
   Future<bool> exportData() async {
     File? tempFile;
     try {
@@ -43,14 +35,11 @@ class ImportExportService {
         'records': records.map((r) => r.toMap()).toList(),
       });
 
-      // FIX #15: getDatabasesPath() → Directory.systemTemp
-      // Müvəqqəti qovluq — paylaşımdan sonra silinir
       final stamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
       String tempDirPath;
       try {
         tempDirPath = Directory.systemTemp.path;
       } catch (_) {
-        // Fallback: əgər systemTemp əlçatmazdırsa DB qovluğuna yaz
         tempDirPath = await getDatabasesPath();
       }
 
@@ -71,7 +60,6 @@ class ImportExportService {
       debugPrint('Export xətası: $e');
       return false;
     } finally {
-      // FIX #15: paylaşımdan sonra müvəqqəti faylı sil
       try {
         if (tempFile != null && await tempFile.exists()) {
           await tempFile.delete();

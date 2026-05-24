@@ -11,6 +11,7 @@ import '../widgets/heatmap_widget.dart';
 import 'amal_detail_screen.dart';
 import 'manage_screen.dart';
 import 'text_screen.dart';
+import 'counter_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -55,7 +56,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final asyncAmals = ref.watch(amalProvider);
     final asyncHeatmap = ref.watch(heatmapProvider);
 
-    // Arxivlənmiş əməllər → snackbar
     ref.listen<AsyncValue<AmalState>>(amalProvider, (prev, next) {
       next.whenData((state) {
         if (state.recentlyArchived.isNotEmpty) {
@@ -110,21 +110,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         amal: amal,
                         record: record,
                         streak: streak,
-                        onCheckboxTap: () => ref
+                        onCompleteTap: () => ref
                             .read(amalProvider.notifier)
                             .completeCheckbox(amal.id),
-                        // FIX #9: Checkbox geri alma — uzun basma
-                        onCheckboxUndo: () => ref
-                            .read(amalProvider.notifier)
-                            .undoCheckbox(amal.id),
                         onCounterTap: () => ref
                             .read(amalProvider.notifier)
                             .incrementCounter(amal.id),
-                        // FIX #8: Counter azaltma — uzun basma
                         onCounterDecrement: () => ref
                             .read(amalProvider.notifier)
                             .decrementCounter(amal.id),
-                        onTextTap: () =>
+                        onOpenScreen: () {
+                          if (amal.type == AmalType.text) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -133,13 +129,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                             ).then(
                               (_) => ref.read(amalProvider.notifier).refresh(),
-                            ),
-                        onInfoTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AmalDetailScreen(amal: amal),
-                          ),
-                        ),
+                            );
+                          } else if (amal.type == AmalType.counter &&
+                              (amal.countTarget ?? 1) > 10) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CounterScreen(amal: amal),
+                              ),
+                            ).then(
+                              (_) => ref.read(amalProvider.notifier).refresh(),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AmalDetailScreen(amal: amal),
+                              ),
+                            );
+                          }
+                        },
                       ),
                     );
                   }),
@@ -192,10 +201,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
               ),
-              // ── BUG #16 DÜZƏLİŞİ: iki ayrı ikon düyməsi ─────────────────
-              // Əvvəl: bir ⚙️ düymə → ManageScreen (istifadəçi Settings
-              //         gözləyir, amma ManageScreen açılır — çaşdırıcı UX)
-              // İndi: ✏️ → ManageScreen, ⚙️ → SettingsScreen (birbaşa)
               Builder(
                 builder: (ctx) => IconButton(
                   icon: const Icon(
@@ -359,26 +364,26 @@ class _AmalCard extends StatelessWidget {
   final Amal amal;
   final AmalRecord? record;
   final int streak;
-  final VoidCallback onCheckboxTap;
-  final VoidCallback onCheckboxUndo; // FIX #9: yeni callback
+  final VoidCallback onCompleteTap;
   final VoidCallback onCounterTap;
-  final VoidCallback onCounterDecrement; // FIX #8: yeni callback
-  final VoidCallback onTextTap;
-  final VoidCallback onInfoTap;
+  final VoidCallback onCounterDecrement;
+  final VoidCallback onOpenScreen;
 
   const _AmalCard({
     required this.amal,
     required this.record,
     required this.streak,
-    required this.onCheckboxTap,
-    required this.onCheckboxUndo,
+    required this.onCompleteTap,
     required this.onCounterTap,
     required this.onCounterDecrement,
-    required this.onTextTap,
-    required this.onInfoTap,
+    required this.onOpenScreen,
   });
 
   bool get _done => record?.isCompleted ?? false;
+
+  bool get _hasChevron =>
+      amal.type == AmalType.text ||
+      (amal.type == AmalType.counter && (amal.countTarget ?? 1) > 10);
 
   @override
   Widget build(BuildContext context) {
@@ -391,70 +396,42 @@ class _AmalCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.border),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: amal.type == AmalType.text ? onTextTap : null,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 0, 12),
-                  child: Row(
-                    children: [
-                      _buildLeading(context),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildMiddle()),
-                      if (amal.type == AmalType.text)
-                        const Icon(
-                          Icons.chevron_right,
-                          color: AppColors.textHint,
-                          size: 18,
-                        ),
-                    ],
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            children: [
+              _buildLeading(context),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: onOpenScreen,
+                  child: _buildMiddle(),
                 ),
               ),
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.info_outline,
-                size: 16,
-                color: AppColors.textHint,
-              ),
-              onPressed: onInfoTap,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              padding: const EdgeInsets.only(right: 10),
-            ),
-          ],
+              if (_hasChevron)
+                GestureDetector(
+                  onTap: onOpenScreen,
+                  child: const Padding(
+                    padding: EdgeInsets.only(left: 4),
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: AppColors.textHint,
+                      size: 18,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ─── LEADING ────────────────────────────────────────────────────────────
-
   Widget _buildLeading(BuildContext context) {
     switch (amal.type) {
       case AmalType.checkbox:
-        // FIX #9: uzun basma ilə geri al
-        // Qısa tap → tamamla (əgər hələ tamamlanmayıbsa)
-        // Uzun tap → geri al (əgər tamamlanıbsa) + snackbar məlumat
         return GestureDetector(
-          onTap: _done ? null : onCheckboxTap,
-          onLongPress: _done
-              ? () {
-                  onCheckboxUndo();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '${amal.title} geri alındı',
-                        style: GoogleFonts.nunito(color: Colors.white),
-                      ),
-                      backgroundColor: AppColors.accent,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                }
-              : null,
+          onTap: onCompleteTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: 26,
@@ -476,62 +453,99 @@ class _AmalCard extends StatelessWidget {
       case AmalType.counter:
         final cnt = record?.countDone ?? 0;
         final target = amal.countTarget ?? 1;
-        // FIX #8: uzun basma ilə counter azalt
-        // Qısa tap → artır (əgər hədəfə çatmayıbsa)
-        // Uzun tap → bir azalt (cnt > 0 olduqda)
-        return GestureDetector(
-          onTap: _done ? null : onCounterTap,
-          onLongPress: cnt > 0
-              ? () {
-                  onCounterDecrement();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '${amal.title}: ${cnt - 1}/$target',
-                        style: GoogleFonts.nunito(color: Colors.white),
-                      ),
-                      backgroundColor: AppColors.accent,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                }
-              : null,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: _done
-                ? const Icon(Icons.check, color: AppColors.accent, size: 18)
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.add, color: AppColors.accent, size: 15),
-                      const SizedBox(width: 2),
-                      Text(
-                        '$cnt/$target',
-                        style: GoogleFonts.nunito(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.accent,
+        final isSmall = target <= 10;
+
+        if (isSmall) {
+          return GestureDetector(
+            onTap: _done ? null : onCounterTap,
+            onLongPress: cnt > 0
+                ? () {
+                    onCounterDecrement();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '${amal.title}: ${cnt - 1}/$target',
+                          style: GoogleFonts.nunito(color: Colors.white),
                         ),
+                        backgroundColor: AppColors.accent,
+                        duration: const Duration(seconds: 2),
                       ),
-                    ],
-                  ),
-          ),
-        );
+                    );
+                  }
+                : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: _done
+                  ? const Icon(Icons.check, color: AppColors.accent, size: 18)
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.add,
+                          color: AppColors.accent,
+                          size: 15,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          '$cnt/$target',
+                          style: GoogleFonts.nunito(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          );
+        } else {
+          return GestureDetector(
+            onTap: onCompleteTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _done ? AppColors.accent : Colors.transparent,
+                border: Border.all(
+                  color: _done ? AppColors.accent : AppColors.textHint,
+                  width: 2,
+                ),
+              ),
+              child: _done
+                  ? const Icon(Icons.check, color: Colors.white, size: 15)
+                  : null,
+            ),
+          );
+        }
 
       case AmalType.text:
-        return Icon(
-          _done ? Icons.menu_book : Icons.menu_book_outlined,
-          color: _done ? AppColors.accent : AppColors.textSecondary,
-          size: 24,
+        return GestureDetector(
+          onTap: onCompleteTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _done ? AppColors.accent : Colors.transparent,
+              border: Border.all(
+                color: _done ? AppColors.accent : AppColors.textHint,
+                width: 2,
+              ),
+            ),
+            child: _done
+                ? const Icon(Icons.check, color: Colors.white, size: 15)
+                : null,
+          ),
         );
     }
   }
-
-  // ─── MIDDLE ─────────────────────────────────────────────────────────────
 
   Widget _buildMiddle() {
     final streakText = streak == 0

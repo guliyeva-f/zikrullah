@@ -54,25 +54,19 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     return _load();
   }
 
-  /// BUG #5 DÜZƏLİŞİ:
-  /// Əvvəlki kod hər əməl üçün ayrıca getRecord() çağırırdı → N əməl = N sorğu.
-  /// Həll: getRecordsForDate(today) ilə bütün bu günün recordlarını TEK sorğuda alırıq.
-  /// Streak hesabı hələ ayrı-ayrı (N sorğu) — bunun SQL-də batching-i çox
-  /// mürəkkəbdir, amma record sorğusu N→1-ə endirildi.
-  /// Nəticə: 2N+2 sorğu → N+3 sorğuya endirilib.
   Future<AmalState> _load() async {
-    // Müddəti bitmiş əməlləri arxivlə
     final archived = await _repo.archiveExpiredAmals();
 
     final broken = await _repo.getStreakBrokenAmals();
     if (broken.isNotEmpty) {
-      await _notifService.scheduleReturnNotifications(broken);
+      await _notifService.scheduleReturnNotifications(
+        broken.map((a) => a.title).toList(),
+      );
     }
 
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final amals = await _repo.getActiveAmals();
 
-    // FIX #5: bütün bu günün record-larını TEK sorğu ilə al
     final todayRecordsList = await _repo.getRecordsForDate(today);
     final todayRecordsMap = <int, AmalRecord>{
       for (final r in todayRecordsList) r.amalId: r,
@@ -80,10 +74,12 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
 
     final records = <int, AmalRecord?>{};
     final streaks = <int, int>{};
-    for (final amal in amals) {
-      records[amal.id] = todayRecordsMap[amal.id]; // map-dən O(1) lookup
-      streaks[amal.id] = await _repo.calculateStreak(amal.id);
-    }
+    await Future.wait(
+      amals.map((amal) async {
+        records[amal.id] = todayRecordsMap[amal.id];
+        streaks[amal.id] = await _repo.calculateStreak(amal.id);
+      }),
+    );
 
     return AmalState(
       amals: amals,
@@ -108,37 +104,19 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
   // ─── TAMAMLAMA HƏRƏKƏTLƏRİ ───────────────────────────────────────────────
 
   Future<void> completeCheckbox(int amalId) async {
+    final current = state.value;
+    if (current == null) return;
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final existing = state.value?.records[amalId];
+    final existing = current.records[amalId];
+    final isCurrentlyDone = existing?.isCompleted ?? false;
+
     final record = AmalRecord(
       id: existing?.id,
       amalId: amalId,
       recordDate: today,
-      isCompleted: true,
-      completedAt: DateTime.now().toIso8601String(),
-    );
-    await _repo.upsertRecord(record);
-    await _patchRecord(amalId, record);
-  }
-
-  /// BUG #9 DÜZƏLİŞİ:
-  /// Əvvəlki kodda checkbox tamamlandıqdan sonra geri almaq mümkün deyildi.
-  /// Həll: undoCheckbox() metodu əlavə edildi.
-  /// UI-da: checkbox-a uzun basmaqla (long press) çağırılır.
-  Future<void> undoCheckbox(int amalId) async {
-    final current = state.value;
-    if (current == null) return;
-    final existing = current.records[amalId];
-    // Əgər bu gün tamamlanmayıbsa, geri almağa ehtiyac yoxdur
-    if (existing == null || !existing.isCompleted) return;
-
-    final record = AmalRecord(
-      id: existing.id,
-      amalId: amalId,
-      recordDate: current.today,
-      isCompleted: false,
-      countDone: 0,
-      completedAt: null,
+      isCompleted: !isCurrentlyDone,
+      countDone: existing?.countDone ?? 0, // counter>10 üçün sayı qoru
+      completedAt: !isCurrentlyDone ? DateTime.now().toIso8601String() : null,
     );
     await _repo.upsertRecord(record);
     await _patchRecord(amalId, record);
@@ -166,10 +144,6 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     await _patchRecord(amalId, record);
   }
 
-  /// BUG #8 DÜZƏLİŞİ:
-  /// Əvvəlki kodda counter-i artırdıqdan sonra azaltmaq mümkün deyildi.
-  /// Həll: decrementCounter() metodu əlavə edildi.
-  /// UI-da: sayğac düyməsinə uzun basmaqla (long press) çağırılır.
   Future<void> decrementCounter(int amalId) async {
     final current = state.value;
     if (current == null) return;
@@ -188,20 +162,51 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
       recordDate: current.today,
       isCompleted: newCount >= target,
       countDone: newCount,
-      // Tamamlama zamanı: əgər hələ hədəfə çatmayıbsa sıfırla
       completedAt: newCount >= target ? existing?.completedAt : null,
     );
     await _repo.upsertRecord(record);
     await _patchRecord(amalId, record);
   }
 
-  Future<void> completeText(int amalId) async {
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  Future<void> incrementCounterBy(int amalId, int amount) async {
+    final current = state.value;
+    if (current == null) return;
+    final amal = current.amals.firstWhere((a) => a.id == amalId);
+    final existing = current.records[amalId];
+    final newCount = (existing?.countDone ?? 0) + amount;
+    final target = amal.countTarget ?? 1;
+    final done = newCount >= target;
+
     final record = AmalRecord(
+      id: existing?.id,
       amalId: amalId,
-      recordDate: today,
-      isCompleted: true,
-      completedAt: DateTime.now().toIso8601String(),
+      recordDate: current.today,
+      isCompleted: done,
+      countDone: newCount,
+      completedAt: done ? DateTime.now().toIso8601String() : null,
+    );
+    await _repo.upsertRecord(record);
+    await _patchRecord(amalId, record);
+  }
+
+  Future<void> decrementCounterBy(int amalId, int amount) async {
+    final current = state.value;
+    if (current == null) return;
+    final existing = current.records[amalId];
+    final currentCount = existing?.countDone ?? 0;
+    if (currentCount <= 0) return;
+
+    final newCount = (currentCount - amount).clamp(0, currentCount);
+    final amal = current.amals.firstWhere((a) => a.id == amalId);
+    final target = amal.countTarget ?? 1;
+
+    final record = AmalRecord(
+      id: existing?.id,
+      amalId: amalId,
+      recordDate: current.today,
+      isCompleted: newCount >= target,
+      countDone: newCount,
+      completedAt: newCount >= target ? existing?.completedAt : null,
     );
     await _repo.upsertRecord(record);
     await _patchRecord(amalId, record);

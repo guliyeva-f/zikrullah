@@ -121,14 +121,6 @@ class AmalRepository {
 
   // ─── HEATMAP ──────────────────────────────────────────────────────────────
 
-  /// BUG #3 DÜZƏLİŞİ:
-  /// Əvvəlki kod məxrəc kimi "bugünkü aktiv əməllərin sayı"nı götürürdü.
-  /// Bu yanlışdır: bir əməli arxivlədikdə bütün keçmiş tarixi data
-  /// yenidən hesablanır və tamamlanma nisbəti artıq düzgün deyildi.
-  ///
-  /// Həll: hər tarix üçün məxrəc o günə qədər yaradılmış əməllərin sayıdır.
-  /// created_at <= həmin tarix olan bütün əməllər (aktiv və arxiv) sayılır.
-  /// Bu 2 sorğu ilə həll edilir — əvvəlki 1 sorğudan daha dürüstdür.
   Future<Map<String, double>> getHeatmapData({
     required DateTime from,
     required DateTime to,
@@ -136,9 +128,6 @@ class AmalRepository {
     final db = await _db;
     final fromStr = _formatDate(from);
     final toStr = _formatDate(to);
-
-    // Bütün əməllərin yaradılma tarixləri (aktiv + arxiv)
-    // Bu siyahı sayımı Dart tərəfindən ediləcək
     final amalRows = await db.rawQuery(
       'SELECT substr(created_at, 1, 10) AS created_date FROM amals',
     );
@@ -147,8 +136,6 @@ class AmalRepository {
         .toList();
 
     if (createdDates.isEmpty) return {};
-
-    // Hər tarix üçün tamamlanan əməllərin sayı
     final completedRows = await db.rawQuery(
       '''
       SELECT record_date, COUNT(*) AS cnt
@@ -164,8 +151,6 @@ class AmalRepository {
     for (final row in completedRows) {
       final date = row['record_date'] as String;
       final cnt = row['cnt'] as int;
-
-      // O günə qədər mövcud olan əməllərin sayı (məxrəc)
       final totalOnDate = createdDates
           .where((d) => d.compareTo(date) <= 0)
           .length;
@@ -199,11 +184,6 @@ class AmalRepository {
   }
 
   // ─── STREAK ───────────────────────────────────────────────────────────────
-
-  /// BUG #4 DÜZƏLİŞİ:
-  /// Əvvəlki kod yalnız 60 günə baxırdı.
-  /// 60+ günlük streak olan istifadəçilər üçün nəticə həmişə 60 göstərirdi.
-  /// Həll: 365 günə uzadıldı — ildə bir dəfəlik streak üçün kifayətdir.
   Future<int> calculateStreak(int amalId) async {
     final db = await _db;
     final today = _today;
@@ -214,27 +194,28 @@ class AmalRepository {
         ? DateTime.now()
         : DateTime.now().subtract(const Duration(days: 1));
 
-    // FIX #4: 60 → 365
-    const lookbackDays = 365;
-    final dates = List.generate(
-      lookbackDays,
-      (i) => _formatDate(startDate.subtract(Duration(days: i))),
+    final fromDate = _formatDate(startDate.subtract(const Duration(days: 364)));
+    final toDate = _formatDate(startDate);
+
+    final maps = await db.rawQuery(
+      '''
+    SELECT record_date, is_completed
+    FROM amal_records
+    WHERE amal_id = ?
+      AND record_date >= ?
+      AND record_date <= ?
+      AND is_completed = 1
+    ORDER BY record_date DESC
+    ''',
+      [amalId, fromDate, toDate],
     );
 
-    final placeholders = List.filled(lookbackDays, '?').join(',');
-    final maps = await db.query(
-      'amal_records',
-      where: 'amal_id = ? AND record_date IN ($placeholders)',
-      whereArgs: [amalId, ...dates],
-    );
-
-    final recordMap = {for (final m in maps) m['record_date'] as String: m};
+    final recordSet = {for (final m in maps) m['record_date'] as String};
 
     int streak = 0;
-    for (int i = 0; i < lookbackDays; i++) {
+    for (int i = 0; i < 365; i++) {
       final date = _formatDate(startDate.subtract(Duration(days: i)));
-      final rec = recordMap[date];
-      if (rec != null && (rec['is_completed'] as int) == 1) {
+      if (recordSet.contains(date)) {
         streak++;
       } else {
         break;
@@ -242,13 +223,8 @@ class AmalRepository {
     }
     return streak;
   }
-
   // ─── "GERİ QAYT" BİLDİRİŞİ ÜÇÜN ──────────────────────────────────────────
 
-  /// BUG #7 DÜZƏLİŞİ:
-  /// Əvvəlki kod hər əməl üçün ayrı-ayrı 2 DB sorğusu edirdi (N əməl = 2N sorğu).
-  /// Həll: bütün əməllər üçün lazımlı tarixlərdəki recordları TEK sorğu ilə
-  /// alırıq, sonra Dart-da filtrasiya edirik. Bu 2N→2 sorğuya endirmək deməkdir.
   Future<List<Amal>> getStreakBrokenAmals() async {
     final yesterday = _formatDate(
       DateTime.now().subtract(const Duration(days: 1)),
@@ -264,7 +240,6 @@ class AmalRepository {
     final placeholders = List.filled(ids.length, '?').join(',');
     final db = await _db;
 
-    // FIX #7: bütün amal_id-lər üçün 2 tarix = TEK sorğu
     final maps = await db.rawQuery(
       '''
       SELECT amal_id, record_date, is_completed
@@ -275,7 +250,6 @@ class AmalRepository {
       [...ids, yesterday, dayBefore],
     );
 
-    // amal_id → {tarix → tamamlandı?}
     final lookup = <int, Map<String, bool>>{};
     for (final m in maps) {
       final amalId = m['amal_id'] as int;
@@ -307,17 +281,6 @@ class AmalRepository {
     return maps.map(AmalRecord.fromMap).toList();
   }
 
-  /// BUG #14 DÜZƏLİŞİ:
-  /// Əvvəlki kod import edilən əmməlin öz ID-si ilə yazırdı.
-  /// Əgər mövcud DB-də eyni ID varsa, ConflictAlgorithm.ignore ilə
-  /// əməl skip edilirdi, amma onun record-ları (amal_records) hər halda
-  /// yazılırdı → başqa əməlin ID-sinə bağlanırdı (data qarışıqlığı).
-  ///
-  /// Həll:
-  /// 1. Hər əməl ID-siz insert edilir (DB yeni ID verir)
-  /// 2. Köhnə ID → yeni ID mapping (idMap) saxlanılır
-  /// 3. Record-lar yeni amal_id ilə insert edilir
-  /// 4. Eyni title+type əməl varsa onu tapıb ID-ni götürürük (duplicate olmur)
   Future<void> importData({
     required List<Amal> amals,
     required List<AmalRecord> records,
@@ -326,7 +289,6 @@ class AmalRepository {
     final idMap = <int, int>{}; // köhnə id → yeni DB id
 
     for (final amal in amals) {
-      // ID-siz insert et — DB avtomatik yeni ID verir
       final mapWithoutId = Map<String, dynamic>.from(amal.toJson())
         ..remove('id');
 
@@ -341,8 +303,6 @@ class AmalRepository {
       if (newId > 0) {
         idMap[amal.id] = newId;
       } else {
-        // Insert uğursuz oldu (məs. UNIQUE constraint) →
-        // eyni title+type əməl mövcuddurmu yoxla
         final existing = await db.query(
           'amals',
           columns: ['id'],
@@ -353,11 +313,9 @@ class AmalRepository {
         if (existing.isNotEmpty) {
           idMap[amal.id] = existing.first['id'] as int;
         }
-        // tapılmadısa bu əməlin record-ları skip edilir
       }
     }
 
-    // Record-ları yeni amal_id ilə batch insert
     if (records.isEmpty) return;
 
     final batch = db.batch();
