@@ -61,12 +61,22 @@ class ManageScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Hələ əməl yoxdur.\nYuxarıdakı + ilə əlavə et.',
+                    'Siyahı boşdur.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.nunito(
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Yuxarıdakı + ilə ilk əməlini əlavə et.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.nunito(
                       color: AppColors.textHint,
-                      fontSize: 15,
-                      height: 1.6,
+                      fontSize: 14,
+                      height: 1.5,
                     ),
                   ),
                 ],

@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -17,6 +19,7 @@ class CounterScreen extends ConsumerWidget {
     final target = amal.countTarget ?? 1;
     final done = record?.isCompleted ?? false;
     final progress = (count / target).clamp(0.0, 1.0);
+    final reachedTarget = count >= target;
 
     return Scaffold(
       backgroundColor: AppColors.bgBase,
@@ -32,141 +35,109 @@ class CounterScreen extends ConsumerWidget {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          amal.title,
-          style: GoogleFonts.nunito(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
+        actions: [
+          if (!done)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: TextButton(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  ref.read(amalProvider.notifier).completeCheckbox(amal.id);
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'Bitdi',
+                  style: GoogleFonts.nunito(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // ── Böyük say ───────────────────────────────────────────────
-              Text(
-                '$count',
-                style: GoogleFonts.nunito(
-                  fontSize: 88,
-                  fontWeight: FontWeight.w700,
-                  color: done ? AppColors.accent : AppColors.textPrimary,
-                  height: 1,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'hədəf: $target',
-                style: GoogleFonts.nunito(
-                  fontSize: 15,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 20),
-              // ── Progress ─────────────────────────────────────────────────
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: AppColors.bgElevated,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.accent,
-                  ),
-                  minHeight: 6,
-                ),
-              ),
-              const SizedBox(height: 40),
-              // ── + düymələr ───────────────────────────────────────────────
-              Row(
-                children: [
-                  _CounterBtn(
-                    label: '+1',
-                    onTap: done
-                        ? null
-                        : () => ref
-                              .read(amalProvider.notifier)
-                              .incrementCounterBy(amal.id, 1),
-                  ),
-                  const SizedBox(width: 10),
-                  _CounterBtn(
-                    label: '+10',
-                    onTap: done
-                        ? null
-                        : () => ref
-                              .read(amalProvider.notifier)
-                              .incrementCounterBy(amal.id, 10),
-                  ),
-                  const SizedBox(width: 10),
-                  _CounterBtn(
-                    label: '+100',
-                    onTap: done
-                        ? null
-                        : () => ref
-                              .read(amalProvider.notifier)
-                              .incrementCounterBy(amal.id, 100),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              // ── − düymələr ───────────────────────────────────────────────
-              Row(
-                children: [
-                  _CounterBtn(
-                    label: '−1',
-                    muted: true,
-                    onTap: count > 0
-                        ? () => ref
-                              .read(amalProvider.notifier)
-                              .decrementCounterBy(amal.id, 1)
-                        : null,
-                  ),
-                  const SizedBox(width: 10),
-                  _CounterBtn(
-                    label: '−10',
-                    muted: true,
-                    onTap: count >= 10
-                        ? () => ref
-                              .read(amalProvider.notifier)
-                              .decrementCounterBy(amal.id, 10)
-                        : null,
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(child: SizedBox()),
-                ],
-              ),
-              const Spacer(),
-              // ── Tamamla / Geri al ────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: done
-                        ? AppColors.bgElevated
-                        : AppColors.accent,
-                    foregroundColor: done
-                        ? AppColors.textSecondary
-                        : Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () =>
-                      ref.read(amalProvider.notifier).completeCheckbox(amal.id),
-                  child: Text(
-                    done ? 'Geri al' : 'Tamamla',
-                    style: GoogleFonts.nunito(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: done
+            ? null
+            : () {
+                HapticFeedback.lightImpact();
+                ref.read(amalProvider.notifier).incrementCounterBy(amal.id, 1);
+              },
+        child: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Zikr başlığı ──────────────────────────────────────────
+                Text(
+                  amal.title,
+                  style: GoogleFonts.nunito(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 36),
+
+                // ── Dairəvi progress + say ─────────────────────────────────
+                SizedBox(
+                  width: 240,
+                  height: 240,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CustomPaint(
+                        size: const Size(240, 240),
+                        painter: _RingPainter(
+                          progress: progress,
+                          trackColor: AppColors.bgElevated,
+                          progressColor: reachedTarget
+                              ? AppColors.success
+                              : AppColors.accent,
+                          strokeWidth: 10,
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 200),
+                            style: GoogleFonts.nunito(
+                              fontSize: 78,
+                              fontWeight: FontWeight.w700,
+                              color: reachedTarget
+                                  ? AppColors.success
+                                  : AppColors.textPrimary,
+                              height: 1,
+                            ),
+                            child: Text('$count'),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'hədəf: $target',
+                            style: GoogleFonts.nunito(
+                              fontSize: 13,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -174,40 +145,46 @@ class CounterScreen extends ConsumerWidget {
   }
 }
 
-class _CounterBtn extends StatelessWidget {
-  final String label;
-  final VoidCallback? onTap;
-  final bool muted;
+// ─── Ring Painter ─────────────────────────────────────────────────────────────
 
-  const _CounterBtn({required this.label, this.onTap, this.muted = false});
+class _RingPainter extends CustomPainter {
+  final double progress;
+  final Color trackColor;
+  final Color progressColor;
+  final double strokeWidth;
+
+  const _RingPainter({
+    required this.progress,
+    required this.trackColor,
+    required this.progressColor,
+    required this.strokeWidth,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(
-            color: AppColors.bgCard,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: GoogleFonts.nunito(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: onTap == null
-                  ? AppColors.textHint
-                  : muted
-                  ? AppColors.textSecondary
-                  : AppColors.accent,
-            ),
-          ),
-        ),
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    paint.color = trackColor;
+    canvas.drawCircle(center, radius, paint);
+
+    if (progress > 0) {
+      paint.color = progressColor;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -pi / 2,
+        2 * pi * progress,
+        false,
+        paint,
+      );
+    }
   }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress || old.progressColor != progressColor;
 }

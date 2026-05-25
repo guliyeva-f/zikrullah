@@ -30,7 +30,7 @@ class NotificationService {
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Asia/Baku'));
+    tz.setLocalLocation(tz.local);
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
@@ -123,8 +123,8 @@ class NotificationService {
 
   Future<void> cancelTodayIfAllDone() async {
     try {
-      await _plugin.cancelAll();
       if (!await isEnabled()) return;
+      await _plugin.cancelAll();
 
       final morning = await getMorningTime();
       final noon = await getNoonTime();

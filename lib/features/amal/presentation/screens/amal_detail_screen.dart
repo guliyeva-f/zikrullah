@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../domain/amal.dart';
 import '../../data/amal_repository.dart';
 import '../providers/amal_provider.dart';
@@ -22,22 +23,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   Map<String, bool> _calData = {};
   int _totalCompleted = 0;
   bool _loading = true;
-
-  static const _months = [
-    'Yanvar',
-    'Fevral',
-    'Mart',
-    'Aprel',
-    'May',
-    'İyun',
-    'İyul',
-    'Avqust',
-    'Sentyabr',
-    'Oktyabr',
-    'Noyabr',
-    'Dekabr',
-  ];
-  static const _weekH = ['BE', 'ÇA', 'Ç', 'CA', 'C', 'Ş', 'B'];
 
   @override
   void initState() {
@@ -352,7 +337,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         SizedBox(
           width: 160,
           child: Text(
-            '${_months[_calMonth - 1]} $_calYear',
+            '${AppConstants.months[_calMonth - 1]} $_calYear',
             textAlign: TextAlign.center,
             style: GoogleFonts.nunito(
               fontSize: 15,
@@ -385,7 +370,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     return Column(
       children: [
         Row(
-          children: _weekH
+          children: AppConstants.weekdaysShort
               .map(
                 (h) => Expanded(
                   child: Center(

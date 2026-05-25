@@ -12,7 +12,7 @@ import '../domain/amal.dart';
 import '../domain/amal_record.dart';
 import 'amal_repository.dart';
 
-enum ImportResult { success, cancelled, invalid, error }
+enum ImportResult { success, partial, cancelled, invalid, error }
 
 class ImportExportService {
   ImportExportService._();
@@ -105,7 +105,14 @@ class ImportExportService {
           .map((j) => AmalRecord.fromMap(j as Map<String, dynamic>))
           .toList();
 
-      await _repo.importData(amals: amals, records: records);
+      final result = await _repo.importData(amals: amals, records: records);
+      if (result.errors.isNotEmpty) {
+        debugPrint(
+          'Import qismən uğurlu: ${result.imported} əlavə edildi, '
+          '${result.skipped} atlandı, xəta: ${result.errors}',
+        );
+        return result.imported > 0 ? ImportResult.partial : ImportResult.error;
+      }
       return ImportResult.success;
     } on FormatException {
       return ImportResult.invalid;

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../core/database/database_helper.dart';
 import '../domain/amal.dart';
 import '../domain/amal_record.dart';
+import 'package:flutter/foundation.dart';
 
 class AmalRepository {
   final _dbHelper = DatabaseHelper();
@@ -226,12 +227,9 @@ class AmalRepository {
   // ─── "GERİ QAYT" BİLDİRİŞİ ÜÇÜN ──────────────────────────────────────────
 
   Future<List<Amal>> getStreakBrokenAmals() async {
-    final yesterday = _formatDate(
-      DateTime.now().subtract(const Duration(days: 1)),
-    );
-    final dayBefore = _formatDate(
-      DateTime.now().subtract(const Duration(days: 2)),
-    );
+    final now = DateTime.now();
+    final yesterday = _formatDate(now.subtract(const Duration(days: 1)));
+    final sevenDaysAgo = _formatDate(now.subtract(const Duration(days: 8)));
 
     final amals = await getActiveAmals();
     if (amals.isEmpty) return [];
@@ -240,30 +238,33 @@ class AmalRepository {
     final placeholders = List.filled(ids.length, '?').join(',');
     final db = await _db;
 
+    // Dünən + son 7 gün (dünən daxil deyil) üçün tamamlanan recordları çək
     final maps = await db.rawQuery(
       '''
-      SELECT amal_id, record_date, is_completed
+      SELECT amal_id, record_date
       FROM amal_records
       WHERE amal_id IN ($placeholders)
-        AND record_date IN (?, ?)
+        AND record_date >= ? AND record_date <= ?
+        AND is_completed = 1
       ''',
-      [...ids, yesterday, dayBefore],
+      [...ids, sevenDaysAgo, yesterday],
     );
 
-    final lookup = <int, Map<String, bool>>{};
+    // hər əməl üçün tamamlanan günlər seti
+    final completedDates = <int, Set<String>>{};
     for (final m in maps) {
       final amalId = m['amal_id'] as int;
       final date = m['record_date'] as String;
-      final completed = (m['is_completed'] as int) == 1;
-      lookup.putIfAbsent(amalId, () => {})[date] = completed;
+      completedDates.putIfAbsent(amalId, () => {}).add(date);
     }
 
     final broken = <Amal>[];
     for (final amal in amals) {
-      final dates = lookup[amal.id] ?? {};
-      final yesterdayFailed = !(dates[yesterday] ?? false);
-      final dayBeforeDone = dates[dayBefore] ?? false;
-      if (yesterdayFailed && dayBeforeDone) {
+      final dates = completedDates[amal.id] ?? {};
+      final yesterdayFailed = !dates.contains(yesterday);
+      // Son 7 gün içində (dünən xaric) ən az bir gün tamamlanıbsa streak var idi
+      final hadStreakRecently = dates.any((d) => d != yesterday);
+      if (yesterdayFailed && hadStreakRecently) {
         broken.add(amal);
       }
     }
@@ -281,59 +282,72 @@ class AmalRepository {
     return maps.map(AmalRecord.fromMap).toList();
   }
 
-  Future<void> importData({
+  Future<({int imported, int skipped, List<String> errors})> importData({
     required List<Amal> amals,
     required List<AmalRecord> records,
   }) async {
     final db = await _db;
     final idMap = <int, int>{}; // köhnə id → yeni DB id
+    int imported = 0;
+    int skipped = 0;
+    final errors = <String>[];
 
     for (final amal in amals) {
       final mapWithoutId = Map<String, dynamic>.from(amal.toJson())
         ..remove('id');
 
-      final newId = await db
-          .insert(
-            'amals',
-            mapWithoutId,
-            conflictAlgorithm: ConflictAlgorithm.abort,
-          )
-          .catchError((_) => 0);
-
-      if (newId > 0) {
-        idMap[amal.id] = newId;
-      } else {
-        final existing = await db.query(
+      try {
+        final newId = await db.insert(
           'amals',
-          columns: ['id'],
-          where: 'title = ? AND type = ?',
-          whereArgs: [amal.title, amal.type.name],
-          limit: 1,
+          mapWithoutId,
+          conflictAlgorithm: ConflictAlgorithm.abort,
         );
-        if (existing.isNotEmpty) {
-          idMap[amal.id] = existing.first['id'] as int;
+        idMap[amal.id] = newId;
+        imported++;
+      } catch (e) {
+        debugPrint('Amal insert xətası [${amal.title}]: $e');
+        // Eyni adlı əməl artıq varsa mövcud id-ni götür
+        try {
+          final existing = await db.query(
+            'amals',
+            columns: ['id'],
+            where: 'title = ? AND type = ?',
+            whereArgs: [amal.title, amal.type.name],
+            limit: 1,
+          );
+          if (existing.isNotEmpty) {
+            idMap[amal.id] = existing.first['id'] as int;
+            skipped++;
+          } else {
+            errors.add(amal.title);
+          }
+        } catch (e2) {
+          debugPrint('Mövcud əməl axtarış xətası [${amal.title}]: $e2');
+          errors.add(amal.title);
         }
       }
     }
 
-    if (records.isEmpty) return;
+    if (records.isNotEmpty) {
+      final batch = db.batch();
+      for (final rec in records) {
+        final actualAmalId = idMap[rec.amalId];
+        if (actualAmalId == null) continue; // əməl import edilməyib
 
-    final batch = db.batch();
-    for (final rec in records) {
-      final actualAmalId = idMap[rec.amalId];
-      if (actualAmalId == null) continue; // əməl import edilməyib
+        final map = rec.toMap()
+          ..['amal_id'] = actualAmalId
+          ..remove('id'); // record ID konfliktini önlə
 
-      final map = rec.toMap()
-        ..['amal_id'] = actualAmalId
-        ..remove('id'); // record ID konfliktini önlə
-
-      batch.insert(
-        'amal_records',
-        map,
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+        batch.insert(
+          'amal_records',
+          map,
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+      await batch.commit(noResult: true);
     }
-    await batch.commit(noResult: true);
+
+    return (imported: imported, skipped: skipped, errors: errors);
   }
 
   // ─── STATİSTİKA ───────────────────────────────────────────────────────────

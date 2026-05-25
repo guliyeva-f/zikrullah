@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../calendar/presentation/providers/heatmap_provider.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../domain/amal.dart';
@@ -9,6 +10,7 @@ import '../../domain/amal_record.dart';
 import '../providers/amal_provider.dart';
 import '../widgets/heatmap_widget.dart';
 import 'amal_detail_screen.dart';
+import 'amal_form_screen.dart';
 import 'manage_screen.dart';
 import 'text_screen.dart';
 import 'counter_screen.dart';
@@ -21,34 +23,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  static const _months = [
-    'Yanvar',
-    'Fevral',
-    'Mart',
-    'Aprel',
-    'May',
-    'İyun',
-    'İyul',
-    'Avqust',
-    'Sentyabr',
-    'Oktyabr',
-    'Noyabr',
-    'Dekabr',
-  ];
-  static const _weekdays = [
-    '',
-    'Bazar ertəsi',
-    'Çərşənbə axşamı',
-    'Çərşənbə',
-    'Cümə axşamı',
-    'Cümə',
-    'Şənbə',
-    'Bazar',
-  ];
-
   String get _todayLabel {
     final now = DateTime.now();
-    return '${now.day} ${_months[now.month - 1]}, ${_weekdays[now.weekday]}';
+    return '${now.day} ${AppConstants.months[now.month - 1]}, ${AppConstants.weekdays[now.weekday]}';
   }
 
   @override
@@ -99,7 +76,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 _buildHeader(state),
                 if (state.amals.isEmpty)
-                  _buildEmptyState()
+                  _buildEmptyState(context)
                 else
                   ...state.amals.map((amal) {
                     final record = state.records[amal.id];
@@ -119,6 +96,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         onCounterDecrement: () => ref
                             .read(amalProvider.notifier)
                             .decrementCounter(amal.id),
+                        onDetailTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AmalDetailScreen(amal: amal),
+                          ),
+                        ),
                         onOpenScreen: () {
                           if (amal.type == AmalType.text) {
                             Navigator.push(
@@ -130,8 +113,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ).then(
                               (_) => ref.read(amalProvider.notifier).refresh(),
                             );
-                          } else if (amal.type == AmalType.counter &&
-                              (amal.countTarget ?? 1) > 10) {
+                          } else {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -139,13 +121,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                             ).then(
                               (_) => ref.read(amalProvider.notifier).refresh(),
-                            );
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => AmalDetailScreen(amal: amal),
-                              ),
                             );
                           }
                         },
@@ -208,16 +183,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     color: AppColors.textSecondary,
                     size: 22,
                   ),
-                  tooltip: 'Əməlləri idarə et',
+                  tooltip: total == 0
+                      ? 'İlk əməlini əlavə et'
+                      : 'Əməlləri idarə et',
                   onPressed: () {
                     final container = ProviderScope.containerOf(ctx);
-                    Navigator.push(
-                      ctx,
-                      MaterialPageRoute(builder: (_) => const ManageScreen()),
-                    ).then((_) {
-                      container.read(amalProvider.notifier).refresh();
-                      container.read(heatmapProvider.notifier).refresh();
-                    });
+                    if (total == 0) {
+                      Navigator.push(
+                        ctx,
+                        MaterialPageRoute(
+                          builder: (_) => const AmalFormScreen(),
+                        ),
+                      ).then((_) {
+                        container.read(amalProvider.notifier).refresh();
+                        container.read(heatmapProvider.notifier).refresh();
+                      });
+                    } else {
+                      Navigator.push(
+                        ctx,
+                        MaterialPageRoute(builder: (_) => const ManageScreen()),
+                      ).then((_) {
+                        container.read(amalProvider.notifier).refresh();
+                        container.read(heatmapProvider.notifier).refresh();
+                      });
+                    }
                   },
                 ),
               ),
@@ -283,25 +272,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── EMPTY STATE ──────────────────────────────────────────────────────────
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 60),
+      padding: const EdgeInsets.fromLTRB(32, 48, 32, 48),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.add_circle_outline,
-            size: 52,
-            color: AppColors.textHint,
-          ),
-          const SizedBox(height: 14),
+          Text('🌱', style: GoogleFonts.nunito(fontSize: 48)),
+          const SizedBox(height: 20),
           Text(
-            'Hələ əməl yoxdur.\n✏️ ilə əlavə et.',
+            'Hər gün bir addım.',
             textAlign: TextAlign.center,
             style: GoogleFonts.nunito(
-              color: AppColors.textHint,
-              fontSize: 15,
-              height: 1.6,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'İzləmək istədiyin ilk əməlini əlavə et.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 28),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AmalFormScreen()),
+            ).then((_) => ref.read(amalProvider.notifier).refresh()),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+              decoration: BoxDecoration(
+                color: AppColors.accent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'İlk əməli əlavə et',
+                style: GoogleFonts.nunito(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],
@@ -368,6 +385,7 @@ class _AmalCard extends StatelessWidget {
   final VoidCallback onCounterTap;
   final VoidCallback onCounterDecrement;
   final VoidCallback onOpenScreen;
+  final VoidCallback onDetailTap;
 
   const _AmalCard({
     required this.amal,
@@ -377,50 +395,47 @@ class _AmalCard extends StatelessWidget {
     required this.onCounterTap,
     required this.onCounterDecrement,
     required this.onOpenScreen,
+    required this.onDetailTap,
   });
 
   bool get _done => record?.isCompleted ?? false;
 
-  bool get _hasChevron =>
-      amal.type == AmalType.text ||
-      (amal.type == AmalType.counter && (amal.countTarget ?? 1) > 10);
+  bool get _hasChevron => amal.type == AmalType.text;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedOpacity(
       opacity: _done ? 0.55 : 1.0,
       duration: const Duration(milliseconds: 300),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          child: Row(
-            children: [
-              _buildLeading(context),
-              const SizedBox(width: 12),
-              Expanded(
-                child: GestureDetector(
-                  onTap: onOpenScreen,
-                  child: _buildMiddle(),
-                ),
-              ),
-              if (_hasChevron)
-                GestureDetector(
-                  onTap: onOpenScreen,
-                  child: const Padding(
-                    padding: EdgeInsets.only(left: 4),
-                    child: Icon(
-                      Icons.chevron_right,
-                      color: AppColors.textHint,
-                      size: 18,
+      child: GestureDetector(
+        onTap: onDetailTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.bgCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(
+              children: [
+                _buildLeading(context),
+                const SizedBox(width: 12),
+                Expanded(child: _buildMiddle()),
+                if (_hasChevron)
+                  GestureDetector(
+                    onTap: onOpenScreen,
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 4),
+                      child: Icon(
+                        Icons.chevron_right,
+                        color: AppColors.textHint,
+                        size: 18,
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -455,74 +470,55 @@ class _AmalCard extends StatelessWidget {
         final target = amal.countTarget ?? 1;
         final isSmall = target <= 10;
 
-        if (isSmall) {
-          return GestureDetector(
-            onTap: _done ? null : onCounterTap,
-            onLongPress: cnt > 0
-                ? () {
-                    onCounterDecrement();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '${amal.title}: ${cnt - 1}/$target',
-                          style: GoogleFonts.nunito(color: Colors.white),
-                        ),
-                        backgroundColor: AppColors.accent,
-                        duration: const Duration(seconds: 2),
+        return GestureDetector(
+          // ≤10: tap artırır  |  >10: CounterScreen açır
+          onTap: _done
+              ? null
+              : isSmall
+              ? onCounterTap
+              : onOpenScreen,
+          // ≤10: longPress azaldır
+          onLongPress: isSmall && cnt > 0
+              ? () {
+                  onCounterDecrement();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${amal.title}: ${cnt - 1}/$target',
+                        style: GoogleFonts.nunito(color: Colors.white),
                       ),
-                    );
-                  }
-                : null,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: _done
-                  ? const Icon(Icons.check, color: AppColors.accent, size: 18)
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.add,
-                          color: AppColors.accent,
-                          size: 15,
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          '$cnt/$target',
-                          style: GoogleFonts.nunito(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.accent,
-                          ),
-                        ),
-                      ],
+                      backgroundColor: AppColors.accent,
+                      duration: const Duration(seconds: 2),
                     ),
+                  );
+                }
+              : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
             ),
-          );
-        } else {
-          return GestureDetector(
-            onTap: onCompleteTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _done ? AppColors.accent : Colors.transparent,
-                border: Border.all(
-                  color: _done ? AppColors.accent : AppColors.textHint,
-                  width: 2,
-                ),
-              ),
-              child: _done
-                  ? const Icon(Icons.check, color: Colors.white, size: 15)
-                  : null,
-            ),
-          );
-        }
+            child: _done
+                ? const Icon(Icons.check, color: AppColors.accent, size: 18)
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.add, color: AppColors.accent, size: 15),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$cnt/$target',
+                        style: GoogleFonts.nunito(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        );
 
       case AmalType.text:
         return GestureDetector(
@@ -592,3 +588,4 @@ class _AmalCard extends StatelessWidget {
     );
   }
 }
+  

@@ -55,14 +55,11 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 100),
-            child: LinearProgressIndicator(
-              value: _scrollProgress,
-              backgroundColor: AppColors.bgElevated,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
-              minHeight: 3,
-            ),
+          LinearProgressIndicator(
+            value: _scrollProgress,
+            backgroundColor: AppColors.bgElevated,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
+            minHeight: 3,
           ),
           Expanded(
             child: SingleChildScrollView(

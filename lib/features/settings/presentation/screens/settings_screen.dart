@@ -163,6 +163,7 @@ class SettingsScreen extends ConsumerWidget {
 
     final msg = switch (result) {
       ImportResult.success => 'Məlumatlar uğurla idxal edildi ✓',
+      ImportResult.partial => 'Bəzi əməllər idxal edilə bilmədi',
       ImportResult.cancelled => null,
       ImportResult.invalid => 'Fayl düzgün format deyil',
       ImportResult.error => 'İdxal zamanı xəta baş verdi',
@@ -177,11 +178,13 @@ class SettingsScreen extends ConsumerWidget {
         content: Text(msg, style: GoogleFonts.nunito(color: Colors.white)),
         backgroundColor: result == ImportResult.success
             ? AppColors.accent
+            : result == ImportResult.partial
+            ? Colors.orange.shade700
             : Colors.red.shade400,
       ),
     );
 
-    if (result == ImportResult.success) {
+    if (result == ImportResult.success || result == ImportResult.partial) {
       await ref.read(amalProvider.notifier).refresh();
     }
   }
