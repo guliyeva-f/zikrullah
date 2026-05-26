@@ -55,11 +55,6 @@ class Amal {
     return r < 0 ? 0 : r;
   }
 
-  double? get durationProgress {
-    if (durationDays == null || durationDays == 0) return null;
-    return (daysSinceStart / durationDays!).clamp(0.0, 1.0);
-  }
-
   String get durationLabel {
     if (durationDays == null) return 'Daimi';
     if (isExpired) return 'Tamamlandı';

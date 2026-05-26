@@ -16,8 +16,6 @@ class AmalDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
-  final _repo = AmalRepository();
-
   late int _calYear;
   late int _calMonth;
   Map<String, bool> _calData = {};
@@ -35,12 +33,13 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
 
   Future<void> _loadData() async {
     setState(() => _loading = true);
-    final cal = await _repo.getAmalCalendarMonth(
+    final repo = AmalRepository(); // lokal, yalnız bu metodda
+    final cal = await repo.getAmalCalendarMonth(
       widget.amal.id,
       _calYear,
       _calMonth,
     );
-    final total = await _repo.countCompletedDays(widget.amal.id);
+    final total = await repo.countCompletedDays(widget.amal.id);
     if (!mounted) return;
     setState(() {
       _calData = cal;

@@ -77,6 +77,7 @@ class DatabaseHelper {
   static void useInMemoryForTesting() {
     _overridePath = inMemoryDatabasePath;
   }
+
   Future<void> resetForTesting() async {
     if (_db != null && _db!.isOpen) {
       await _db!.close();

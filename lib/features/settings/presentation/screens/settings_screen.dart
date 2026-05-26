@@ -298,6 +298,7 @@ class _ToggleRow extends StatelessWidget {
             value: value,
             onChanged: onChanged,
             activeThumbColor: AppColors.accent,
+            activeTrackColor: AppColors.accentMuted,
           ),
         ],
       ),

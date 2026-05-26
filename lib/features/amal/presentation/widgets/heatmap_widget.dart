@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/app_constants.dart';
 
 class HeatmapWidget extends StatefulWidget {
   final Map<String, double> data;
@@ -16,22 +17,6 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
   static const _cellSize = 11.0;
   static const _gap = 2.0;
   static const _total = _cellSize + _gap;
-
-  static const _monthNames = [
-    '',
-    'Yan',
-    'Fev',
-    'Mar',
-    'Apr',
-    'May',
-    'İyn',
-    'İyl',
-    'Avq',
-    'Sen',
-    'Okt',
-    'Noy',
-    'Dek',
-  ];
 
   @override
   void initState() {
@@ -122,7 +107,7 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
           final key = '${first.year}-${first.month}';
           if (key != lastKey) {
             lastKey = key;
-            label = _monthNames[first.month];
+            label = AppConstants.monthsShort[first.month];
           }
         }
         return SizedBox(

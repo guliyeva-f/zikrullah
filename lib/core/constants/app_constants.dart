@@ -16,6 +16,22 @@ class AppConstants {
     'Dekabr',
   ];
 
+  static const monthsShort = [
+    '',
+    'Yan',
+    'Fev',
+    'Mar',
+    'Apr',
+    'May',
+    'İyn',
+    'İyl',
+    'Avq',
+    'Sen',
+    'Okt',
+    'Noy',
+    'Dek',
+  ];
+
   static const weekdays = [
     '',
     'Bazar ertəsi',

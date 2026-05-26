@@ -399,7 +399,7 @@ void main() {
         const ProviderScope(child: MaterialApp(home: HomeScreen())),
       );
       await t.pumpAndSettle();
-      expect(find.textContaining('Hələ əməl yoxdur'), findsOneWidget);
+      expect(find.textContaining('Hər gün bir addım'), findsOneWidget);
     });
 
     testWidgets('"Günün əməlləri" başlığı görünür', (t) async {

@@ -7,8 +7,6 @@ class HeatmapState {
   final Map<String, double> data;
 
   const HeatmapState({required this.data});
-
-  double? ratioFor(String date) => data[date];
 }
 
 // ─── NOTIFIER ────────────────────────────────────────────────────────────────

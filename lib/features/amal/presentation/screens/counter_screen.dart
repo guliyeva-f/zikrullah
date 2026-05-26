@@ -74,6 +74,12 @@ class CounterScreen extends ConsumerWidget {
                 HapticFeedback.lightImpact();
                 ref.read(amalProvider.notifier).incrementCounterBy(amal.id, 1);
               },
+        onLongPress: done || count <= 0
+            ? null
+            : () {
+                HapticFeedback.mediumImpact();
+                ref.read(amalProvider.notifier).decrementCounterBy(amal.id, 1);
+              },
         child: SafeArea(
           child: Center(
             child: Column(
