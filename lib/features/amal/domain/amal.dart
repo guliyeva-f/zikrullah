@@ -88,28 +88,36 @@ class Amal {
     'duration_days': durationDays,
   };
 
+  static const _unset = Object();
+
   Amal copyWith({
     int? id,
     String? title,
     AmalType? type,
-    int? countTarget,
-    String? content,
+    Object? countTarget = _unset,
+    Object? content = _unset,
     int? sortOrder,
     bool? isActive,
     String? createdAt,
-    String? intention,
-    int? durationDays,
+    Object? intention = _unset,
+    Object? durationDays = _unset,
   }) => Amal(
     id: id ?? this.id,
     title: title ?? this.title,
     type: type ?? this.type,
-    countTarget: countTarget ?? this.countTarget,
-    content: content ?? this.content,
+    countTarget: identical(countTarget, _unset)
+        ? this.countTarget
+        : countTarget as int?,
+    content: identical(content, _unset) ? this.content : content as String?,
     sortOrder: sortOrder ?? this.sortOrder,
     isActive: isActive ?? this.isActive,
     createdAt: createdAt ?? this.createdAt,
-    intention: intention ?? this.intention,
-    durationDays: durationDays ?? this.durationDays,
+    intention: identical(intention, _unset)
+        ? this.intention
+        : intention as String?,
+    durationDays: identical(durationDays, _unset)
+        ? this.durationDays
+        : durationDays as int?,
   );
 
   // Import/export üçün tam JSON (records olmadan)

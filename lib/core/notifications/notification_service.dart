@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 class NotificationService {
   NotificationService._internal();
@@ -30,7 +31,8 @@ class NotificationService {
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
-    tz.setLocalLocation(tz.local);
+    final timezoneInfo = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timezoneInfo.toString()));
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
@@ -64,6 +66,7 @@ class NotificationService {
       return false;
     }
   }
+  Future<bool> canScheduleExact() => _canUseExactAlarms();
 
   // ─── PREFERENCES ─────────────────────────────────────────────────────────
 
@@ -296,7 +299,6 @@ class NotificationService {
   // ─── GERİ QAYT BİLDİRİŞİ ─────────────────────────────────────────────────
 
   Future<void> scheduleReturnNotifications(List<String> amalTitles) async {
-    // Siyahı boşdursa bildirişi ləğv et
     if (amalTitles.isEmpty) {
       await _plugin.cancel(id: 5);
       return;
@@ -307,7 +309,6 @@ class NotificationService {
     try {
       final now = tz.TZDateTime.now(tz.local);
 
-      // Gün ərzində yalnız bir dəfə planlaşdır — artıq keçibsə sabah
       var scheduled = tz.TZDateTime(
         tz.local,
         now.year,

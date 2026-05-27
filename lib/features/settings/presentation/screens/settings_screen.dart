@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../amal/data/import_export_service.dart';
+import '../../../amal/domain/amal.dart';
 import '../../../amal/presentation/providers/amal_provider.dart';
 import '../providers/settings_provider.dart';
 
@@ -50,9 +52,28 @@ class SettingsScreen extends ConsumerWidget {
               title: 'Bildirişlər',
               subtitle: 'Gündəlik xatırlatmaları aç/bağla',
               value: state.notificationsEnabled,
-              onChanged: (v) => ref
-                  .read(settingsProvider.notifier)
-                  .setNotificationsEnabled(v),
+              onChanged: (v) async {
+                await ref
+                    .read(settingsProvider.notifier)
+                    .setNotificationsEnabled(v);
+                if (v && context.mounted) {
+                  final canExact = await NotificationService()
+                      .canScheduleExact();
+                  if (!canExact && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Dəqiq bildiriş üçün sistem ayarlarından icazə ver: '
+                          'Tətbiqlər → Şəxsi Əməllər → Bildirişlər',
+                          style: GoogleFonts.nunito(color: Colors.white),
+                        ),
+                        backgroundColor: AppColors.accentLight,
+                        duration: const Duration(seconds: 6),
+                      ),
+                    );
+                  }
+                }
+              },
             ),
             const SizedBox(height: 16),
 
@@ -141,52 +162,106 @@ class SettingsScreen extends ConsumerWidget {
 
   Future<void> _export(BuildContext context) async {
     final ok = await ImportExportService.instance.exportData();
-    if (!context.mounted) {
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          ok ? 'Məlumatlar ixrac edildi ✓' : 'İxrac zamanı xəta baş verdi',
-          style: GoogleFonts.nunito(color: Colors.white),
-        ),
-        backgroundColor: ok ? AppColors.accent : Colors.red.shade400,
-      ),
+    if (!context.mounted) return;
+    _showSnack(
+      context,
+      ok ? 'Məlumatlar ixrac edildi ✓' : 'İxrac zamanı xəta baş verdi',
+      isError: !ok,
     );
   }
 
   Future<void> _import(BuildContext context, WidgetRef ref) async {
-    final result = await ImportExportService.instance.importData();
-    if (!context.mounted) {
-      return;
+    // 1. Faylı oxu və DB ilə müqayisə et
+    final previewResult = await ImportExportService.instance.previewImport();
+    if (!context.mounted) return;
+
+    switch (previewResult) {
+      case PreviewCancelled():
+        return;
+
+      case PreviewInvalid():
+        _showSnack(context, 'Fayl düzgün format deyil', isError: true);
+        return;
+
+      case PreviewError():
+        _showSnack(context, 'İdxal zamanı xəta baş verdi', isError: true);
+        return;
+
+      case PreviewReady(:final preview):
+        // 2. Yeni məlumat yoxdursa xəbər ver
+        if (preview.isEmpty) {
+          _showSnack(
+            context,
+            preview.identicalCount > 0
+                ? 'Fayl artıq idxal edilib — heç bir yenilik yoxdur'
+                : 'Fayllda heç bir əməl tapılmadı',
+          );
+          return;
+        }
+
+        // 3. Ziddiyyətlər varsa dialog göstər
+        if (preview.conflicts.isNotEmpty) {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => _ConflictDialog(preview: preview),
+          );
+          if (!context.mounted) return;
+          if (confirmed != true) return;
+        }
+
+        // 4. Import tətbiq et
+        final result = await ImportExportService.instance.applyImport(preview);
+        if (!context.mounted) return;
+
+        final msg = switch (result) {
+          ImportResult.success => _successMessage(preview),
+          ImportResult.partial => 'Bəzi əməllər idxal edilə bilmədi',
+          ImportResult.cancelled => null,
+          ImportResult.invalid => 'Fayl düzgün format deyil',
+          ImportResult.error => 'İdxal zamanı xəta baş verdi',
+        };
+
+        if (msg != null) {
+          _showSnack(
+            context,
+            msg,
+            isError:
+                result == ImportResult.error || result == ImportResult.invalid,
+          );
+        }
+
+        if (result == ImportResult.success || result == ImportResult.partial) {
+          await ref.read(amalProvider.notifier).refresh();
+        }
     }
+  }
 
-    final msg = switch (result) {
-      ImportResult.success => 'Məlumatlar uğurla idxal edildi ✓',
-      ImportResult.partial => 'Bəzi əməllər idxal edilə bilmədi',
-      ImportResult.cancelled => null,
-      ImportResult.invalid => 'Fayl düzgün format deyil',
-      ImportResult.error => 'İdxal zamanı xəta baş verdi',
-    };
-
-    if (msg == null) {
-      return;
+  String _successMessage(ImportPreview preview) {
+    final parts = <String>[];
+    if (preview.newAmals.isNotEmpty) {
+      parts.add('${preview.newAmals.length} yeni əlavə edildi');
     }
+    final updated = preview.conflicts.where((c) => c.useIncoming).length;
+    if (updated > 0) parts.add('$updated yeniləndi');
+    final skipped = preview.conflicts.where((c) => !c.useIncoming).length;
+    if (skipped > 0) parts.add('$skipped mövcud saxlanıldı');
+    if (preview.identicalCount > 0) {
+      parts.add('${preview.identicalCount} eyni atlandı');
+    }
+    return parts.isEmpty
+        ? 'Məlumatlar idxal edildi ✓'
+        : '${parts.join(', ')} ✓';
+  }
 
+  void _showSnack(BuildContext context, String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: GoogleFonts.nunito(color: Colors.white)),
-        backgroundColor: result == ImportResult.success
-            ? AppColors.accent
-            : result == ImportResult.partial
-            ? Colors.orange.shade700
-            : Colors.red.shade400,
+        backgroundColor: isError ? Colors.red.shade400 : AppColors.accent,
+        duration: const Duration(seconds: 4),
       ),
     );
-
-    if (result == ImportResult.success || result == ImportResult.partial) {
-      await ref.read(amalProvider.notifier).refresh();
-    }
   }
 
   Future<void> _pickTime(
@@ -221,6 +296,354 @@ class SettingsScreen extends ConsumerWidget {
     if (picked != null) {
       onPicked(picked);
     }
+  }
+}
+
+// ─── CONFLICT DIALOG ──────────────────────────────────────────────────────────
+
+class _ConflictDialog extends StatefulWidget {
+  final ImportPreview preview;
+  const _ConflictDialog({required this.preview});
+
+  @override
+  State<_ConflictDialog> createState() => _ConflictDialogState();
+}
+
+class _ConflictDialogState extends State<_ConflictDialog> {
+  @override
+  Widget build(BuildContext context) {
+    final preview = widget.preview;
+    final conflicts = preview.conflicts;
+
+    return Dialog(
+      backgroundColor: AppColors.bgCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Başlıq ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+            child: Text(
+              'İdxal ziddiyyətləri',
+              style: GoogleFonts.nunito(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+            child: Text(
+              _summaryText(preview),
+              style: GoogleFonts.nunito(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.separator),
+          // ── Conflict siyahısı ──
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
+              child: Column(
+                children: [
+                  for (int i = 0; i < conflicts.length; i++) ...[
+                    _buildConflictCard(conflicts[i]),
+                    if (i < conflicts.length - 1) const SizedBox(height: 10),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.separator),
+          // ── Düymələr ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.separator),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Ləğv et',
+                      style: GoogleFonts.nunito(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Tətbiq et',
+                      style: GoogleFonts.nunito(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _summaryText(ImportPreview p) {
+    final parts = <String>[];
+    if (p.newAmals.isNotEmpty) parts.add('${p.newAmals.length} yeni');
+    if (p.conflicts.isNotEmpty) parts.add('${p.conflicts.length} ziddiyyətli');
+    if (p.identicalCount > 0) parts.add('${p.identicalCount} eyni (atlanacaq)');
+    return '${parts.join(' · ')} — hər ziddiyyət üçün seçim edin';
+  }
+
+  Widget _buildConflictCard(AmalConflict conflict) {
+    final typeLabel = switch (conflict.existing.type) {
+      AmalType.checkbox => 'Checkboks',
+      AmalType.counter => 'Sayğac',
+      AmalType.text => 'Mətn',
+    };
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bgBase,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.separator),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Başlıq + tip
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 11, 14, 7),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    conflict.existing.title,
+                    style: GoogleFonts.nunito(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentMuted.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    typeLabel,
+                    style: GoogleFonts.nunito(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.separator),
+          // İki panel yan-yana
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _SidePanel(
+                    label: 'Mövcud',
+                    amal: conflict.existing,
+                    streak: conflict.existingStreak,
+                    completedDays: conflict.existingCompletedDays,
+                    isSelected: !conflict.useIncoming,
+                    onTap: () => setState(() => conflict.useIncoming = false),
+                  ),
+                ),
+                Container(width: 1, color: AppColors.separator),
+                Expanded(
+                  child: _SidePanel(
+                    label: 'Yeni fayl',
+                    amal: conflict.incoming,
+                    isSelected: conflict.useIncoming,
+                    onTap: () => setState(() => conflict.useIncoming = true),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── SIDE PANEL ───────────────────────────────────────────────────────────────
+
+class _SidePanel extends StatelessWidget {
+  final String label;
+  final Amal amal;
+  final int? streak;
+  final int? completedDays;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SidePanel({
+    required this.label,
+    required this.amal,
+    this.streak,
+    this.completedDays,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        color: isSelected
+            ? AppColors.accent.withValues(alpha: 0.07)
+            : Colors.transparent,
+        padding: const EdgeInsets.fromLTRB(12, 9, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Label + seçim ikonu
+            Row(
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isSelected
+                        ? AppColors.accent
+                        : AppColors.textSecondary,
+                  ),
+                ),
+                const Spacer(),
+                AnimatedOpacity(
+                  opacity: isSelected ? 1 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    size: 14,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            // Streak və tamamlanma (yalnız mövcud üçün)
+            if (streak != null && streak! > 0) ...[
+              _statRow('🔥', '$streak gün ardıcıl'),
+              const SizedBox(height: 2),
+            ],
+            if (completedDays != null && completedDays! > 0) ...[
+              _statRow('✓', '$completedDays gün tamamlandı'),
+              const SizedBox(height: 6),
+            ],
+            // Əməl sahələri
+            if (amal.type == AmalType.counter && amal.countTarget != null)
+              _fieldRow('Hədəf', '${amal.countTarget}'),
+            if (amal.intention != null && amal.intention!.isNotEmpty)
+              _fieldRow('Niyyət', amal.intention!),
+            _fieldRow(
+              'Müddət',
+              amal.durationDays != null ? '${amal.durationDays} gün' : 'Daimi',
+            ),
+            if (!amal.isActive)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Arxivdə',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    color: AppColors.textHint,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statRow(String emoji, String text) {
+    return Row(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 11)),
+        const SizedBox(width: 3),
+        Text(
+          text,
+          style: GoogleFonts.nunito(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _fieldRow(String key, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: RichText(
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        text: TextSpan(
+          style: GoogleFonts.nunito(
+            fontSize: 11,
+            color: AppColors.textSecondary,
+          ),
+          children: [
+            TextSpan(text: '$key: '),
+            TextSpan(
+              text: value,
+              style: GoogleFonts.nunito(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -138,8 +138,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
             ),
           );
     } else {
-      // FIX #10: arxivlənmiş əməlləri də nəzərə almaq üçün
-      // unikal və həmişə artan sortOrder — yeni əməl həmişə sonda olur
       final sortOrder = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
       await ref

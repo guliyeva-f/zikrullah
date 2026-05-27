@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../core/database/database_helper.dart';
 import '../domain/amal.dart';
 import '../domain/amal_record.dart';
+import 'import_models.dart';
 import 'package:flutter/foundation.dart';
 
 class AmalRepository {
@@ -65,7 +66,7 @@ class AmalRepository {
     await batch.commit(noResult: true);
   }
 
-  // ─── MÜDDƏTİ BITMIŞ ƏMƏLLƏR ──────────────────────────────────────────────
+  // ─── MÜDDƏTİ BİTMİŞ ƏMƏLLƏR ──────────────────────────────────────────────
 
   Future<List<Amal>> archiveExpiredAmals() async {
     final db = await _db;
@@ -185,6 +186,7 @@ class AmalRepository {
   }
 
   // ─── STREAK ───────────────────────────────────────────────────────────────
+
   Future<int> calculateStreak(int amalId) async {
     final db = await _db;
     final today = _today;
@@ -224,6 +226,7 @@ class AmalRepository {
     }
     return streak;
   }
+
   // ─── "GERİ QAYT" BİLDİRİŞİ ÜÇÜN ──────────────────────────────────────────
 
   Future<List<Amal>> getStreakBrokenAmals() async {
@@ -238,7 +241,6 @@ class AmalRepository {
     final placeholders = List.filled(ids.length, '?').join(',');
     final db = await _db;
 
-    // Dünən + son 7 gün (dünən daxil deyil) üçün tamamlanan recordları çək
     final maps = await db.rawQuery(
       '''
       SELECT amal_id, record_date
@@ -250,7 +252,6 @@ class AmalRepository {
       [...ids, sevenDaysAgo, yesterday],
     );
 
-    // hər əməl üçün tamamlanan günlər seti
     final completedDates = <int, Set<String>>{};
     for (final m in maps) {
       final amalId = m['amal_id'] as int;
@@ -262,7 +263,6 @@ class AmalRepository {
     for (final amal in amals) {
       final dates = completedDates[amal.id] ?? {};
       final yesterdayFailed = !dates.contains(yesterday);
-      // Son 7 gün içində (dünən xaric) ən az bir gün tamamlanıbsa streak var idi
       final hadStreakRecently = dates.any((d) => d != yesterday);
       if (yesterdayFailed && hadStreakRecently) {
         broken.add(amal);
@@ -282,61 +282,73 @@ class AmalRepository {
     return maps.map(AmalRecord.fromMap).toList();
   }
 
-  Future<({int imported, int skipped, List<String> errors})> importData({
-    required List<Amal> amals,
-    required List<AmalRecord> records,
-  }) async {
+  /// Smart merge import — istifadəçi seçimləri ilə
+  Future<({int imported, int updated, int skipped, List<String> errors})>
+  applyImport({required ImportPreview preview}) async {
     final db = await _db;
-    final idMap = <int, int>{}; // köhnə id → yeni DB id
+    final idMap = <int, int>{}; // fayldakı köhnə id → DB-dəki real id
     int imported = 0;
+    int updated = 0;
     int skipped = 0;
     final errors = <String>[];
 
-    for (final amal in amals) {
-      final mapWithoutId = Map<String, dynamic>.from(amal.toJson())
-        ..remove('id');
-
+    // 1. Yeni əməllər — birbaşa insert
+    for (final amal in preview.newAmals) {
+      final map = Map<String, dynamic>.from(amal.toJson())..remove('id');
       try {
-        final newId = await db.insert(
-          'amals',
-          mapWithoutId,
-          conflictAlgorithm: ConflictAlgorithm.abort,
-        );
+        final newId = await db.insert('amals', map);
         idMap[amal.id] = newId;
         imported++;
       } catch (e) {
-        debugPrint('Amal insert xətası [${amal.title}]: $e');
-        // Eyni adlı əməl artıq varsa mövcud id-ni götür
-        try {
-          final existing = await db.query(
-            'amals',
-            columns: ['id'],
-            where: 'title = ? AND type = ?',
-            whereArgs: [amal.title, amal.type.name],
-            limit: 1,
-          );
-          if (existing.isNotEmpty) {
-            idMap[amal.id] = existing.first['id'] as int;
-            skipped++;
-          } else {
-            errors.add(amal.title);
-          }
-        } catch (e2) {
-          debugPrint('Mövcud əməl axtarış xətası [${amal.title}]: $e2');
-          errors.add(amal.title);
-        }
+        debugPrint('Yeni amal insert xətası [${amal.title}]: $e');
+        errors.add(amal.title);
       }
     }
 
-    if (records.isNotEmpty) {
+    // 2. Ziddiyyətlər — istifadəçinin seçiminə görə
+    for (final conflict in preview.conflicts) {
+      if (conflict.useIncoming) {
+        // Mövcud əməlin məzmun sahələrini yeni məlumatla yenilə
+        // (id, sortOrder, createdAt toxunulmur — streak qorunur)
+        try {
+          await db.update(
+            'amals',
+            {
+              'count_target': conflict.incoming.countTarget,
+              'content': conflict.incoming.content,
+              'intention': conflict.incoming.intention,
+              'duration_days': conflict.incoming.durationDays,
+              'is_active': conflict.incoming.isActive ? 1 : 0,
+            },
+            where: 'id = ?',
+            whereArgs: [conflict.existing.id],
+          );
+          idMap[conflict.incoming.id] = conflict.existing.id;
+          updated++;
+        } catch (e) {
+          debugPrint(
+            'Conflict yeniləmə xətası [${conflict.existing.title}]: $e',
+          );
+          errors.add(conflict.existing.title);
+        }
+      } else {
+        // Mövcudu saxla — sadəcə id-ni map et ki, records düzgün bağlansın
+        idMap[conflict.incoming.id] = conflict.existing.id;
+        skipped++;
+      }
+    }
+
+    // 3. Records — həmişə birləşdir
+    // UNIQUE(amal_id, record_date) constraint sayəsində dublikatlar IGNORE olur
+    if (preview.records.isNotEmpty) {
       final batch = db.batch();
-      for (final rec in records) {
-        final actualAmalId = idMap[rec.amalId];
-        if (actualAmalId == null) continue; // əməl import edilməyib
+      for (final rec in preview.records) {
+        final actualId = idMap[rec.amalId];
+        if (actualId == null) continue; // əməl import edilməyib, atla
 
         final map = rec.toMap()
-          ..['amal_id'] = actualAmalId
-          ..remove('id'); // record ID konfliktini önlə
+          ..['amal_id'] = actualId
+          ..remove('id');
 
         batch.insert(
           'amal_records',
@@ -347,7 +359,12 @@ class AmalRepository {
       await batch.commit(noResult: true);
     }
 
-    return (imported: imported, skipped: skipped, errors: errors);
+    return (
+      imported: imported,
+      updated: updated,
+      skipped: skipped,
+      errors: errors,
+    );
   }
 
   // ─── STATİSTİKA ───────────────────────────────────────────────────────────

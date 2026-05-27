@@ -11,6 +11,9 @@ import 'package:sqflite/sqflite.dart';
 import '../domain/amal.dart';
 import '../domain/amal_record.dart';
 import 'amal_repository.dart';
+import 'import_models.dart';
+
+export 'import_models.dart';
 
 enum ImportResult { success, partial, cancelled, invalid, error }
 
@@ -54,8 +57,7 @@ class ImportExportService {
         ),
       );
 
-      return result.status == ShareResultStatus.success ||
-          result.status == ShareResultStatus.dismissed;
+      return result.status == ShareResultStatus.success;
     } catch (e) {
       debugPrint('Export xətası: $e');
       return false;
@@ -70,16 +72,16 @@ class ImportExportService {
     }
   }
 
-  // ─── IMPORT ──────────────────────────────────────────────────────────────
+  // ─── IMPORT PREVIEW ──────────────────────────────────────────────────────
 
-  Future<ImportResult> importData() async {
+  /// Faylı oxuyur, DB ilə müqayisə edir, PreviewResult qaytarır.
+  Future<PreviewResult> previewImport() async {
     try {
       final picked = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
       );
-
-      if (picked == null) return ImportResult.cancelled;
+      if (picked == null) return PreviewCancelled();
 
       String jsonStr;
       final path = picked.files.single.path;
@@ -94,30 +96,113 @@ class ImportExportService {
       if (data is! Map<String, dynamic> ||
           data['amals'] == null ||
           data['version'] == null) {
-        return ImportResult.invalid;
+        return PreviewInvalid();
       }
 
-      final amals = (data['amals'] as List)
-          .map((j) => Amal.fromJson(j as Map<String, dynamic>))
-          .toList();
+      // Sizin gücləndirilmiş validasiya
+      final rawAmals = data['amals'];
+      if (rawAmals is! List) return PreviewInvalid();
 
-      final records = (data['records'] as List? ?? [])
-          .map((j) => AmalRecord.fromMap(j as Map<String, dynamic>))
-          .toList();
+      final incomingAmals = <Amal>[];
+      for (final j in rawAmals) {
+        if (j is! Map<String, dynamic>) return PreviewInvalid();
+        if (j['title'] is! String ||
+            j['type'] is! String ||
+            j['created_at'] is! String) {
+          return PreviewInvalid();
+        }
+        try {
+          incomingAmals.add(Amal.fromJson(j));
+        } catch (_) {
+          return PreviewInvalid();
+        }
+      }
 
-      final result = await _repo.importData(amals: amals, records: records);
+      final incomingRecords = <AmalRecord>[];
+      for (final j in (data['records'] as List? ?? [])) {
+        if (j is! Map<String, dynamic>) continue;
+        try {
+          incomingRecords.add(AmalRecord.fromMap(j));
+        } catch (_) {
+          continue;
+        }
+      }
+
+      // DB ilə müqayisə
+      final existingAmals = await _repo.getAllAmals();
+      final existingMap = {
+        for (final a in existingAmals) '${a.title}__${a.type.name}': a,
+      };
+
+      final newAmals = <Amal>[];
+      final conflicts = <AmalConflict>[];
+      int identicalCount = 0;
+
+      for (final incoming in incomingAmals) {
+        final key = '${incoming.title}__${incoming.type.name}';
+        final existing = existingMap[key];
+
+        if (existing == null) {
+          newAmals.add(incoming);
+        } else if (_isIdentical(existing, incoming)) {
+          identicalCount++;
+        } else {
+          final streak = await _repo.calculateStreak(existing.id);
+          final completed = await _repo.countCompletedDays(existing.id);
+          conflicts.add(
+            AmalConflict(
+              existing: existing,
+              incoming: incoming,
+              existingStreak: streak,
+              existingCompletedDays: completed,
+            ),
+          );
+        }
+      }
+
+      return PreviewReady(
+        ImportPreview(
+          newAmals: newAmals,
+          conflicts: conflicts,
+          identicalCount: identicalCount,
+          records: incomingRecords,
+        ),
+      );
+    } on FormatException {
+      return PreviewInvalid();
+    } catch (e) {
+      debugPrint('Preview xətası: $e');
+      return PreviewError();
+    }
+  }
+
+  /// İki əməlin məzmun sahələrini müqayisə edir (id, sortOrder, createdAt istisna)
+  bool _isIdentical(Amal a, Amal b) =>
+      a.countTarget == b.countTarget &&
+      a.content == b.content &&
+      a.intention == b.intention &&
+      a.durationDays == b.durationDays &&
+      a.isActive == b.isActive;
+
+  // ─── IMPORT APPLY ─────────────────────────────────────────────────────────
+
+  /// İstifadəçi seçimlərini tətbiq edir
+  Future<ImportResult> applyImport(ImportPreview preview) async {
+    try {
+      final result = await _repo.applyImport(preview: preview);
       if (result.errors.isNotEmpty) {
         debugPrint(
-          'Import qismən uğurlu: ${result.imported} əlavə edildi, '
-          '${result.skipped} atlandı, xəta: ${result.errors}',
+          'Import qismən: ${result.imported} əlavə, '
+          '${result.updated} yeniləndi, ${result.skipped} atlandı, '
+          'xəta: ${result.errors}',
         );
-        return result.imported > 0 ? ImportResult.partial : ImportResult.error;
+        return result.imported > 0 || result.updated > 0
+            ? ImportResult.partial
+            : ImportResult.error;
       }
       return ImportResult.success;
-    } on FormatException {
-      return ImportResult.invalid;
     } catch (e) {
-      debugPrint('Import xətası: $e');
+      debugPrint('Apply import xətası: $e');
       return ImportResult.error;
     }
   }

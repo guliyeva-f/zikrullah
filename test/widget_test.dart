@@ -10,6 +10,7 @@ import 'package:amal_app/features/amal/domain/amal.dart';
 import 'package:amal_app/features/amal/domain/amal_record.dart';
 import 'package:amal_app/features/amal/presentation/providers/amal_provider.dart';
 import 'package:amal_app/features/amal/presentation/screens/home_screen.dart';
+import 'package:amal_app/features/amal/data/import_models.dart';
 
 String _fmt(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
 
@@ -291,6 +292,7 @@ void main() {
           isActive: true,
           createdAt: DateTime.now().toIso8601String(),
         );
+
         final importRecord = AmalRecord(
           amalId: existingId,
           recordDate: '2025-01-01',
@@ -298,17 +300,29 @@ void main() {
           completedAt: '2025-01-01',
         );
 
-        await repo.importData(amals: [importedAmal], records: [importRecord]);
+        final preview = ImportPreview(
+          newAmals: [importedAmal],
+          conflicts: [],
+          identicalCount: 0,
+          records: [importRecord],
+        );
+
+        final result = await repo.applyImport(preview: preview);
+
+        expect(result.imported, 1);
 
         final all = await repo.getAllAmals();
         expect(all.length, 2);
 
         final newAmal = all.firstWhere((a) => a.title == 'Import');
+
         expect(newAmal.id, isNot(existingId));
+
         expect(
           (await repo.getRecord(newAmal.id, '2025-01-01'))?.isCompleted,
           isTrue,
         );
+
         expect(await repo.getRecord(existingId, '2025-01-01'), isNull);
       },
     );

@@ -40,9 +40,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
     _scrollController.dispose();
     super.dispose();
   }
-
-  bool get _isCompleted => widget.record?.isCompleted ?? false;
-
+  
   Future<void> _complete() async {
     await ref.read(amalProvider.notifier).completeCheckbox(widget.amal.id);
     if (mounted) Navigator.pop(context);
@@ -50,9 +48,13 @@ class _TextScreenState extends ConsumerState<TextScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final liveRecord = ref.watch(amalProvider).value?.records[widget.amal.id];
+    final isCompleted =
+        liveRecord?.isCompleted ?? widget.record?.isCompleted ?? false;
+
     return Scaffold(
       backgroundColor: AppColors.bgBase,
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(isCompleted),
       body: Column(
         children: [
           LinearProgressIndicator(
@@ -81,7 +83,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isCompleted ? null : _complete,
+                      onPressed: isCompleted ? null : _complete,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
                         disabledBackgroundColor: AppColors.bgElevated,
@@ -94,7 +96,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                         elevation: 0,
                       ),
                       child: Text(
-                        _isCompleted ? 'Tamamlandı ✓' : 'Tamamladım',
+                        isCompleted ? 'Tamamlandı ✓' : 'Tamamladım',
                         style: GoogleFonts.nunito(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -111,7 +113,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(bool isCompleted) {
     return AppBar(
       backgroundColor: AppColors.bgBase,
       elevation: 0,
@@ -138,7 +140,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
             ),
             overflow: TextOverflow.ellipsis,
           ),
-          if (_isCompleted)
+          if (isCompleted)
             Text(
               'Tamamlandı ✓',
               style: GoogleFonts.nunito(

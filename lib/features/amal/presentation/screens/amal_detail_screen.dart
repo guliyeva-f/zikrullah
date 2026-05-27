@@ -6,6 +6,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../domain/amal.dart';
 import '../../data/amal_repository.dart';
 import '../providers/amal_provider.dart';
+import 'amal_form_screen.dart';
 
 class AmalDetailScreen extends ConsumerStatefulWidget {
   final Amal amal;
@@ -94,6 +95,22 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.edit_outlined,
+              size: 20,
+              color: AppColors.textSecondary,
+            ),
+            tooltip: 'Düzəlt',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AmalFormScreen(amal: widget.amal),
+              ),
+            ).then((_) => ref.read(amalProvider.notifier).refresh()),
+          ),
+        ],
         title: Text(
           widget.amal.title,
           style: GoogleFonts.nunito(
@@ -277,8 +294,8 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   // ─── STATİSTİKA ───────────────────────────────────────────────────────────
 
   Widget _buildStatsRow(int streak) {
-    final days = widget.amal.daysSinceStart;
-    final pct = days > 0 ? (_totalCompleted / days * 100).round() : 0;
+    final days = widget.amal.daysSinceStart + 1;
+    final pct = (_totalCompleted / days * 100).round().clamp(0, 100);
 
     return Row(
       children: [

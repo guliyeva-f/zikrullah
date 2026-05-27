@@ -20,7 +20,7 @@ class CounterScreen extends ConsumerWidget {
     final done = record?.isCompleted ?? false;
     final progress = (count / target).clamp(0.0, 1.0);
     final reachedTarget = count >= target;
-
+    final overTarget = count > target;
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
@@ -131,10 +131,14 @@ class CounterScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'hədəf: $target',
+                            overTarget
+                                ? '+${count - target} artıq'
+                                : 'hədəf: $target',
                             style: GoogleFonts.nunito(
                               fontSize: 13,
-                              color: AppColors.textHint,
+                              color: overTarget
+                                  ? AppColors.accentLight
+                                  : AppColors.textHint,
                             ),
                           ),
                         ],
