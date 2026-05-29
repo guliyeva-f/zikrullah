@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:app_settings/app_settings.dart';
 
 class NotificationService {
   NotificationService._internal();
@@ -50,23 +51,38 @@ class NotificationService {
     );
   }
 
-  Future<void> requestPermission() async {
+  Future<bool> requestPermission() async {
     try {
-      await _androidImpl?.requestNotificationsPermission();
-      await _androidImpl?.requestExactAlarmsPermission();
+      final granted =
+          await _androidImpl?.requestNotificationsPermission() ?? false;
+      if (granted) await _androidImpl?.requestExactAlarmsPermission();
+      return granted;
     } catch (e) {
       debugPrint('İcazə xətası: $e');
+      return false;
     }
   }
 
-  Future<bool> _canUseExactAlarms() async {
+  Future<void> openSystemSettings() async {
+    await AppSettings.openAppSettings(type: AppSettingsType.notification);
+  }
+
+  Future<bool> hasNotificationPermission() async {
+    try {
+      final granted = await _androidImpl?.areNotificationsEnabled() ?? false;
+      return granted;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> canScheduleExact() async {
     try {
       return await _androidImpl?.canScheduleExactNotifications() ?? false;
     } catch (_) {
       return false;
     }
   }
-  Future<bool> canScheduleExact() => _canUseExactAlarms();
 
   // ─── PREFERENCES ─────────────────────────────────────────────────────────
 
@@ -226,7 +242,7 @@ class NotificationService {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
-      final mode = await _canUseExactAlarms()
+      final mode = await canScheduleExact()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
 
@@ -270,7 +286,7 @@ class NotificationService {
         minute,
       ).add(const Duration(days: 1));
 
-      final mode = await _canUseExactAlarms()
+      final mode = await canScheduleExact()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
 
@@ -325,7 +341,7 @@ class NotificationService {
           ? '"${amalTitles.first}" əməlinə qayıt 🤲'
           : '${amalTitles.length} əməlin sənini gözləyir 🤲';
 
-      final mode = await _canUseExactAlarms()
+      final mode = await canScheduleExact()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
 
@@ -349,5 +365,21 @@ class NotificationService {
     } catch (e) {
       debugPrint('scheduleReturnNotifications xətası: $e');
     }
+  }
+
+  // ─── ONBOARDING ──────────────────────────────────────────────────────────
+
+  static const _keyNotifAsked = 'notif_onboarding_asked';
+
+  Future<bool> isFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    return !(prefs.getBool(_keyNotifAsked) ?? false);
+  }
+
+  Future<void> markNotifAsked({required bool granted}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyNotifAsked, true);
+    await prefs.setBool(_keyEnabled, granted);
+    if (!granted) await _plugin.cancelAll();
   }
 }

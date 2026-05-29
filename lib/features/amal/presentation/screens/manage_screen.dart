@@ -47,7 +47,35 @@ class ManageScreen extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.accent),
         ),
-        error: (e, _) => Center(child: Text('Xəta: $e')),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: AppColors.textHint,
+                size: 40,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Bir xəta baş verdi',
+                style: GoogleFonts.nunito(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => ref.invalidate(amalProvider),
+                child: Text(
+                  'Yenidən cəhd et',
+                  style: GoogleFonts.nunito(color: AppColors.accent),
+                ),
+              ),
+            ],
+          ),
+        ),
         data: (state) {
           if (state.amals.isEmpty) {
             return Center(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/notifications/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 
@@ -81,3 +82,10 @@ class SettingsNotifier extends AsyncNotifier<SettingsState> {
 final settingsProvider = AsyncNotifierProvider<SettingsNotifier, SettingsState>(
   SettingsNotifier.new,
 );
+
+final notifDeclinedProvider = FutureProvider<bool>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final asked = prefs.getBool('notif_onboarding_asked') ?? false;
+  final enabled = prefs.getBool('notif_enabled') ?? true;
+  return asked && !enabled;
+});

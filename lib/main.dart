@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/constants/app_colors.dart';
 import 'core/notifications/notification_service.dart';
-import 'features/amal/presentation/screens/home_screen.dart';
+import 'features/amal/presentation/screens/onboarding_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,8 +24,6 @@ void main() async {
 
   try {
     await notifService.init();
-    await notifService.requestPermission();
-    await notifService.reschedule();
   } catch (e) {
     debugPrint('Bildiriş init xətası: $e');
   }
@@ -59,7 +57,7 @@ class AmalApp extends StatelessWidget {
         splashFactory: NoSplash.splashFactory,
         highlightColor: Colors.transparent,
       ),
-      home: const HomeScreen(),
+      home: const OnboardingWrapper(),
     );
   }
 }

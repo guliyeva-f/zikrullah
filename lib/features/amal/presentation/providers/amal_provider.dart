@@ -228,7 +228,7 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
       current.copyWith(records: newRecords, streaks: newStreaks),
     );
 
-    if (state.value!.allCompleted) {
+    if (state.value?.allCompleted == true) {
       await _notifService.cancelTodayIfAllDone();
     }
   }

@@ -88,8 +88,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
           if (lastMonth != null && day.month != lastMonth) {
             separatorCount++;
           }
-          lastMonth ??= day.month;
-          if (day.month != lastMonth) lastMonth = day.month;
+          lastMonth = day.month;
           break;
         }
       }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../data/amal_repository.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
 
@@ -138,8 +139,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
             ),
           );
     } else {
-      final sortOrder = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-
+      final sortOrder = await AmalRepository().getNextSortOrder();
       await ref
           .read(amalProvider.notifier)
           .addAmal(

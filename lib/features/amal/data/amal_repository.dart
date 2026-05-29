@@ -112,6 +112,14 @@ class AmalRepository {
     return maps.map(AmalRecord.fromMap).toList();
   }
 
+  Future<int> getNextSortOrder() async {
+    final db = await _db;
+    final result = await db.rawQuery(
+      'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM amals',
+    );
+    return (result.first['next'] as int?) ?? 0;
+  }
+
   Future<void> upsertRecord(AmalRecord record) async {
     final db = await _db;
     await db.insert(

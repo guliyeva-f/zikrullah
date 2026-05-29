@@ -8,11 +8,49 @@ import '../../../amal/domain/amal.dart';
 import '../../../amal/presentation/providers/amal_provider.dart';
 import '../providers/settings_provider.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen>
+    with WidgetsBindingObserver {
+  bool _waitingForSettings = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _waitingForSettings) {
+      _waitingForSettings = false;
+      _checkPermissionAfterReturn();
+    }
+  }
+
+  Future<void> _checkPermissionAfterReturn() async {
+    final hasPermission = await NotificationService()
+        .hasNotificationPermission();
+    if (!mounted) return;
+    if (hasPermission) {
+      await ref.read(settingsProvider.notifier).setNotificationsEnabled(true);
+      ref.invalidate(notifDeclinedProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final asyncState = ref.watch(settingsProvider);
 
     return Scaffold(
@@ -42,7 +80,35 @@ class SettingsScreen extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.accent),
         ),
-        error: (e, _) => Center(child: Text('Xəta: $e')),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: AppColors.textHint,
+                size: 40,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Bir xəta baş verdi',
+                style: GoogleFonts.nunito(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => ref.invalidate(settingsProvider),
+                child: Text(
+                  'Yenidən cəhd et',
+                  style: GoogleFonts.nunito(color: AppColors.accent),
+                ),
+              ),
+            ],
+          ),
+        ),
         data: (state) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -53,25 +119,42 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: 'Gündəlik xatırlatmaları aç/bağla',
               value: state.notificationsEnabled,
               onChanged: (v) async {
-                await ref
-                    .read(settingsProvider.notifier)
-                    .setNotificationsEnabled(v);
-                if (v && context.mounted) {
-                  final canExact = await NotificationService()
-                      .canScheduleExact();
-                  if (!canExact && context.mounted) {
+                if (v) {
+                  final granted = await NotificationService()
+                      .requestPermission();
+                  if (!context.mounted) return;
+
+                  if (granted) {
+                    await ref
+                        .read(settingsProvider.notifier)
+                        .setNotificationsEnabled(true);
+                    ref.invalidate(notifDeclinedProvider);
+                  } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Dəqiq bildiriş üçün sistem ayarlarından icazə ver: '
-                          'Tətbiqlər → Şəxsi Əməllər → Bildirişlər',
+                          'Android bir dəfə rədd edilən icazəni yenidən sormur. '
+                          '"Ayarlar" düyməsinə bas və bildirişləri əl ilə aç.',
                           style: GoogleFonts.nunito(color: Colors.white),
                         ),
                         backgroundColor: AppColors.accentLight,
                         duration: const Duration(seconds: 6),
+                        action: SnackBarAction(
+                          label: 'Ayarlar',
+                          textColor: Colors.white,
+                          onPressed: () async {
+                            _waitingForSettings = true;
+                            await NotificationService().openSystemSettings();
+                          },
+                        ),
                       ),
                     );
                   }
+                } else {
+                  await ref
+                      .read(settingsProvider.notifier)
+                      .setNotificationsEnabled(false);
+                  ref.invalidate(notifDeclinedProvider);
                 }
               },
             ),
@@ -164,7 +247,6 @@ class SettingsScreen extends ConsumerWidget {
     final filePath = await ImportExportService.instance.exportData();
     if (!context.mounted) return;
     if (filePath != null) {
-      // Fayl adını göstər
       final name = filePath.split('/').last;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -191,7 +273,6 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _import(BuildContext context, WidgetRef ref) async {
-    // 1. Faylı oxu və DB ilə müqayisə et
     final previewResult = await ImportExportService.instance.previewImport();
     if (!context.mounted) return;
 
@@ -208,7 +289,6 @@ class SettingsScreen extends ConsumerWidget {
         return;
 
       case PreviewReady(:final preview):
-        // 2. Yeni məlumat yoxdursa xəbər ver
         if (preview.isEmpty) {
           _showSnack(
             context,
@@ -219,7 +299,6 @@ class SettingsScreen extends ConsumerWidget {
           return;
         }
 
-        // 3. Ziddiyyətlər varsa dialog göstər
         if (preview.conflicts.isNotEmpty) {
           final confirmed = await showDialog<bool>(
             context: context,
@@ -230,7 +309,6 @@ class SettingsScreen extends ConsumerWidget {
           if (confirmed != true) return;
         }
 
-        // 4. Import tətbiq et
         final result = await ImportExportService.instance.applyImport(preview);
         if (!context.mounted) return;
 
@@ -343,7 +421,6 @@ class _ConflictDialogState extends State<_ConflictDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Başlıq ──
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
             child: Text(
@@ -366,7 +443,6 @@ class _ConflictDialogState extends State<_ConflictDialog> {
             ),
           ),
           const Divider(height: 1, color: AppColors.separator),
-          // ── Conflict siyahısı ──
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
@@ -381,7 +457,6 @@ class _ConflictDialogState extends State<_ConflictDialog> {
             ),
           ),
           const Divider(height: 1, color: AppColors.separator),
-          // ── Düymələr ──
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
             child: Row(
@@ -457,7 +532,6 @@ class _ConflictDialogState extends State<_ConflictDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Başlıq + tip
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 11, 14, 7),
             child: Row(
@@ -495,7 +569,6 @@ class _ConflictDialogState extends State<_ConflictDialog> {
             ),
           ),
           const Divider(height: 1, color: AppColors.separator),
-          // İki panel yan-yana
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -560,7 +633,6 @@ class _SidePanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Label + seçim ikonu
             Row(
               children: [
                 Text(
@@ -586,7 +658,6 @@ class _SidePanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 7),
-            // Streak və tamamlanma (yalnız mövcud üçün)
             if (streak != null && streak! > 0) ...[
               _statRow('🔥', '$streak gün ardıcıl'),
               const SizedBox(height: 2),
@@ -595,7 +666,6 @@ class _SidePanel extends StatelessWidget {
               _statRow('✓', '$completedDays gün tamamlandı'),
               const SizedBox(height: 6),
             ],
-            // Əməl sahələri
             if (amal.type == AmalType.counter && amal.countTarget != null)
               _fieldRow('Hədəf', '${amal.countTarget}'),
             if (amal.intention != null && amal.intention!.isNotEmpty)

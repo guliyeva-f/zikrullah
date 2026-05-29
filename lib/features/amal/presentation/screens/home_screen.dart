@@ -12,6 +12,7 @@ import '../widgets/heatmap_widget.dart';
 import 'amal_detail_screen.dart';
 import 'amal_form_screen.dart';
 import 'manage_screen.dart';
+import '../../../settings/presentation/providers/settings_provider.dart';
 import 'text_screen.dart';
 import 'counter_screen.dart';
 
@@ -71,7 +72,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.accent),
           ),
-          error: (e, _) => Center(child: Text('Xəta: $e')),
+          error: (e, _) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.textHint,
+                  size: 40,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Bir xəta baş verdi',
+                  style: GoogleFonts.nunito(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => ref.invalidate(amalProvider),
+                  child: Text(
+                    'Yenidən cəhd et',
+                    style: GoogleFonts.nunito(color: AppColors.accent),
+                  ),
+                ),
+              ],
+            ),
+          ),
           data: (state) => Column(
             children: [
               // ── Header ────────────────────────────────────────────────
@@ -360,24 +389,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               Builder(
-                builder: (ctx) => IconButton(
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: AppColors.textSecondary,
-                    size: 22,
-                  ),
-                  tooltip: 'Ayarlar',
-                  onPressed: () {
-                    final container = ProviderScope.containerOf(ctx);
-                    Navigator.push(
-                      ctx,
-                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                    ).then((_) {
-                      container.read(amalProvider.notifier).refresh();
-                      container.read(heatmapProvider.notifier).refresh();
-                    });
-                  },
-                ),
+                builder: (ctx) {
+                  final declined =
+                      ref.watch(notifDeclinedProvider).value ?? false;
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.settings_outlined,
+                          color: AppColors.textSecondary,
+                          size: 22,
+                        ),
+                        tooltip: 'Ayarlar',
+                        onPressed: () {
+                          final container = ProviderScope.containerOf(ctx);
+                          Navigator.push(
+                            ctx,
+                            MaterialPageRoute(
+                              builder: (_) => const SettingsScreen(),
+                            ),
+                          ).then((_) {
+                            container.read(amalProvider.notifier).refresh();
+                            container.read(heatmapProvider.notifier).refresh();
+                            ref.invalidate(notifDeclinedProvider);
+                          });
+                        },
+                      ),
+                      if (declined)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFFC107),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
