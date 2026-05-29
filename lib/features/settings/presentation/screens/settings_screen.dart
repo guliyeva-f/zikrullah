@@ -161,13 +161,33 @@ class SettingsScreen extends ConsumerWidget {
   // ─── ACTIONS ──────────────────────────────────────────────────────────────
 
   Future<void> _export(BuildContext context) async {
-    final ok = await ImportExportService.instance.exportData();
+    final filePath = await ImportExportService.instance.exportData();
     if (!context.mounted) return;
-    _showSnack(
-      context,
-      ok ? 'Məlumatlar ixrac edildi ✓' : 'İxrac zamanı xəta baş verdi',
-      isError: !ok,
-    );
+    if (filePath != null) {
+      // Fayl adını göstər
+      final name = filePath.split('/').last;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$name saxlandı',
+            style: GoogleFonts.nunito(color: Colors.white),
+          ),
+          backgroundColor: AppColors.accent,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'İxrac zamanı xəta baş verdi',
+            style: GoogleFonts.nunito(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   Future<void> _import(BuildContext context, WidgetRef ref) async {

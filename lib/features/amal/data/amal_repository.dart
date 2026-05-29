@@ -130,22 +130,24 @@ class AmalRepository {
     final db = await _db;
     final fromStr = _formatDate(from);
     final toStr = _formatDate(to);
+
     final amalRows = await db.rawQuery(
-      'SELECT substr(created_at, 1, 10) AS created_date FROM amals',
+      'SELECT substr(created_at, 1, 10) AS created_date FROM amals ORDER BY created_date ASC',
     );
     final createdDates = amalRows
         .map((r) => r['created_date'] as String)
-        .toList();
+        .toList(); // artıq sortludur
 
     if (createdDates.isEmpty) return {};
+
     final completedRows = await db.rawQuery(
       '''
-      SELECT record_date, COUNT(*) AS cnt
-      FROM amal_records
-      WHERE record_date >= ? AND record_date <= ?
-        AND is_completed = 1
-      GROUP BY record_date
-      ''',
+    SELECT record_date, COUNT(*) AS cnt
+    FROM amal_records
+    WHERE record_date >= ? AND record_date <= ?
+      AND is_completed = 1
+    GROUP BY record_date
+    ''',
       [fromStr, toStr],
     );
 
@@ -153,9 +155,18 @@ class AmalRepository {
     for (final row in completedRows) {
       final date = row['record_date'] as String;
       final cnt = row['cnt'] as int;
-      final totalOnDate = createdDates
-          .where((d) => d.compareTo(date) <= 0)
-          .length;
+
+      // Binary search ilə say — O(log n)
+      int lo = 0, hi = createdDates.length;
+      while (lo < hi) {
+        final mid = (lo + hi) ~/ 2;
+        if (createdDates[mid].compareTo(date) <= 0) {
+          lo = mid + 1;
+        } else {
+          hi = mid;
+        }
+      }
+      final totalOnDate = lo;
 
       if (totalOnDate > 0) {
         result[date] = (cnt / totalOnDate).clamp(0.0, 1.0);
@@ -163,7 +174,6 @@ class AmalRepository {
     }
     return result;
   }
-
   // ─── DETAIL SCREEN TƏQVİM ─────────────────────────────────────────────────
 
   Future<Map<String, bool>> getAmalCalendarMonth(
@@ -197,13 +207,13 @@ class AmalRepository {
         ? DateTime.now()
         : DateTime.now().subtract(const Duration(days: 1));
 
+    // Yalnız lazım olan günlərə qədər sorğu at — 365 deyil
     final fromDate = _formatDate(startDate.subtract(const Duration(days: 364)));
     final toDate = _formatDate(startDate);
 
     final maps = await db.rawQuery(
       '''
-    SELECT record_date, is_completed
-    FROM amal_records
+    SELECT record_date FROM amal_records
     WHERE amal_id = ?
       AND record_date >= ?
       AND record_date <= ?
@@ -379,5 +389,49 @@ class AmalRepository {
       [amalId],
     );
     return (result.first['cnt'] as int?) ?? 0;
+  }
+
+  /// Əməlin bütün qeydlərini qaytarır — tarixçə lövhəsi üçün
+  Future<Map<String, bool>> getAmalAllRecords(int amalId) async {
+    final db = await _db;
+    final maps = await db.query(
+      'amal_records',
+      where: 'amal_id = ?',
+      whereArgs: [amalId],
+    );
+    return {
+      for (final m in maps)
+        m['record_date'] as String: (m['is_completed'] as int) == 1,
+    };
+  }
+
+  /// Ən yaxşı arası kəsilməmiş streak-i hesablayır
+  Future<int> getBestStreak(int amalId) async {
+    final db = await _db;
+    final maps = await db.rawQuery(
+      '''
+      SELECT record_date FROM amal_records
+      WHERE amal_id = ? AND is_completed = 1
+      ORDER BY record_date ASC
+      ''',
+      [amalId],
+    );
+    if (maps.isEmpty) return 0;
+
+    final dates = maps
+        .map((m) => DateTime.parse(m['record_date'] as String))
+        .toList();
+
+    int best = 1;
+    int current = 1;
+    for (int i = 1; i < dates.length; i++) {
+      if (dates[i].difference(dates[i - 1]).inDays == 1) {
+        current++;
+        if (current > best) best = current;
+      } else {
+        current = 1;
+      }
+    }
+    return best;
   }
 }

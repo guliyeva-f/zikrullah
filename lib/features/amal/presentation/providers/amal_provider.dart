@@ -218,14 +218,17 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
 
     final newRecords = Map<int, AmalRecord?>.from(current.records)
       ..[amalId] = record;
+
+    // Yalnız dəyişən amal üçün streak hesabla, qalanları saxla
     final newStreak = await _repo.calculateStreak(amalId);
     final newStreaks = Map<int, int>.from(current.streaks)
       ..[amalId] = newStreak;
-    final newState = current.copyWith(records: newRecords, streaks: newStreaks);
 
-    state = AsyncData(newState);
+    state = AsyncData(
+      current.copyWith(records: newRecords, streaks: newStreaks),
+    );
 
-    if (newState.allCompleted) {
+    if (state.value!.allCompleted) {
       await _notifService.cancelTodayIfAllDone();
     }
   }
@@ -249,7 +252,9 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
 
   Future<void> updateSortOrders(List<Amal> reordered) async {
     await _repo.updateSortOrders(reordered);
-    state = AsyncData(state.value!.copyWith(amals: reordered));
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(current.copyWith(amals: reordered));
   }
 }
 

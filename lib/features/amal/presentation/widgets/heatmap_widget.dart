@@ -115,6 +115,9 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
           child: label != null
               ? Text(
                   label,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.visible,
                   style: GoogleFonts.nunito(
                     fontSize: 9,
                     color: AppColors.textSecondary,
@@ -125,7 +128,6 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
       }).toList(),
     );
   }
-
   // ─── GRID ─────────────────────────────────────────────────────────────────
 
   Widget _buildGrid(List<List<DateTime?>> weeks, DateTime todayNorm) {

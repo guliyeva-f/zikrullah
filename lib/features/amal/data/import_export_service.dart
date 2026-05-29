@@ -3,11 +3,8 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:sqflite/sqflite.dart';
-
 import '../domain/amal.dart';
 import '../domain/amal_record.dart';
 import 'amal_repository.dart';
@@ -25,8 +22,9 @@ class ImportExportService {
 
   // ─── EXPORT ──────────────────────────────────────────────────────────────
 
-  Future<bool> exportData() async {
-    File? tempFile;
+  /// Downloads-a saxlayır, share sheet açır.
+  /// Qaytarır: saxlanan fayl yolu (uğurlu) ya null (xəta)
+  Future<String?> exportData() async {
     try {
       final amals = await _repo.getAllAmals();
       final records = await _repo.getAllRecords();
@@ -38,43 +36,76 @@ class ImportExportService {
         'records': records.map((r) => r.toMap()).toList(),
       });
 
-      final stamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-      String tempDirPath;
-      try {
-        tempDirPath = Directory.systemTemp.path;
-      } catch (_) {
-        tempDirPath = await getDatabasesPath();
-      }
+      final fileName = _buildFileName();
 
-      final filePath = p.join(tempDirPath, 'amal_yedeyi_$stamp.json');
-      tempFile = File(filePath);
-      await tempFile.writeAsString(jsonStr, flush: true);
+      // Downloads qovluğuna yaz
+      final file = await _saveToDownloads(fileName, jsonStr);
+      if (file == null) return null;
 
-      final result = await SharePlus.instance.share(
+      // Share sheet aç
+      await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(filePath, mimeType: 'application/json')],
-          subject: 'Əməl Yedəyi',
+          files: [XFile(file.path, mimeType: 'application/octet-stream')],
+          subject: 'Əməl yedəyi',
         ),
       );
 
-      return result.status == ShareResultStatus.success;
+      return file.path;
     } catch (e) {
       debugPrint('Export xətası: $e');
-      return false;
-    } finally {
-      try {
-        if (tempFile != null && await tempFile.exists()) {
-          await tempFile.delete();
+      return null;
+    }
+  }
+  String _buildFileName() {
+    final now = DateTime.now();
+    const az = [
+      'yan',
+      'fev',
+      'mar',
+      'apr',
+      'may',
+      'iyn',
+      'iyl',
+      'avq',
+      'sen',
+      'okt',
+      'noy',
+      'dek',
+    ];
+    final month = az[now.month - 1];
+    return 'amal_${now.day}$month${now.year}.json';
+  }
+
+  Future<File?> _saveToDownloads(String fileName, String content) async {
+    try {
+      Directory? dir;
+
+      if (Platform.isAndroid) {
+        // Android-də /storage/emulated/0/Download
+        dir = Directory('/storage/emulated/0/Download');
+        if (!await dir.exists()) {
+          // Fallback: external storage
+          final ext = await getExternalStorageDirectory();
+          dir = ext;
         }
-      } catch (e) {
-        debugPrint('Temp fayl silmə xətası: $e');
+      } else {
+        // iOS — Documents qovluğu (Files app-da görünür)
+        dir = await getApplicationDocumentsDirectory();
       }
+
+      if (dir == null) return null;
+
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsString(content, flush: true);
+      return file;
+    } catch (e) {
+      debugPrint('Downloads yazma xətası: $e');
+      return null;
     }
   }
 
   // ─── IMPORT PREVIEW ──────────────────────────────────────────────────────
 
-  /// Faylı oxuyur, DB ilə müqayisə edir, PreviewResult qaytarır.
   Future<PreviewResult> previewImport() async {
     try {
       final picked = await FilePicker.pickFiles(
@@ -99,7 +130,6 @@ class ImportExportService {
         return PreviewInvalid();
       }
 
-      // Sizin gücləndirilmiş validasiya
       final rawAmals = data['amals'];
       if (rawAmals is! List) return PreviewInvalid();
 
@@ -128,7 +158,6 @@ class ImportExportService {
         }
       }
 
-      // DB ilə müqayisə
       final existingAmals = await _repo.getAllAmals();
       final existingMap = {
         for (final a in existingAmals) '${a.title}__${a.type.name}': a,
@@ -176,7 +205,6 @@ class ImportExportService {
     }
   }
 
-  /// İki əməlin məzmun sahələrini müqayisə edir (id, sortOrder, createdAt istisna)
   bool _isIdentical(Amal a, Amal b) =>
       a.countTarget == b.countTarget &&
       a.content == b.content &&
@@ -186,7 +214,6 @@ class ImportExportService {
 
   // ─── IMPORT APPLY ─────────────────────────────────────────────────────────
 
-  /// İstifadəçi seçimlərini tətbiq edir
   Future<ImportResult> applyImport(ImportPreview preview) async {
     try {
       final result = await _repo.applyImport(preview: preview);

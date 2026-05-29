@@ -19,7 +19,6 @@ class CounterScreen extends ConsumerWidget {
     final target = amal.countTarget ?? 1;
     final done = record?.isCompleted ?? false;
     final progress = (count / target).clamp(0.0, 1.0);
-    final reachedTarget = count >= target;
     final overTarget = count > target;
     return Scaffold(
       backgroundColor: AppColors.bgBase,
@@ -108,7 +107,7 @@ class CounterScreen extends ConsumerWidget {
                         painter: _RingPainter(
                           progress: progress,
                           trackColor: AppColors.bgElevated,
-                          progressColor: reachedTarget
+                          progressColor: done
                               ? AppColors.success
                               : AppColors.accent,
                           strokeWidth: 10,
@@ -122,7 +121,7 @@ class CounterScreen extends ConsumerWidget {
                             style: GoogleFonts.nunito(
                               fontSize: 78,
                               fontWeight: FontWeight.w700,
-                              color: reachedTarget
+                              color: done
                                   ? AppColors.success
                                   : AppColors.textPrimary,
                               height: 1,

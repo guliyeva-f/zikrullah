@@ -17,451 +17,611 @@ class AmalDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
-  late int _calYear;
-  late int _calMonth;
-  Map<String, bool> _calData = {};
-  int _totalCompleted = 0;
+  late Amal _amal;
+  Map<String, bool> _allRecords = {};
+  int _bestStreak = 0;
   bool _loading = true;
+  final _scrollController = ScrollController();
+
+  // Hər həftə sətirinin hündürlüyü (36px dairə + 3px padding)
+  static const double _rowH = 39.0;
+  // Ay separatorunun hündürlüyü (8 + text~18 + 4 = ~30)
+  static const double _sepH = 30.0;
+  // Həftə başlıqları hündürlüyü
+  static const double _headerH = 26.0;
+  // Sticky header hündürlüyü (niyyət + streak)
+  static const double _stickyH = 130.0;
+
+  static const _milestones = {7, 21, 40, 100};
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _calYear = now.year;
-    _calMonth = now.month;
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() => _loading = true);
-    final repo = AmalRepository(); // lokal, yalnız bu metodda
-    final cal = await repo.getAmalCalendarMonth(
-      widget.amal.id,
-      _calYear,
-      _calMonth,
-    );
-    final total = await repo.countCompletedDays(widget.amal.id);
-    if (!mounted) return;
-    setState(() {
-      _calData = cal;
-      _totalCompleted = total;
-      _loading = false;
-    });
-  }
-
-  void _prevMonth() {
-    setState(() {
-      if (_calMonth == 1) {
-        _calYear--;
-        _calMonth = 12;
-      } else {
-        _calMonth--;
-      }
-    });
-    _loadData();
-  }
-
-  void _nextMonth() {
-    final now = DateTime.now();
-    if (_calYear == now.year && _calMonth >= now.month) return;
-    setState(() {
-      if (_calMonth == 12) {
-        _calYear++;
-        _calMonth = 1;
-      } else {
-        _calMonth++;
-      }
-    });
+    _amal = widget.amal;
     _loadData();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final streak = ref.watch(amalProvider).value?.streaks[widget.amal.id] ?? 0;
-    final now = DateTime.now();
-    final isNow = _calYear == now.year && _calMonth == now.month;
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
-    return Scaffold(
-      backgroundColor: AppColors.bgBase,
-      appBar: AppBar(
-        backgroundColor: AppColors.bgBase,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            size: 18,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.edit_outlined,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-            tooltip: 'Düzəlt',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AmalFormScreen(amal: widget.amal),
-              ),
-            ).then((_) => ref.read(amalProvider.notifier).refresh()),
-          ),
-        ],
-        title: Text(
-          widget.amal.title,
-          style: GoogleFonts.nunito(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInfoCard(),
-            const SizedBox(height: 12),
-            if (widget.amal.durationDays != null) ...[
-              _buildDurationCard(),
-              const SizedBox(height: 12),
-            ],
-            _buildStatsRow(streak),
-            const SizedBox(height: 20),
-            _buildCalendarNav(isNow),
-            const SizedBox(height: 12),
-            _loading
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: CircularProgressIndicator(color: AppColors.accent),
-                    ),
-                  )
-                : _buildCalendar(now),
-          ],
-        ),
-      ),
+  Future<void> _loadData() async {
+    setState(() => _loading = true);
+    final repo = AmalRepository();
+    final records = await repo.getAmalAllRecords(_amal.id);
+    final best = await repo.getBestStreak(_amal.id);
+    if (!mounted) return;
+    setState(() {
+      _allRecords = records;
+      _bestStreak = best;
+      _loading = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToToday());
+  }
+
+  /// Bu günün təqvim içindəki piksel mövqeyini hesablayıb smooth scroll edir
+  void _scrollToToday() {
+    if (!_scrollController.hasClients) return;
+
+    final startDate = DateTime.parse(_amal.createdAt.substring(0, 10));
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (today.isBefore(startDate)) return;
+
+    final gridStart = startDate.subtract(
+      Duration(days: (startDate.weekday - 1) % 7),
+    );
+
+    final weeksToToday = today.difference(gridStart).inDays ~/ 7;
+
+    // Ay separatorlarını say (gridStart-dan bu günə qədər)
+    int separatorCount = 0;
+    int? lastMonth;
+    for (int w = 0; w <= weeksToToday; w++) {
+      final weekStart = gridStart.add(Duration(days: w * 7));
+      for (int d = 0; d < 7; d++) {
+        final day = weekStart.add(Duration(days: d));
+        if (!day.isBefore(startDate)) {
+          if (lastMonth != null && day.month != lastMonth) {
+            separatorCount++;
+          }
+          lastMonth ??= day.month;
+          if (day.month != lastMonth) lastMonth = day.month;
+          break;
+        }
+      }
+    }
+
+    // İlk ay da separator sayılır
+    separatorCount += 1;
+
+    final offset =
+        _headerH +
+        (separatorCount * _sepH) +
+        (weeksToToday * _rowH) -
+        100; // bir az yuxarı qalsın ki, kontekst görünsün
+
+    final target = offset.clamp(
+      0.0,
+      _scrollController.position.maxScrollExtent,
+    );
+
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
     );
   }
 
-  // ─── INFO KART ────────────────────────────────────────────────────────────
+  String _dateStr(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 
-  Widget _buildInfoCard() {
-    final typeLabel = switch (widget.amal.type) {
-      AmalType.checkbox => 'Checkbox',
-      AmalType.counter => 'Sayğac',
-      AmalType.text => 'Mətnli',
-    };
+  String get _todayStr => _dateStr(DateTime.now());
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+  Future<void> _showIntentionSheet() async {
+    final ctrl = TextEditingController(text: _amal.intention ?? '');
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bgCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Növ badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              typeLabel,
-              style: GoogleFonts.nunito(
-                fontSize: 11,
-                color: AppColors.accent,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-
-          // Niyyət
-          if (widget.amal.intention?.isNotEmpty == true) ...[
-            const SizedBox(height: 12),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 28,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
               'Niyyət',
               style: GoogleFonts.nunito(
-                fontSize: 11,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
-                letterSpacing: 0.3,
+                color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              widget.amal.intention!,
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
               style: GoogleFonts.nunito(
                 fontSize: 14,
                 color: AppColors.textPrimary,
-                fontStyle: FontStyle.italic,
-                height: 1.5,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Niyyətini yaz...',
+                hintStyle: GoogleFonts.nunito(color: AppColors.textHint),
+                filled: true,
+                fillColor: AppColors.bgElevated,
+                contentPadding: const EdgeInsets.all(14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () async {
+                  final text = ctrl.text.trim().isEmpty
+                      ? null
+                      : ctrl.text.trim();
+                  final updated = _amal.copyWith(intention: text);
+                  final nav = Navigator.of(ctx);
+                  await AmalRepository().updateAmal(updated);
+                  if (!mounted) return;
+                  setState(() => _amal = updated);
+                  ref.read(amalProvider.notifier).refresh();
+                  nav.pop();
+                },
+                child: Text(
+                  'Saxla',
+                  style: GoogleFonts.nunito(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
               ),
             ),
           ],
-
-          const SizedBox(height: 12),
-          Text(
-            'Başlanğıc: ${widget.amal.createdAt.substring(0, 10)}',
-            style: GoogleFonts.nunito(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
+        ),
       ),
     );
+    ctrl.dispose();
   }
 
-  // ─── MÜDDƏT PROGRESSI ────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    final streak = ref.watch(amalProvider).value?.streaks[_amal.id] ?? 0;
 
-  Widget _buildDurationCard() {
-    final days = widget.amal.durationDays!;
-    final elapsed = widget.amal.daysSinceStart.clamp(0, days);
-    final progress = elapsed / days;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Proqram irəliləyişi',
-                style: GoogleFonts.nunito(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+    return Scaffold(
+      backgroundColor: AppColors.bgBase,
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // ── AppBar ──────────────────────────────────────────────────────
+          SliverAppBar(
+            backgroundColor: AppColors.bgBase,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            pinned: true,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                size: 18,
+                color: AppColors.textPrimary,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              _amal.title,
+              style: GoogleFonts.nunito(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 20,
                   color: AppColors.textSecondary,
                 ),
-              ),
-              Text(
-                '$elapsed / $days gün',
-                style: GoogleFonts.nunito(
-                  fontSize: 12,
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w600,
-                ),
+                tooltip: 'Düzəlt',
+                onPressed: () =>
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AmalFormScreen(amal: _amal),
+                      ),
+                    ).then((_) async {
+                      await ref.read(amalProvider.notifier).refresh();
+                      final state = ref.read(amalProvider).value;
+                      if (state != null && mounted) {
+                        final updated = state.amals.firstWhere(
+                          (a) => a.id == _amal.id,
+                          orElse: () => _amal,
+                        );
+                        setState(() => _amal = updated);
+                      }
+                      _loadData();
+                    }),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: AppColors.bgElevated,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
-              minHeight: 6,
+
+          // ── Sticky: niyyət + streak ──────────────────────────────────────
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _StickyTopDelegate(
+              minHeight: _stickyH,
+              maxHeight: _stickyH,
+              child: Container(
+                color: AppColors.bgBase,
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildIntentionSection(),
+                    const SizedBox(height: 14),
+                    _buildStreakSection(streak),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            widget.amal.isExpired
-                ? 'Proqram tamamlandı 🎉'
-                : '${widget.amal.remainingDays} gün qaldı',
-            style: GoogleFonts.nunito(
-              fontSize: 11,
-              color: widget.amal.isExpired
-                  ? AppColors.accent
-                  : AppColors.textSecondary,
-              fontWeight: widget.amal.isExpired
-                  ? FontWeight.w600
-                  : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  // ─── STATİSTİKA ───────────────────────────────────────────────────────────
-
-  Widget _buildStatsRow(int streak) {
-    final days = widget.amal.daysSinceStart + 1;
-    final pct = (_totalCompleted / days * 100).round().clamp(0, 100);
-
-    return Row(
-      children: [
-        Expanded(child: _statBox('🔥 Streak', '$streak gün')),
-        const SizedBox(width: 8),
-        Expanded(child: _statBox('✓ Tamamlandı', '$_totalCompleted gün')),
-        const SizedBox(width: 8),
-        Expanded(child: _statBox('% Davamlılıq', '$pct%')),
-      ],
-    );
-  }
-
-  Widget _statBox(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: GoogleFonts.nunito(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: AppColors.accent,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(
-              fontSize: 10,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── TƏQVİM ───────────────────────────────────────────────────────────────
-
-  Widget _buildCalendarNav(bool isNow) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
-          onPressed: _prevMonth,
-        ),
-        SizedBox(
-          width: 160,
-          child: Text(
-            '${AppConstants.months[_calMonth - 1]} $_calYear',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-        IconButton(
-          icon: Icon(
-            Icons.chevron_right,
-            color: isNow ? AppColors.textHint : AppColors.textPrimary,
-          ),
-          onPressed: isNow ? null : _nextMonth,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCalendar(DateTime now) {
-    final first = DateTime(_calYear, _calMonth, 1);
-    final leading = (first.weekday - 1) % 7;
-    final days = DateTime(_calYear, _calMonth + 1, 0).day;
-    final rows = ((leading + days) / 7).ceil();
-    final todayStr =
-        '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}-'
-        '${now.day.toString().padLeft(2, '0')}';
-
-    return Column(
-      children: [
-        Row(
-          children: AppConstants.weekdaysShort
-              .map(
-                (h) => Expanded(
-                  child: Center(
-                    child: Text(
-                      h,
-                      style: GoogleFonts.nunito(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
+          // ── Təqvim ──────────────────────────────────────────────────────
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
+            sliver: SliverToBoxAdapter(
+              child: _loading
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: CircularProgressIndicator(
+                          color: AppColors.accent,
+                        ),
                       ),
+                    )
+                  : _buildContinuousGrid(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── NİYYƏT ─────────────────────────────────────────────────────────────
+
+  Widget _buildIntentionSection() {
+    return GestureDetector(
+      onTap: _showIntentionSheet,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.bgCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: _amal.intention?.isNotEmpty == true
+            ? Text(
+                _amal.intention!,
+                style: GoogleFonts.nunito(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                  height: 1.5,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              )
+            : Row(
+                children: [
+                  const Icon(Icons.add, size: 15, color: AppColors.textHint),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Niyyət əlavə et',
+                    style: GoogleFonts.nunito(
+                      fontSize: 13,
+                      color: AppColors.textHint,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  // ─── STREAK ──────────────────────────────────────────────────────────────
+
+  Widget _buildStreakSection(int streak) {
+    Widget? subLine;
+    if (_amal.durationDays != null) {
+      if (_amal.isExpired) {
+        subLine = Text(
+          'Proqram tamamlandı 🎉',
+          style: GoogleFonts.nunito(
+            fontSize: 13,
+            color: AppColors.accent,
+            fontWeight: FontWeight.w600,
+          ),
+        );
+      } else {
+        subLine = Text(
+          '${_amal.remainingDays} gün qaldı',
+          style: GoogleFonts.nunito(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+        );
+      }
+    } else if (_bestStreak > streak) {
+      subLine = Text(
+        'Rekord: $_bestStreak gün',
+        style: GoogleFonts.nunito(fontSize: 13, color: AppColors.textSecondary),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Text('🔥', style: TextStyle(fontSize: 24)),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$streak gündür davamlılıq',
+              style: GoogleFonts.nunito(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.accent,
+                height: 1.1,
+              ),
+            ),
+            if (subLine != null) ...[const SizedBox(height: 2), subLine],
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ─── TARİXÇƏ LÖVHƏSİ ────────────────────────────────────────────────────
+
+  Widget _buildContinuousGrid() {
+    final startDate = DateTime.parse(_amal.createdAt.substring(0, 10));
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final DateTime gridEnd;
+    if (_amal.durationDays != null) {
+      gridEnd = startDate.add(Duration(days: _amal.durationDays! - 1));
+    } else {
+      final minEnd = startDate.add(const Duration(days: 39));
+      gridEnd = today.isAfter(minEnd) ? today : minEnd;
+    }
+
+    final gridStart = startDate.subtract(
+      Duration(days: (startDate.weekday - 1) % 7),
+    );
+    final totalWeeks = (gridEnd.difference(gridStart).inDays / 7).ceil() + 1;
+
+    final rows = <Widget>[];
+
+    // Həftə günü başlıqları
+    rows.add(
+      Row(
+        children: AppConstants.weekdaysShort
+            .map(
+              (h) => Expanded(
+                child: Center(
+                  child: Text(
+                    h,
+                    style: GoogleFonts.nunito(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),
-              )
-              .toList(),
-        ),
-        const SizedBox(height: 8),
-        ...List.generate(
-          rows,
-          (row) => Row(
-            children: List.generate(7, (col) {
-              final idx = row * 7 + col;
-              final day = idx - leading + 1;
+              ),
+            )
+            .toList(),
+      ),
+    );
+    rows.add(const SizedBox(height: 4));
 
-              if (idx < leading || day > days) {
-                return const Expanded(child: SizedBox(height: 38));
+    int? lastShownMonth;
+    int? lastShownYear;
+
+    for (int weekIdx = 0; weekIdx < totalWeeks; weekIdx++) {
+      final weekStart = gridStart.add(Duration(days: weekIdx * 7));
+
+      int? visibleMonth;
+      int? visibleYear;
+      for (int d = 0; d < 7; d++) {
+        final day = weekStart.add(Duration(days: d));
+        if (!day.isBefore(startDate) && !day.isAfter(gridEnd)) {
+          visibleMonth = day.month;
+          visibleYear = day.year;
+          break;
+        }
+      }
+
+      if (visibleMonth != null && visibleMonth != lastShownMonth) {
+        if (weekIdx != 0) rows.add(const SizedBox(height: 8));
+        final showYear = visibleYear != lastShownYear;
+        rows.add(_buildMonthSeparator(visibleMonth, visibleYear!, showYear));
+        rows.add(const SizedBox(height: 4));
+        lastShownMonth = visibleMonth;
+        lastShownYear = visibleYear;
+      }
+
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 3),
+          child: Row(
+            children: List.generate(7, (dayIdx) {
+              final day = weekStart.add(Duration(days: dayIdx));
+              if (day.isBefore(startDate) || day.isAfter(gridEnd)) {
+                return const Expanded(child: SizedBox(height: 36));
               }
 
-              final dateStr =
-                  '${_calYear.toString().padLeft(4, '0')}-'
-                  '${_calMonth.toString().padLeft(2, '0')}-'
-                  '${day.toString().padLeft(2, '0')}';
-              final isFuture = DateTime(
-                _calYear,
-                _calMonth,
-                day,
-              ).isAfter(DateTime(now.year, now.month, now.day));
-              final isCompleted = _calData[dateStr] ?? false;
-              final isToday = dateStr == todayStr;
+              final isFuture = day.isAfter(today);
+              final ds = _dateStr(day);
+              final isToday = ds == _todayStr;
+              final completed = _allRecords[ds] ?? false;
+              final dayNum = day.difference(startDate).inDays + 1;
+              final isMilestone = _milestones.contains(dayNum);
 
               return Expanded(
-                child: Container(
-                  height: 38,
-                  margin: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isFuture
-                        ? Colors.transparent
-                        : isCompleted
-                        ? AppColors.accent
-                        : AppColors.bgElevated,
-                    border: isToday
-                        ? Border.all(color: AppColors.accentLight, width: 1.5)
-                        : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$day',
-                      style: GoogleFonts.nunito(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                child: Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      height: 36,
+                      margin: const EdgeInsets.all(1.5),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
                         color: isFuture
-                            ? AppColors.textHint
-                            : isCompleted
-                            ? Colors.white
-                            : AppColors.textSecondary,
+                            ? Colors.transparent
+                            : completed
+                            ? AppColors.accent
+                            : AppColors.bgElevated,
+                        border: isToday
+                            ? Border.all(
+                                color: AppColors.accentLight,
+                                width: 1.5,
+                              )
+                            : isFuture
+                            ? Border.all(color: AppColors.border, width: 1)
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: GoogleFonts.nunito(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isFuture
+                                ? AppColors.textHint.withValues(alpha: 0.35)
+                                : completed
+                                ? Colors.white
+                                : AppColors.textSecondary,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    if (isMilestone && !isFuture)
+                      Positioned(
+                        top: 1,
+                        right: 2,
+                        child: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.accentLight,
+                            border: Border.all(
+                              color: AppColors.bgBase,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               );
             }),
           ),
         ),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
+  }
+
+  Widget _buildMonthSeparator(int month, int year, bool showYear) {
+    return Row(
+      children: [
+        Text(
+          showYear
+              ? '${AppConstants.months[month - 1]} $year'
+              : AppConstants.months[month - 1],
+          style: GoogleFonts.nunito(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(width: 10),
+        const Expanded(
+          child: Divider(color: AppColors.separator, height: 1, thickness: 1),
+        ),
       ],
     );
   }
+}
+
+// ─── STICKY HEADER DELEGATE ──────────────────────────────────────────────────
+
+class _StickyTopDelegate extends SliverPersistentHeaderDelegate {
+  final double minHeight;
+  final double maxHeight;
+  final Widget child;
+
+  const _StickyTopDelegate({
+    required this.minHeight,
+    required this.maxHeight,
+    required this.child,
+  });
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => SizedBox.expand(child: child);
+
+  @override
+  bool shouldRebuild(_StickyTopDelegate old) =>
+      old.minHeight != minHeight ||
+      old.maxHeight != maxHeight ||
+      old.child != child;
 }
