@@ -9,8 +9,8 @@ class Amal {
   final int sortOrder;
   final bool isActive;
   final String createdAt;
-  final String? intention; // YENİ: niyyət mətni
-  final int? durationDays; // YENİ: null = daimi, rəqəm = müddət (gün)
+  final String? intention; 
+  final int? durationDays; 
 
   const Amal({
     required this.id,
@@ -76,18 +76,6 @@ class Amal {
     durationDays: map['duration_days'] as int?,
   );
 
-  Map<String, dynamic> toMap() => {
-    'title': title,
-    'type': type.name,
-    'count_target': countTarget,
-    'content': content,
-    'sort_order': sortOrder,
-    'is_active': isActive ? 1 : 0,
-    'created_at': createdAt,
-    'intention': intention,
-    'duration_days': durationDays,
-  };
-
   static const _unset = Object();
 
   Amal copyWith({
@@ -120,7 +108,18 @@ class Amal {
         : durationDays as int?,
   );
 
-  // Import/export üçün tam JSON (records olmadan)
+  Map<String, dynamic> toMap() => {
+    'title': title,
+    'type': type.name,
+    'count_target': countTarget,
+    'content': content,
+    'sort_order': sortOrder,
+    'is_active': isActive ? 1 : 0,
+    'created_at': createdAt,
+    'intention': intention,
+    'duration_days': durationDays,
+  };
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,

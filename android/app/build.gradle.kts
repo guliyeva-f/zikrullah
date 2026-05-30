@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.amal_app"
+        applicationId = "az.amalapp.app"
         minSdk = 26
         targetSdk = 36
         versionCode = flutter.versionCode

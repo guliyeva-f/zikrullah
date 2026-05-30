@@ -87,6 +87,8 @@ class NotificationService {
   // ─── PREFERENCES ─────────────────────────────────────────────────────────
 
   Future<bool> isEnabled() async {
+    final systemGranted = await hasNotificationPermission();
+    if (!systemGranted) return false;
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyEnabled) ?? true;
   }

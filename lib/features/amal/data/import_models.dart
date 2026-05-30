@@ -6,7 +6,7 @@ class AmalConflict {
   final Amal incoming;
   final int existingStreak;
   final int existingCompletedDays;
-  bool useIncoming; // istifadəçi seçimi; default: mövcudu saxla
+  bool useIncoming;
 
   AmalConflict({
     required this.existing,

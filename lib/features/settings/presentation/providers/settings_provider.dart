@@ -86,6 +86,8 @@ final settingsProvider = AsyncNotifierProvider<SettingsNotifier, SettingsState>(
 final notifDeclinedProvider = FutureProvider<bool>((ref) async {
   final prefs = await SharedPreferences.getInstance();
   final asked = prefs.getBool('notif_onboarding_asked') ?? false;
-  final enabled = prefs.getBool('notif_enabled') ?? true;
-  return asked && !enabled;
+  if (!asked) return false;
+  final systemGranted = await NotificationService().hasNotificationPermission();
+  final prefEnabled = prefs.getBool('notif_enabled') ?? true;
+  return !systemGranted || !prefEnabled;
 });

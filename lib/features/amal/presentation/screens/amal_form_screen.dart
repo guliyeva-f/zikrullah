@@ -296,11 +296,29 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
 
   Widget _titleField() => TextField(
     controller: _titleCtrl,
+    maxLength: 60,
+    maxLengthEnforcement: MaxLengthEnforcement.enforced,
     onChanged: (_) {
       if (_submitted) setState(() {});
     },
     style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
-    decoration: _dec(hint: 'Məsələn: Sübh namazı', error: _titleError),
+    decoration: _dec(hint: 'Məsələn: Sübh namazı', error: _titleError).copyWith(
+      counterText: '',
+      counter: ValueListenableBuilder(
+        valueListenable: _titleCtrl,
+        builder: (_, value, _) {
+          final len = value.text.length;
+          if (len <= 50) return const SizedBox.shrink();
+          return Text(
+            '$len/60',
+            style: GoogleFonts.nunito(
+              fontSize: 11,
+              color: len >= 60 ? Colors.red.shade400 : AppColors.textHint,
+            ),
+          );
+        },
+      ),
+    ),
   );
 
   Widget _typeSelector() {

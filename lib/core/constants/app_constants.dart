@@ -17,7 +17,6 @@ class AppConstants {
   ];
 
   static const monthsShort = [
-    '',
     'Yan',
     'Fev',
     'Mar',

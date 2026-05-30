@@ -22,8 +22,6 @@ class ImportExportService {
 
   // ─── EXPORT ──────────────────────────────────────────────────────────────
 
-  /// Downloads-a saxlayır, share sheet açır.
-  /// Qaytarır: saxlanan fayl yolu (uğurlu) ya null (xəta)
   Future<String?> exportData() async {
     try {
       final amals = await _repo.getAllAmals();
@@ -38,11 +36,9 @@ class ImportExportService {
 
       final fileName = _buildFileName();
 
-      // Downloads qovluğuna yaz
       final file = await _saveToDownloads(fileName, jsonStr);
       if (file == null) return null;
 
-      // Share sheet aç
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'application/octet-stream')],
@@ -56,6 +52,7 @@ class ImportExportService {
       return null;
     }
   }
+
   String _buildFileName() {
     final now = DateTime.now();
     const az = [
@@ -81,15 +78,8 @@ class ImportExportService {
       Directory? dir;
 
       if (Platform.isAndroid) {
-        // Android-də /storage/emulated/0/Download
-        dir = Directory('/storage/emulated/0/Download');
-        if (!await dir.exists()) {
-          // Fallback: external storage
-          final ext = await getExternalStorageDirectory();
-          dir = ext;
-        }
+        dir = await getExternalStorageDirectory();
       } else {
-        // iOS — Documents qovluğu (Files app-da görünür)
         dir = await getApplicationDocumentsDirectory();
       }
 

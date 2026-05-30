@@ -23,13 +23,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   bool _loading = true;
   final _scrollController = ScrollController();
 
-  // Hər həftə sətirinin hündürlüyü (36px dairə + 3px padding)
   static const double _rowH = 39.0;
-  // Ay separatorunun hündürlüyü (8 + text~18 + 4 = ~30)
   static const double _sepH = 30.0;
-  // Həftə başlıqları hündürlüyü
   static const double _headerH = 26.0;
-  // Sticky header hündürlüyü (niyyət + streak)
   static const double _stickyH = 130.0;
 
   static const _milestones = {7, 21, 40, 100};
@@ -61,7 +57,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToToday());
   }
 
-  /// Bu günün təqvim içindəki piksel mövqeyini hesablayıb smooth scroll edir
   void _scrollToToday() {
     if (!_scrollController.hasClients) return;
 
@@ -77,7 +72,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
 
     final weeksToToday = today.difference(gridStart).inDays ~/ 7;
 
-    // Ay separatorlarını say (gridStart-dan bu günə qədər)
     int separatorCount = 0;
     int? lastMonth;
     for (int w = 0; w <= weeksToToday; w++) {
@@ -94,14 +88,13 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       }
     }
 
-    // İlk ay da separator sayılır
     separatorCount += 1;
 
     final offset =
         _headerH +
         (separatorCount * _sepH) +
         (weeksToToday * _rowH) -
-        100; // bir az yuxarı qalsın ki, kontekst görünsün
+        100;
 
     final target = offset.clamp(
       0.0,
@@ -436,7 +429,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
 
     final rows = <Widget>[];
 
-    // Həftə günü başlıqları
     rows.add(
       Row(
         children: AppConstants.weekdaysShort

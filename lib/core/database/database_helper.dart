@@ -64,7 +64,6 @@ class DatabaseHelper {
     )
   ''');
 
-    // ← bu sətri əlavə et
     await db.execute(
       'CREATE INDEX idx_records_amal_date ON amal_records (amal_id, record_date)',
     );
@@ -75,7 +74,6 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE amals ADD COLUMN intention TEXT');
       await db.execute('ALTER TABLE amals ADD COLUMN duration_days INTEGER');
     }
-    // ← version 3 əlavə et
     if (oldVersion < 3) {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_records_amal_date ON amal_records (amal_id, record_date)',

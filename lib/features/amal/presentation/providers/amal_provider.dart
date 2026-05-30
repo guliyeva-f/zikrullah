@@ -106,7 +106,7 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
   Future<void> completeCheckbox(int amalId) async {
     final current = state.value;
     if (current == null) return;
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final today = current.today;
     final existing = current.records[amalId];
     final isCurrentlyDone = existing?.isCompleted ?? false;
 
@@ -115,59 +115,17 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
       amalId: amalId,
       recordDate: today,
       isCompleted: !isCurrentlyDone,
-      countDone: existing?.countDone ?? 0, // counter>10 üçün sayı qoru
+      countDone: existing?.countDone ?? 0, 
       completedAt: !isCurrentlyDone ? DateTime.now().toIso8601String() : null,
     );
     await _repo.upsertRecord(record);
     await _patchRecord(amalId, record);
   }
 
-  Future<void> incrementCounter(int amalId) async {
-    final current = state.value;
-    if (current == null) return;
+  Future<void> incrementCounter(int amalId) => incrementCounterBy(amalId, 1);
 
-    final amal = current.amals.firstWhere((a) => a.id == amalId);
-    final existing = current.records[amalId];
-    final newCount = (existing?.countDone ?? 0) + 1;
-    final target = amal.countTarget ?? 1;
-    final done = newCount >= target;
-
-    final record = AmalRecord(
-      id: existing?.id,
-      amalId: amalId,
-      recordDate: current.today,
-      isCompleted: done,
-      countDone: newCount,
-      completedAt: done ? DateTime.now().toIso8601String() : null,
-    );
-    await _repo.upsertRecord(record);
-    await _patchRecord(amalId, record);
-  }
-
-  Future<void> decrementCounter(int amalId) async {
-    final current = state.value;
-    if (current == null) return;
-
-    final existing = current.records[amalId];
-    final currentCount = existing?.countDone ?? 0;
-    if (currentCount <= 0) return; // artıq 0-dadır, azaltmaq olmaz
-
-    final newCount = currentCount - 1;
-    final amal = current.amals.firstWhere((a) => a.id == amalId);
-    final target = amal.countTarget ?? 1;
-
-    final record = AmalRecord(
-      id: existing?.id,
-      amalId: amalId,
-      recordDate: current.today,
-      isCompleted: newCount >= target,
-      countDone: newCount,
-      completedAt: newCount >= target ? existing?.completedAt : null,
-    );
-    await _repo.upsertRecord(record);
-    await _patchRecord(amalId, record);
-  }
-
+  Future<void> decrementCounter(int amalId) => decrementCounterBy(amalId, 1);
+  
   Future<void> incrementCounterBy(int amalId, int amount) async {
     final current = state.value;
     if (current == null) return;
@@ -219,7 +177,6 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     final newRecords = Map<int, AmalRecord?>.from(current.records)
       ..[amalId] = record;
 
-    // Yalnız dəyişən amal üçün streak hesabla, qalanları saxla
     final newStreak = await _repo.calculateStreak(amalId);
     final newStreaks = Map<int, int>.from(current.streaks)
       ..[amalId] = newStreak;

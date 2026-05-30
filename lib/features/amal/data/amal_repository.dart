@@ -144,7 +144,7 @@ class AmalRepository {
     );
     final createdDates = amalRows
         .map((r) => r['created_date'] as String)
-        .toList(); // artıq sortludur
+        .toList();
 
     if (createdDates.isEmpty) return {};
 
@@ -164,7 +164,6 @@ class AmalRepository {
       final date = row['record_date'] as String;
       final cnt = row['cnt'] as int;
 
-      // Binary search ilə say — O(log n)
       int lo = 0, hi = createdDates.length;
       while (lo < hi) {
         final mid = (lo + hi) ~/ 2;
@@ -182,6 +181,38 @@ class AmalRepository {
     }
     return result;
   }
+
+  Future<Map<String, int>> getAmalCountPerDay({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final db = await _db;
+    final amalRows = await db.rawQuery(
+      'SELECT substr(created_at, 1, 10) AS created_date FROM amals ORDER BY created_date ASC',
+    );
+    final createdDates = amalRows
+        .map((r) => r['created_date'] as String)
+        .toList();
+    if (createdDates.isEmpty) return {};
+    final result = <String, int>{};
+    var cur = from;
+    while (!cur.isAfter(to)) {
+      final dateStr = _formatDate(cur);
+      int lo = 0, hi = createdDates.length;
+      while (lo < hi) {
+        final mid = (lo + hi) ~/ 2;
+        if (createdDates[mid].compareTo(dateStr) <= 0) {
+          lo = mid + 1;
+        } else {
+          hi = mid;
+        }
+      }
+      if (lo > 0) result[dateStr] = lo;
+      cur = cur.add(const Duration(days: 1));
+    }
+    return result;
+  }
+  
   // ─── DETAIL SCREEN TƏQVİM ─────────────────────────────────────────────────
 
   Future<Map<String, bool>> getAmalCalendarMonth(
@@ -215,7 +246,6 @@ class AmalRepository {
         ? DateTime.now()
         : DateTime.now().subtract(const Duration(days: 1));
 
-    // Yalnız lazım olan günlərə qədər sorğu at — 365 deyil
     final fromDate = _formatDate(startDate.subtract(const Duration(days: 364)));
     final toDate = _formatDate(startDate);
 
@@ -300,17 +330,15 @@ class AmalRepository {
     return maps.map(AmalRecord.fromMap).toList();
   }
 
-  /// Smart merge import — istifadəçi seçimləri ilə
   Future<({int imported, int updated, int skipped, List<String> errors})>
   applyImport({required ImportPreview preview}) async {
     final db = await _db;
-    final idMap = <int, int>{}; // fayldakı köhnə id → DB-dəki real id
+    final idMap = <int, int>{};
     int imported = 0;
     int updated = 0;
     int skipped = 0;
     final errors = <String>[];
 
-    // 1. Yeni əməllər — birbaşa insert
     for (final amal in preview.newAmals) {
       final map = Map<String, dynamic>.from(amal.toJson())..remove('id');
       try {
@@ -323,11 +351,8 @@ class AmalRepository {
       }
     }
 
-    // 2. Ziddiyyətlər — istifadəçinin seçiminə görə
     for (final conflict in preview.conflicts) {
       if (conflict.useIncoming) {
-        // Mövcud əməlin məzmun sahələrini yeni məlumatla yenilə
-        // (id, sortOrder, createdAt toxunulmur — streak qorunur)
         try {
           await db.update(
             'amals',
@@ -350,19 +375,16 @@ class AmalRepository {
           errors.add(conflict.existing.title);
         }
       } else {
-        // Mövcudu saxla — sadəcə id-ni map et ki, records düzgün bağlansın
         idMap[conflict.incoming.id] = conflict.existing.id;
         skipped++;
       }
     }
 
-    // 3. Records — həmişə birləşdir
-    // UNIQUE(amal_id, record_date) constraint sayəsində dublikatlar IGNORE olur
     if (preview.records.isNotEmpty) {
       final batch = db.batch();
       for (final rec in preview.records) {
         final actualId = idMap[rec.amalId];
-        if (actualId == null) continue; // əməl import edilməyib, atla
+        if (actualId == null) continue;
 
         final map = rec.toMap()
           ..['amal_id'] = actualId
@@ -399,7 +421,6 @@ class AmalRepository {
     return (result.first['cnt'] as int?) ?? 0;
   }
 
-  /// Əməlin bütün qeydlərini qaytarır — tarixçə lövhəsi üçün
   Future<Map<String, bool>> getAmalAllRecords(int amalId) async {
     final db = await _db;
     final maps = await db.query(
@@ -413,7 +434,6 @@ class AmalRepository {
     };
   }
 
-  /// Ən yaxşı arası kəsilməmiş streak-i hesablayır
   Future<int> getBestStreak(int amalId) async {
     final db = await _db;
     final maps = await db.rawQuery(

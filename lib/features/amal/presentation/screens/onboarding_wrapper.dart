@@ -31,7 +31,6 @@ class _OnboardingWrapperState extends ConsumerState<OnboardingWrapper> {
       await service.reschedule();
     }
 
-    // Badge provider-i yenilə
     ref.invalidate(notifDeclinedProvider);
   }
 

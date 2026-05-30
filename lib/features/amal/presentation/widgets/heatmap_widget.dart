@@ -5,7 +5,17 @@ import '../../../../core/constants/app_constants.dart';
 
 class HeatmapWidget extends StatefulWidget {
   final Map<String, double> data;
-  const HeatmapWidget({super.key, required this.data});
+  final void Function(DateTime)? onDayTap;
+  final void Function(DateTime)? onMonthTap;
+  final VoidCallback? onTitleTap;
+
+  const HeatmapWidget({
+    super.key,
+    required this.data,
+    this.onDayTap,
+    this.onMonthTap,
+    this.onTitleTap,
+  });
 
   @override
   State<HeatmapWidget> createState() => _HeatmapWidgetState();
@@ -50,13 +60,16 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
   List<List<DateTime?>> _buildWeeks() {
     final today = DateTime.now();
     final todayNorm = DateTime(today.year, today.month, today.day);
-    var start = todayNorm.subtract(const Duration(days: 364));
-    start = start.subtract(Duration(days: start.weekday - 1));
+
+    final thisMonday = todayNorm.subtract(
+      Duration(days: todayNorm.weekday - 1),
+    );
+    final start = thisMonday.subtract(const Duration(days: 52 * 7));
 
     final weeks = <List<DateTime?>>[];
     var cur = start;
 
-    while (!cur.isAfter(todayNorm)) {
+    while (!cur.isAfter(thisMonday)) {
       final week = <DateTime?>[];
       for (int d = 0; d < 7; d++) {
         final day = cur.add(Duration(days: d));
@@ -103,24 +116,31 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
       children: weeks.map((week) {
         final first = week.firstWhere((d) => d != null, orElse: () => null);
         String? label;
+        DateTime? monthDate;
         if (first != null) {
           final key = '${first.year}-${first.month}';
           if (key != lastKey) {
             lastKey = key;
-            label = AppConstants.monthsShort[first.month];
+            label = AppConstants.monthsShort[first.month - 1];
+            monthDate = DateTime(first.year, first.month, 1);
           }
         }
         return SizedBox(
           width: _total,
           child: label != null
-              ? Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.visible,
-                  style: GoogleFonts.nunito(
-                    fontSize: 9,
-                    color: AppColors.textSecondary,
+              ? GestureDetector(
+                  onTap: monthDate != null && widget.onMonthTap != null
+                      ? () => widget.onMonthTap!(monthDate!)
+                      : null,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.visible,
+                    style: GoogleFonts.nunito(
+                      fontSize: 9,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 )
               : null,
@@ -128,6 +148,7 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
       }).toList(),
     );
   }
+
   // ─── GRID ─────────────────────────────────────────────────────────────────
 
   Widget _buildGrid(List<List<DateTime?>> weeks, DateTime todayNorm) {
@@ -142,16 +163,21 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
             final ratio = widget.data[_fmt(day)];
             final isToday = day == todayNorm;
 
-            return Container(
-              width: _cellSize,
-              height: _cellSize,
-              margin: const EdgeInsets.all(_gap / 2),
-              decoration: BoxDecoration(
-                color: _cellColor(ratio),
-                borderRadius: BorderRadius.circular(2),
-                border: isToday
-                    ? Border.all(color: AppColors.accent, width: 1.2)
-                    : null,
+            return GestureDetector(
+              onTap: widget.onDayTap != null
+                  ? () => widget.onDayTap!(day)
+                  : null,
+              child: Container(
+                width: _cellSize,
+                height: _cellSize,
+                margin: const EdgeInsets.all(_gap / 2),
+                decoration: BoxDecoration(
+                  color: _cellColor(ratio),
+                  borderRadius: BorderRadius.circular(2),
+                  border: isToday
+                      ? Border.all(color: AppColors.accent, width: 1.2)
+                      : null,
+                ),
               ),
             );
           }).toList(),

@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../calendar/presentation/providers/heatmap_provider.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../calendar/presentation/screens/calendar_screen.dart';
 import '../../domain/amal.dart';
 import '../../domain/amal_record.dart';
 import '../providers/amal_provider.dart';
@@ -260,55 +261,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   16,
                                   16,
                                 ),
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const AmalFormScreen(),
-                                        ),
-                                      ).then((_) {
-                                        ref
-                                            .read(amalProvider.notifier)
-                                            .refresh();
-                                        ref
-                                            .read(heatmapProvider.notifier)
-                                            .refresh();
-                                      }),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.bgCard,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: AppColors.accent.withValues(
-                                          alpha: 0.3,
-                                        ),
+                                child: Center(
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const AmalFormScreen(),
+                                          ),
+                                        ).then((_) {
+                                          ref
+                                              .read(amalProvider.notifier)
+                                              .refresh();
+                                          ref
+                                              .read(heatmapProvider.notifier)
+                                              .refresh();
+                                        }),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
                                       ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.add,
-                                          color: AppColors.accent,
-                                          size: 18,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'Əməl əlavə et',
-                                          style: GoogleFonts.nunito(
-                                            fontSize: 13,
-                                            color: AppColors.accent,
-                                            fontWeight: FontWeight.w600,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.bgCard,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: AppColors.accent.withValues(
+                                            alpha: 0.3,
                                           ),
                                         ),
-                                      ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.add,
+                                            color: AppColors.accent,
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Əməl əlavə et',
+                                            style: GoogleFonts.nunito(
+                                              fontSize: 13,
+                                              color: AppColors.accent,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -524,12 +526,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           const Divider(color: AppColors.separator, height: 1),
           const SizedBox(height: 14),
-          Text(
-            'İllik aktivlik',
-            style: GoogleFonts.nunito(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+          GestureDetector(
+            onTap: () {
+              final heatmap = ref.read(heatmapProvider);
+              final heatmapData = heatmap.when(
+                data: (s) => s.data,
+                loading: () => <String, double>{},
+                error: (_, _) => <String, double>{},
+              );
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CalendarScreen(
+                    initialDate: DateTime.now(),
+                    heatmapData: heatmapData,
+                  ),
+                ),
+              );
+            },
+            child: Text(
+              'İllik aktivlik',
+              style: GoogleFonts.nunito(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -544,9 +564,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             error: (_, _) => const SizedBox.shrink(),
-            // data varsa da yoxdursa da eyni widget göstərilir
-            // boş olduqda kvadratlar görünür, aktivlik olmayan günlər solğun
-            data: (hState) => HeatmapWidget(data: hState.data),
+            data: (hState) => HeatmapWidget(
+              data: hState.data,
+              onDayTap: (date) => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CalendarScreen(
+                    initialDate: date,
+                    heatmapData: hState.data,
+                  ),
+                ),
+              ),
+              onMonthTap: (date) => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CalendarScreen(
+                    initialDate: date,
+                    heatmapData: hState.data,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
