@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../calendar/presentation/providers/heatmap_provider.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../../calendar/presentation/screens/calendar_screen.dart';
@@ -27,9 +26,31 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _scrollController = ScrollController();
 
-  String get _todayLabel {
-    final now = DateTime.now();
-    return '${now.day} ${AppConstants.months[now.month - 1]}, ${AppConstants.weekdays[now.weekday]}';
+  String get _timeGreeting {
+    final h = DateTime.now().hour;
+    if (h >= 4 && h < 12) return 'Yeni günə bismillah ☀️';
+    if (h >= 12 && h < 15) return 'Günün xeyirli keçsin 🌿';
+    if (h >= 15 && h < 18) return 'Əsr vaxtı, zikrə davam 📿';
+    if (h >= 18 && h < 21) return 'Axşamın xeyirli olsun 🌙';
+    return 'Gecən xeyirli olsun ✨';
+  }
+
+  String _timeGreetingOrDone(AmalState state) {
+    final total = state.totalCount;
+    final done = state.completedCount;
+    if (total > 0 && done == total) return 'Günü layiqincə bitirdin.';
+    return _timeGreeting;
+  }
+
+  String _progressTitle(AmalState state) {
+    final total = state.totalCount;
+    final done = state.completedCount;
+    if (total == 0) return 'Günün zikrləri';
+    if (done == total) return 'Bərəkallah! 🤲';
+    final ratio = done / total;
+    if (done == 0) return 'Günün zikrləri';
+    if (ratio < 0.5) return 'Yolun ortasındasan';
+    return 'Əhdinə sadiq qal ✊';
   }
 
   @override
@@ -42,23 +63,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final asyncAmals = ref.watch(amalProvider);
     final asyncHeatmap = ref.watch(heatmapProvider);
+    final hintShown = ref.watch(counterHintProvider).value ?? true;
 
     ref.listen<AsyncValue<AmalState>>(amalProvider, (prev, next) {
       next.whenData((state) {
-        if (state.recentlyArchived.isNotEmpty) {
-          final names = state.recentlyArchived.map((a) => a.title).join(', ');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '$names — proqram tamamlandı 🎉',
-                style: GoogleFonts.nunito(color: Colors.white),
-              ),
-              backgroundColor: AppColors.accent,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-          ref.read(amalProvider.notifier).clearArchived();
-        }
         final prevCount = prev?.value?.completedCount ?? 0;
         if (state.completedCount > prevCount) {
           ref.read(heatmapProvider.notifier).refresh();
@@ -104,10 +112,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           data: (state) => Column(
             children: [
-              // ── Header ────────────────────────────────────────────────
               _buildHeader(context, state),
-
-              // ── Əməllər / Empty ───────────────────────────────────────
               Expanded(
                 child: RefreshIndicator(
                   color: AppColors.accent,
@@ -175,7 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                       horizontal: 10,
                                                     ),
                                                 child: Text(
-                                                  'tamamlandı',
+                                                  'bu gün əda edildi',
                                                   style: GoogleFonts.nunito(
                                                     fontSize: 11,
                                                     color: AppColors.textHint,
@@ -201,6 +206,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           amal: amal,
                                           record: record,
                                           streak: streak,
+                                          showCounterHint:
+                                              !hintShown &&
+                                              amal.type == AmalType.counter &&
+                                              (amal.countTarget ?? 0) <= 10,
                                           onCompleteTap: () => ref
                                               .read(amalProvider.notifier)
                                               .completeCheckbox(amal.id),
@@ -252,8 +261,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   );
                                 }).toList();
                               }(),
-
-                              // ── Əməl əlavə et ─────────────────────────────────────────────
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(
                                   16,
@@ -302,7 +309,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'Əməl əlavə et',
+                                            'Yenisini əlavə et',
                                             style: GoogleFonts.nunito(
                                               fontSize: 13,
                                               color: AppColors.accent,
@@ -320,8 +327,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                 ),
               ),
-
-              // ── İllik aktivlik — həmişə aşağıda sabit ─────────────────
               _buildHeatmapSection(asyncHeatmap),
             ],
           ),
@@ -350,18 +355,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _todayLabel,
+                      _timeGreetingOrDone(state),
                       style: GoogleFonts.nunito(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.accent,
+                        letterSpacing: 0.1,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
-                      'Günün əməlləri',
+                      _progressTitle(state),
                       style: GoogleFonts.nunito(
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
@@ -443,7 +449,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '$done / $total tamamlandı',
+                  '$done / $total yerinə yetirildi',
                   style: GoogleFonts.nunito(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -482,39 +488,180 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildEmptyState(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AmalFormScreen()),
-            ).then((_) => ref.read(amalProvider.notifier).refresh()),
-            child: Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.bgCard,
-                border: Border.all(
-                  color: AppColors.accent.withValues(alpha: 0.4),
-                  width: 1.5,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 52,
+                  height: 0.5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.accent.withValues(alpha: 0.05),
+                        AppColors.accent.withValues(alpha: 0.4),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent.withValues(alpha: 0.3),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent.withValues(alpha: 0.5),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent.withValues(alpha: 0.72),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent.withValues(alpha: 0.5),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent.withValues(alpha: 0.3),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 52,
+                  height: 0.5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.accent.withValues(alpha: 0.4),
+                        AppColors.accent.withValues(alpha: 0.05),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            RichText(
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+              text: TextSpan(
+                style: GoogleFonts.scheherazadeNew(
+                  fontSize: 28,
+                  height: 2.0,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+                children: const [
+                  TextSpan(text: 'أَلاَ بِ'),
+                  TextSpan(
+                    text: 'ذِكْرِ اللّهِ',
+                    style: TextStyle(color: Color(0xFF6B8C5A)),
+                  ),
+                  TextSpan(text: ' تَطْمَئِنُّ الْقُلُوبُ'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: 32,
+              height: 0.5,
+              color: AppColors.accentLight.withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '"Bilin ki, qəlblər yalnız Allahı zikr etməklə\nrahatlıq tapar"',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.7,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('🌿', style: TextStyle(fontSize: 11)),
+                const SizedBox(width: 6),
+                Text(
+                  'Ər-Rəd, 28',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    color: AppColors.textHint,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.rotationY(3.14159),
+                  child: Text('🌿', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 36),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AmalFormScreen()),
+              ).then((_) => ref.read(amalProvider.notifier).refresh()),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  'İlk zikrini əlavə et',
+                  style: GoogleFonts.nunito(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
-              child: const Icon(Icons.add, color: AppColors.accent, size: 32),
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'əməl əlavə et',
-            style: GoogleFonts.nunito(fontSize: 13, color: AppColors.textHint),
-          ),
-        ],
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
 
-  // ─── HEATMAP — aşağıda sabit ──────────────────────────────────────────────
+  // ─── HEATMAP ──────────────────────────────────────────────────────────────
 
   Widget _buildHeatmapSection(AsyncValue<HeatmapState> asyncHeatmap) {
     return Container(
@@ -543,13 +690,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               );
             },
-            child: Text(
-              'İllik aktivlik',
-              style: GoogleFonts.nunito(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'İllik yolun',
+                  style: GoogleFonts.nunito(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.textPrimary,
+                  size: 16,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
@@ -592,10 +750,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 // ─── AMAL CARD ────────────────────────────────────────────────────────────────
 
-class _AmalCard extends StatelessWidget {
+class _AmalCard extends StatefulWidget {
   final Amal amal;
   final AmalRecord? record;
   final int streak;
+  final bool showCounterHint;
   final VoidCallback onCompleteTap;
   final VoidCallback onCounterTap;
   final VoidCallback onCounterDecrement;
@@ -606,6 +765,7 @@ class _AmalCard extends StatelessWidget {
     required this.amal,
     required this.record,
     required this.streak,
+    required this.showCounterHint,
     required this.onCompleteTap,
     required this.onCounterTap,
     required this.onCounterDecrement,
@@ -613,13 +773,20 @@ class _AmalCard extends StatelessWidget {
     required this.onDetailTap,
   });
 
-  bool get _done => record?.isCompleted ?? false;
-  bool get _hasChevron => amal.type == AmalType.text;
+  @override
+  State<_AmalCard> createState() => _AmalCardState();
+}
+
+class _AmalCardState extends State<_AmalCard> {
+  bool _hintVisible = false;
+
+  bool get _done => widget.record?.isCompleted ?? false;
+  bool get _hasChevron => widget.amal.type == AmalType.text;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onDetailTap,
+      onTap: widget.onDetailTap,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.bgCard,
@@ -654,7 +821,7 @@ class _AmalCard extends StatelessWidget {
                     Expanded(child: _buildMiddle()),
                     if (_hasChevron)
                       GestureDetector(
-                        onTap: onOpenScreen,
+                        onTap: widget.onOpenScreen,
                         child: Container(
                           width: 36,
                           height: 36,
@@ -680,11 +847,11 @@ class _AmalCard extends StatelessWidget {
   }
 
   Widget _buildLeading(BuildContext context) {
-    switch (amal.type) {
+    switch (widget.amal.type) {
       case AmalType.checkbox:
       case AmalType.text:
         return GestureDetector(
-          onTap: onCompleteTap,
+          onTap: widget.onCompleteTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: 26,
@@ -704,29 +871,29 @@ class _AmalCard extends StatelessWidget {
         );
 
       case AmalType.counter:
-        final cnt = record?.countDone ?? 0;
-        final target = amal.countTarget ?? 1;
+        final cnt = widget.record?.countDone ?? 0;
+        final target = widget.amal.countTarget ?? 1;
         final isSmall = target <= 10;
 
         return GestureDetector(
           onTap: _done
               ? null
               : isSmall
-              ? onCounterTap
-              : onOpenScreen,
+              ? () {
+                  widget.onCounterTap();
+                  if (widget.showCounterHint && cnt == 0 && !_hintVisible) {
+                    setState(() => _hintVisible = true);
+                    markCounterHintShown();
+                    Future.delayed(const Duration(seconds: 3), () {
+                      if (mounted) setState(() => _hintVisible = false);
+                    });
+                  }
+                }
+              : widget.onOpenScreen,
           onLongPress: isSmall && cnt > 0
               ? () {
-                  onCounterDecrement();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '${amal.title}: ${cnt - 1}/$target',
-                        style: GoogleFonts.nunito(color: Colors.white),
-                      ),
-                      backgroundColor: AppColors.accent,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+                  widget.onCounterDecrement();
+                  if (_hintVisible) setState(() => _hintVisible = false);
                 }
               : null,
           child: AnimatedContainer(
@@ -759,17 +926,41 @@ class _AmalCard extends StatelessWidget {
   }
 
   Widget _buildMiddle() {
-    final streakText = streak == 0
-        ? null
-        : streak == 1
-        ? 'ilk gün 🔥'
-        : '$streak gün ardıcıl 🔥';
+    final bool isProgramComplete =
+        _done &&
+        widget.amal.durationDays != null &&
+        widget.streak >= widget.amal.durationDays!;
+
+    String? milestoneText(int s) {
+      if (s == 7) return 'bir həftə — maşaAllah 🔥';
+      if (s == 21) return '21 gün — Əhsən sənə 🌟';
+      if (s == 40) return '40 gün — subhanAllah ✨';
+      return null;
+    }
+
+    final String? streakText;
+    if (isProgramComplete) {
+      streakText =
+          '${widget.amal.durationDays} günlük əhdinə vəfalı oldun.\nAllah qəbul etsin 🤲';
+    } else if (widget.streak == 0) {
+      streakText = null;
+    } else if (widget.streak == 1) {
+      streakText = 'başlanğıc 🌱';
+    } else if (widget.streak <= 3) {
+      streakText = '${widget.streak} gün davamlı ✨';
+    } else {
+      streakText =
+          milestoneText(widget.streak) ?? '${widget.streak} gün davamlı 🔥';
+    }
+
+    final bool isMilestone =
+        !isProgramComplete && milestoneText(widget.streak) != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          amal.title,
+          widget.amal.title,
           style: GoogleFonts.nunito(
             fontSize: 15,
             fontWeight: FontWeight.w600,
@@ -782,18 +973,40 @@ class _AmalCard extends StatelessWidget {
             streakText,
             style: GoogleFonts.nunito(
               fontSize: 12,
-              color: AppColors.accentLight,
-              fontWeight: FontWeight.w500,
+              color: isProgramComplete || isMilestone
+                  ? AppColors.accent
+                  : AppColors.accentLight,
+              fontWeight: isProgramComplete || isMilestone
+                  ? FontWeight.w600
+                  : FontWeight.w500,
             ),
           ),
         ],
-        if (amal.durationDays != null) ...[
+        if (_hintVisible)
+          AnimatedOpacity(
+            opacity: _hintVisible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 600),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text(
+                'uzun bas - geri al',
+                style: GoogleFonts.nunito(
+                  fontSize: 12,
+                  color: AppColors.textHint,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        if (widget.amal.durationDays != null && !isProgramComplete) ...[
           const SizedBox(height: 2),
           Text(
-            amal.durationLabel,
+            widget.amal.durationLabel,
             style: GoogleFonts.nunito(
               fontSize: 11,
-              color: amal.isExpired ? AppColors.accent : AppColors.textHint,
+              color: widget.amal.isExpired
+                  ? AppColors.accent
+                  : AppColors.textHint,
             ),
           ),
         ],

@@ -91,3 +91,15 @@ final notifDeclinedProvider = FutureProvider<bool>((ref) async {
   final prefEnabled = prefs.getBool('notif_enabled') ?? true;
   return !systemGranted || !prefEnabled;
 });
+
+// ─── COUNTER HİNT ────────────────────────────────────────────────────────────
+
+final counterHintProvider = FutureProvider<bool>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('counter_hint_shown') ?? false;
+});
+
+Future<void> markCounterHintShown() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('counter_hint_shown', true);
+}

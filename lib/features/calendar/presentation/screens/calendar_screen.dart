@@ -45,7 +45,6 @@ final _earliestAmalDateProvider = FutureProvider<DateTime?>((ref) async {
   return DateTime(int.parse(parts[0]), int.parse(parts[1]), 1);
 });
 
-// Ayın hansı günlərində əməl mövcud idi
 final _amalCountProvider = FutureProvider.family<Map<String, int>, String>((
   ref,
   monthKey,
@@ -320,15 +319,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             final ratio = widget.heatmapData[dateStr];
             final hasAmals = amalCount.containsKey(dateStr);
 
-            // Tam tamamlanmış: ratio == 1.0
             final isDone = !isFuture && ratio != null && ratio >= 1.0;
-            // Əməl var idi amma heç biri edilməyib (keçmiş gün)
             final isMissed =
                 !isFuture &&
                 !isToday &&
                 hasAmals &&
                 (ratio == null || ratio == 0.0);
-            // Qismən — ratio > 0 amma < 1
             final isPartial =
                 !isFuture &&
                 !isToday &&
@@ -358,8 +354,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             } else if (isFuture) {
               textColor = _Cal.futureTxt;
             }
-            // Əməl olmayan keçmiş gün — şəffaf (ağ)
-
             return Expanded(
               child: GestureDetector(
                 onTap: isFuture
@@ -469,11 +463,9 @@ class _Tile extends StatelessWidget {
       icon = Icons.check_circle_outline_rounded;
       iconColor = _Cal.doneBg;
     } else if (isToday) {
-      // Cari gün — sual işarəsi
       icon = Icons.help_outline_rounded;
       iconColor = AppColors.textHint;
     } else {
-      // Buraxılmış keçmiş gün — x
       icon = Icons.cancel_outlined;
       iconColor = _Cal.missedText;
     }

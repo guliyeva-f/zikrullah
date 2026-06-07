@@ -32,16 +32,33 @@ class NotificationService {
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
-    final timezoneInfo = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timezoneInfo.toString()));
+
+    final tzInfo = await FlutterTimezone.getLocalTimezone();
+
+    try {
+      tz.setLocalLocation(tz.getLocation(tzInfo.toString()));
+    } catch (e) {
+      tz.setLocalLocation(tz.getLocation('Asia/Baku'));
+    }
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
-    const initSettings = InitializationSettings(android: androidSettings);
-    await _plugin.initialize(settings: initSettings);
 
-    await _androidImpl?.createNotificationChannel(
+    const initSettings = InitializationSettings(android: androidSettings);
+
+    await _plugin.initialize(
+      settings: initSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        debugPrint("Notification clicked: ${response.payload}");
+      },
+    );
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    await android?.createNotificationChannel(
       const AndroidNotificationChannel(
         _channelId,
         _channelName,
