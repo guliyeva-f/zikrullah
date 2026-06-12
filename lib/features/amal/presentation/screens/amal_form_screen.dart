@@ -30,11 +30,11 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   bool get _isEditing => widget.amal != null;
 
   static const _presets = [
-    (null, 'Daimi'),
+    (null, 'Həmişəlik'),
     (7, '7 gün'),
     (21, '21 gün'),
     (40, '40 gün'),
-    (-1, 'Özün'),
+    (-1, 'Fərdi'),
   ];
 
   @override
@@ -42,7 +42,9 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     super.initState();
     final a = widget.amal;
     _titleCtrl = TextEditingController(text: a?.title ?? '');
-    _countCtrl = TextEditingController(text: '${a?.countTarget ?? 1}');
+    _countCtrl = TextEditingController(
+      text: a?.countTarget != null ? '${a!.countTarget}' : '',
+    );
     _contentCtrl = TextEditingController(text: a?.content ?? '');
     _intentionCtrl = TextEditingController(text: a?.intention ?? '');
     _type = a?.type ?? AmalType.checkbox;
@@ -74,19 +76,21 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
 
   String? get _titleError {
     if (!_submitted) return null;
-    return _titleCtrl.text.trim().isEmpty ? 'Ad boş ola bilməz' : null;
+    return _titleCtrl.text.trim().isEmpty ? 'Ad yazılmalıdır' : null;
   }
 
   String? get _countError {
     if (!_submitted || _type != AmalType.counter) return null;
     final v = int.tryParse(_countCtrl.text.trim());
-    return (v == null || v < 1) ? 'Minimum 1 olmalıdır' : null;
+    if (v == null) return 'Say daxil et';
+    if (v < 1) return 'Ən azı 1 dəfə daxil et';
+    return null;
   }
 
   String? get _customDurError {
     if (!_submitted || _durationPreset != -1) return null;
     final v = int.tryParse(_customDurCtrl.text.trim());
-    return (v == null || v < 1) ? 'Minimum 1 gün daxil et' : null;
+    return (v == null || v < 1) ? 'Ən azı 1 gün daxil et' : null;
   }
 
   int? get _resolvedDuration {
@@ -182,7 +186,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          _isEditing ? 'Düzəlt' : 'Yeni əməl',
+          _isEditing ? 'Düzəliş et' : 'Yeni əməl',
           style: GoogleFonts.nunito(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -191,15 +195,27 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 12),
             child: TextButton(
               onPressed: _save,
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
               child: Text(
-                'Saxla',
+                _isEditing ? 'Yenilə' : 'Hazır',
                 style: GoogleFonts.nunito(
-                  color: AppColors.accent,
                   fontWeight: FontWeight.w700,
-                  fontSize: 15,
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -207,44 +223,44 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _label('Ad'),
+            _label('Əməlin adı'),
             const SizedBox(height: 6),
             _titleField(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            _label('Növ'),
-            const SizedBox(height: 8),
+            _label('Necə icra edilir?'),
+            const SizedBox(height: 10),
             _typeSelector(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             if (_type == AmalType.counter) ...[
-              _label('Hədəf say'),
+              _label('Neçə dəfə?'),
               const SizedBox(height: 6),
               _countField(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
 
             if (_type == AmalType.text) ...[
-              _label('Mətn'),
+              _label('Dua / ziyarətnamə mətni'),
               const SizedBox(height: 6),
               _contentField(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
 
-            _label('Müddət'),
-            const SizedBox(height: 8),
+            _label('Neçə günlük söz verirsən?'),
+            const SizedBox(height: 10),
             _durationSelector(),
             if (_durationPreset == -1) ...[
               const SizedBox(height: 10),
               _customDurationField(),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            _label('Niyyət (istəyə görə)'),
+            _label('Niyyətin (nə üçün başlayırsan?)'),
             const SizedBox(height: 6),
             _intentionField(),
           ],
@@ -258,9 +274,9 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   Widget _label(String text) => Text(
     text,
     style: GoogleFonts.nunito(
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: AppColors.textSecondary,
+      fontSize: 14,
+      fontWeight: FontWeight.w700,
+      color: AppColors.textPrimary,
     ),
   );
 
@@ -271,7 +287,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     errorStyle: GoogleFonts.nunito(fontSize: 12),
     filled: true,
     fillColor: AppColors.bgCard,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(color: AppColors.border),
@@ -298,35 +314,41 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     controller: _titleCtrl,
     maxLength: 60,
     maxLengthEnforcement: MaxLengthEnforcement.enforced,
+    textCapitalization: TextCapitalization.sentences,
     onChanged: (_) {
       if (_submitted) setState(() {});
     },
     style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
-    decoration: _dec(hint: 'Məsələn: Sübh namazı', error: _titleError).copyWith(
-      counterText: '',
-      counter: ValueListenableBuilder(
-        valueListenable: _titleCtrl,
-        builder: (_, value, _) {
-          final len = value.text.length;
-          if (len <= 50) return const SizedBox.shrink();
-          return Text(
-            '$len/60',
-            style: GoogleFonts.nunito(
-              fontSize: 11,
-              color: len >= 60 ? Colors.red.shade400 : AppColors.textHint,
-            ),
-          );
-        },
-      ),
-    ),
+    decoration:
+        _dec(
+          hint: 'Aşura ziyarətnaməsi, Nüdbə duası, 100 salavat..',
+          error: _titleError,
+        ).copyWith(
+          counterText: '',
+          counter: ValueListenableBuilder(
+            valueListenable: _titleCtrl,
+            builder: (_, value, _) {
+              final len = value.text.length;
+              if (len <= 50) return const SizedBox.shrink();
+              return Text(
+                '$len/60',
+                style: GoogleFonts.nunito(
+                  fontSize: 11,
+                  color: len >= 60 ? Colors.red.shade400 : AppColors.textHint,
+                ),
+              );
+            },
+          ),
+        ),
   );
 
   Widget _typeSelector() {
-    const types = [
-      (AmalType.checkbox, 'Checkbox'),
-      (AmalType.counter, 'Sayğac'),
-      (AmalType.text, 'Mətnli'),
+    final types = [
+      (AmalType.checkbox, '✓', 'Tamamla'),
+      (AmalType.counter, '📿', 'Sayğac'),
+      (AmalType.text, '📖', 'Mətnli'),
     ];
+
     return Row(
       children: [
         for (int i = 0; i < types.length; i++) ...[
@@ -335,28 +357,43 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               onTap: () => setState(() => _type = types[i].$1),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(vertical: 11),
+                padding: const EdgeInsets.symmetric(vertical: 13),
                 decoration: BoxDecoration(
                   color: _type == types[i].$1
-                      ? AppColors.accent
+                      ? AppColors.accent.withValues(alpha: 0.10)
                       : AppColors.bgCard,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _type == types[i].$1
                         ? AppColors.accent
                         : AppColors.border,
+                    width: _type == types[i].$1 ? 1.5 : 1.0,
                   ),
                 ),
-                child: Text(
-                  types[i].$2,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.nunito(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _type == types[i].$1
-                        ? Colors.white
-                        : AppColors.textSecondary,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      types[i].$2,
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: _type == types[i].$1
+                            ? AppColors.accent
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      types[i].$3,
+                      style: GoogleFonts.nunito(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _type == types[i].$1
+                            ? AppColors.accent
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -368,7 +405,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   }
 
   Widget _countField() => SizedBox(
-    width: 130,
+    width: double.infinity,
     child: TextField(
       controller: _countCtrl,
       keyboardType: TextInputType.number,
@@ -377,7 +414,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
         if (_submitted) setState(() {});
       },
       style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
-      decoration: _dec(hint: '1', error: _countError),
+      decoration: _dec(hint: 'say yaz.. məs: 100, 500', error: _countError),
     ),
   );
 
@@ -391,7 +428,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       color: AppColors.textPrimary,
     ),
     decoration: _dec(
-      hint: 'Dua, zikr və ya oxunuş mətnini bura yaz...',
+      hint: 'Dua, ziyarətnamə, zikr və ya oxunacaq mətni bura yaz..',
     ).copyWith(contentPadding: const EdgeInsets.all(14)),
   );
 
@@ -405,12 +442,15 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
           onTap: () => setState(() => _durationPreset = p.$1),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
             decoration: BoxDecoration(
-              color: selected ? AppColors.accent : AppColors.bgCard,
+              color: selected
+                  ? AppColors.accent.withValues(alpha: 0.10)
+                  : AppColors.bgCard,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: selected ? AppColors.accent : AppColors.border,
+                width: selected ? 1.5 : 1.0,
               ),
             ),
             child: Text(
@@ -418,7 +458,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               style: GoogleFonts.nunito(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: selected ? Colors.white : AppColors.textSecondary,
+                color: selected ? AppColors.accent : AppColors.textSecondary,
               ),
             ),
           ),
@@ -428,7 +468,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   }
 
   Widget _customDurationField() => SizedBox(
-    width: 150,
+    width: double.infinity,
     child: TextField(
       controller: _customDurCtrl,
       keyboardType: TextInputType.number,
@@ -437,7 +477,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
         if (_submitted) setState(() {});
       },
       style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
-      decoration: _dec(hint: 'Neçə gün?', error: _customDurError),
+      decoration: _dec(hint: 'özün yaz... məs: 10', error: _customDurError),
     ),
   );
 
@@ -445,13 +485,14 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     controller: _intentionCtrl,
     maxLines: 3,
     minLines: 2,
+    textCapitalization: TextCapitalization.sentences,
     style: GoogleFonts.nunito(
       fontSize: 14,
       color: AppColors.textPrimary,
       height: 1.5,
     ),
     decoration: _dec(
-      hint: 'Niyə bunu etmək istəyirsən?',
+      hint: 'Qəlbindəkini yaz — Allah üçün, özün üçün... 🤍',
     ).copyWith(contentPadding: const EdgeInsets.all(14)),
   );
 }

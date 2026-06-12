@@ -28,29 +28,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   String get _timeGreeting {
     final h = DateTime.now().hour;
-    if (h >= 4 && h < 12) return 'Yeni günə bismillah ☀️';
-    if (h >= 12 && h < 15) return 'Günün xeyirli keçsin 🌿';
-    if (h >= 15 && h < 18) return 'Əsr vaxtı, zikrə davam 📿';
-    if (h >= 18 && h < 21) return 'Axşamın xeyirli olsun 🌙';
-    return 'Gecən xeyirli olsun ✨';
+    if (h >= 4 && h < 12) return 'Yeni günə Bismillah ☀️';
+    if (h >= 12 && h < 15) return 'Günün bərəkətli keçsin ⛅';
+    if (h >= 15 && h < 18) return 'Əsr çağı — zikrə davam 📿';
+    if (h >= 18 && h < 21) return 'Axşamın xeyirlə dolsun 🌙';
+    return 'Gecən xeyirli keçsin ✨';
   }
 
   String _timeGreetingOrDone(AmalState state) {
     final total = state.totalCount;
     final done = state.completedCount;
-    if (total > 0 && done == total) return 'Günü layiqincə bitirdin.';
+    if (total > 0 && done == total) return 'Günün əhdinə vəfalı oldun!';
     return _timeGreeting;
   }
 
   String _progressTitle(AmalState state) {
     final total = state.totalCount;
     final done = state.completedCount;
-    if (total == 0) return 'Günün zikrləri';
+    if (total == 0) return 'Günün əməlləri';
     if (done == total) return 'Bərəkallah! 🤲';
     final ratio = done / total;
-    if (done == 0) return 'Günün zikrləri';
-    if (ratio < 0.5) return 'Yolun ortasındasan';
-    return 'Əhdinə sadiq qal ✊';
+    if (done == 0) return 'Günün əməlləri';
+    if (ratio < 0.5) return 'Yolun yarısındasan';
+    return 'Əhdinə vəfalı qal ✊';
   }
 
   @override
@@ -92,7 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Bir xəta baş verdi',
+                  'Bir şey səhv getdi',
                   style: GoogleFonts.nunito(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -103,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 TextButton(
                   onPressed: () => ref.invalidate(amalProvider),
                   child: Text(
-                    'Yenidən cəhd et',
+                    'Yenidən yüklə',
                     style: GoogleFonts.nunito(color: AppColors.accent),
                   ),
                 ),
@@ -180,7 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                       horizontal: 10,
                                                     ),
                                                 child: Text(
-                                                  'bu gün əda edildi',
+                                                  'bu gün əda olundu ✓',
                                                   style: GoogleFonts.nunito(
                                                     fontSize: 11,
                                                     color: AppColors.textHint,
@@ -309,7 +309,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'Yenisini əlavə et',
+                                            'Yeni əməl əlavə et',
                                             style: GoogleFonts.nunito(
                                               fontSize: 13,
                                               color: AppColors.accent,
@@ -449,7 +449,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '$done / $total yerinə yetirildi',
+                  '$done / $total tamamlandı',
                   style: GoogleFonts.nunito(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -597,7 +597,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              '"Bilin ki, qəlblər yalnız Allahı zikr etməklə\nrahatlıq tapar"',
+              'Bilin ki, qəlblər yalnız Allahı zikr etməklə\nrahatlıq tapar',
               textAlign: TextAlign.center,
               style: GoogleFonts.nunito(
                 fontSize: 13,
@@ -613,7 +613,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Text('🌿', style: TextStyle(fontSize: 11)),
                 const SizedBox(width: 6),
                 Text(
-                  'Ər-Rəd, 28',
+                  'Ər-Rəd surəsi, 28',
                   style: GoogleFonts.nunito(
                     fontSize: 11,
                     color: AppColors.textHint,
@@ -644,7 +644,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  'İlk zikrini əlavə et',
+                  'İlk əməlini əlavə et',
                   style: GoogleFonts.nunito(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -932,9 +932,9 @@ class _AmalCardState extends State<_AmalCard> {
         widget.streak >= widget.amal.durationDays!;
 
     String? milestoneText(int s) {
-      if (s == 7) return 'bir həftə — maşaAllah 🔥';
-      if (s == 21) return '21 gün — Əhsən sənə 🌟';
-      if (s == 40) return '40 gün — subhanAllah ✨';
+      if (s == 7) return 'bir həftə — MaşaAllah! 🔥';
+      if (s == 21) return '21 gün — Əhsən sənə! 🌟';
+      if (s == 40) return '40 gün — SubhanAllah! 🌿';
       return null;
     }
 
@@ -945,7 +945,7 @@ class _AmalCardState extends State<_AmalCard> {
     } else if (widget.streak == 0) {
       streakText = null;
     } else if (widget.streak == 1) {
-      streakText = 'başlanğıc 🌱';
+      streakText = 'ilk addım 🌱';
     } else if (widget.streak <= 3) {
       streakText = '${widget.streak} gün davamlı ✨';
     } else {
@@ -967,7 +967,7 @@ class _AmalCardState extends State<_AmalCard> {
             color: _done ? AppColors.textSecondary : AppColors.textPrimary,
           ),
         ),
-        if (streakText != null) ...[
+        if (streakText != null && widget.amal.durationDays == null) ...[
           const SizedBox(height: 2),
           Text(
             streakText,
@@ -989,7 +989,7 @@ class _AmalCardState extends State<_AmalCard> {
             child: Padding(
               padding: const EdgeInsets.only(top: 3),
               child: Text(
-                'uzun bas - geri al',
+                'azaltmaq üçün uzun bas',
                 style: GoogleFonts.nunito(
                   fontSize: 12,
                   color: AppColors.textHint,
@@ -1000,13 +1000,36 @@ class _AmalCardState extends State<_AmalCard> {
           ),
         if (widget.amal.durationDays != null && !isProgramComplete) ...[
           const SizedBox(height: 2),
-          Text(
-            widget.amal.durationLabel,
-            style: GoogleFonts.nunito(
-              fontSize: 11,
-              color: widget.amal.isExpired
-                  ? AppColors.accent
-                  : AppColors.textHint,
+          RichText(
+            text: TextSpan(
+              style: GoogleFonts.nunito(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              children: [
+                if (_done && streakText != null) ...[
+                  TextSpan(
+                    text: streakText,
+                    style: TextStyle(
+                      color: isMilestone
+                          ? AppColors.accent
+                          : AppColors.accentLight,
+                      fontWeight: isMilestone
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '  ·  ',
+                    style: TextStyle(color: AppColors.textHint),
+                  ),
+                ],
+                TextSpan(
+                  text:
+                      '${((widget.amal.remainingDays ?? 0) - (_done ? 1 : 0)).clamp(0, 999)} gün qaldı',
+                  style: TextStyle(color: AppColors.textHint),
+                ),
+              ],
             ),
           ),
         ],

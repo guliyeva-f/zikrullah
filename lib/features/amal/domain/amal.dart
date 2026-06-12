@@ -9,8 +9,8 @@ class Amal {
   final int sortOrder;
   final bool isActive;
   final String createdAt;
-  final String? intention; 
-  final int? durationDays; 
+  final String? intention;
+  final int? durationDays;
 
   const Amal({
     required this.id,
@@ -55,10 +55,10 @@ class Amal {
     return r < 0 ? 0 : r;
   }
 
-  String get durationLabel {
-    if (durationDays == null) return 'Daimi';
-    if (isExpired) return 'Tamamlandı';
-    return '$remainingDays gün qaldı';
+  int remainingDaysFor(int completedCount) {
+    if (durationDays == null) return 0;
+    final r = durationDays! - completedCount;
+    return r < 0 ? 0 : r;
   }
 
   // ─── SERIALIZATION ────────────────────────────────────────────────────────

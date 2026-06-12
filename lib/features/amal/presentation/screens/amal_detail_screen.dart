@@ -26,10 +26,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   static const double _rowH = 39.0;
   static const double _sepH = 30.0;
   static const double _headerH = 26.0;
-  static const double _stickyH = 130.0;
-
-  static const _milestones = {7, 21, 40, 100};
-
+  static const double _stickyH = 70.0;
   @override
   void initState() {
     super.initState();
@@ -59,19 +56,14 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
 
   void _scrollToToday() {
     if (!_scrollController.hasClients) return;
-
     final startDate = DateTime.parse(_amal.createdAt.substring(0, 10));
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-
     if (today.isBefore(startDate)) return;
-
     final gridStart = startDate.subtract(
       Duration(days: (startDate.weekday - 1) % 7),
     );
-
     final weeksToToday = today.difference(gridStart).inDays ~/ 7;
-
     int separatorCount = 0;
     int? lastMonth;
     for (int w = 0; w <= weeksToToday; w++) {
@@ -79,28 +71,19 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       for (int d = 0; d < 7; d++) {
         final day = weekStart.add(Duration(days: d));
         if (!day.isBefore(startDate)) {
-          if (lastMonth != null && day.month != lastMonth) {
-            separatorCount++;
-          }
+          if (lastMonth != null && day.month != lastMonth) separatorCount++;
           lastMonth = day.month;
           break;
         }
       }
     }
-
     separatorCount += 1;
-
     final offset =
-        _headerH +
-        (separatorCount * _sepH) +
-        (weeksToToday * _rowH) -
-        100;
-
+        _headerH + (separatorCount * _sepH) + (weeksToToday * _rowH) - 100;
     final target = offset.clamp(
       0.0,
       _scrollController.position.maxScrollExtent,
     );
-
     _scrollController.animateTo(
       target,
       duration: const Duration(milliseconds: 600),
@@ -135,37 +118,75 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Sheet header ──────────────────────────────────────────────
+            Row(
+              children: [
+                Text(
+                  'Niyyətin',
+                  style: GoogleFonts.nunito(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: const Icon(
+                    Icons.close,
+                    size: 20,
+                    color: AppColors.textHint,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
             Text(
-              'Niyyət',
+              'Bu əməli nə üçün edirsən?',
               style: GoogleFonts.nunito(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                fontSize: 13,
+                color: AppColors.textHint,
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              maxLines: 3,
-              textCapitalization: TextCapitalization.sentences,
-              style: GoogleFonts.nunito(
-                fontSize: 14,
-                color: AppColors.textPrimary,
+            const SizedBox(height: 14),
+            // ── Input ─────────────────────────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.bgElevated,
+                borderRadius: BorderRadius.circular(12),
               ),
-              decoration: InputDecoration(
-                hintText: 'Niyyətini yaz...',
-                hintStyle: GoogleFonts.nunito(color: AppColors.textHint),
-                filled: true,
-                fillColor: AppColors.bgElevated,
-                contentPadding: const EdgeInsets.all(14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+              child: TextField(
+                controller: ctrl,
+                autofocus: true,
+                maxLines: 4,
+                minLines: 3,
+                maxLength: 200,
+                textCapitalization: TextCapitalization.sentences,
+                style: GoogleFonts.nunito(
+                  fontSize: 14,
+                  color: AppColors.textPrimary,
+                  height: 1.6,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Allah üçün, özüm üçün... niyyətini yaz 🤍',
+                  hintStyle: GoogleFonts.nunito(
+                    color: AppColors.textHint,
+                    fontSize: 14,
+                  ),
+                  counterStyle: GoogleFonts.nunito(
+                    fontSize: 11,
+                    color: AppColors.textHint,
+                  ),
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+            // ── Save button ───────────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -174,7 +195,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -203,7 +224,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         ),
       ),
     );
-    ctrl.dispose();
   }
 
   @override
@@ -215,7 +235,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
-          // ── AppBar ──────────────────────────────────────────────────────
+          // ── AppBar ────────────────────────────────────────────────────
           SliverAppBar(
             backgroundColor: AppColors.bgBase,
             elevation: 0,
@@ -244,7 +264,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   size: 20,
                   color: AppColors.textSecondary,
                 ),
-                tooltip: 'Düzəlt',
+                tooltip: 'Düzəliş et',
                 onPressed: () =>
                     Navigator.push(
                       context,
@@ -267,7 +287,15 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             ],
           ),
 
-          // ── Sticky: niyyət + streak ──────────────────────────────────────
+          // ── Niyyət (scroll ilə gedir) ─────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: _buildIntentionSection(),
+            ),
+          ),
+
+          // ── Sticky: yalnız streak ─────────────────────────────────────
           SliverPersistentHeader(
             pinned: true,
             delegate: _StickyTopDelegate(
@@ -276,20 +304,12 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               child: Container(
                 color: AppColors.bgBase,
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildIntentionSection(),
-                    const SizedBox(height: 14),
-                    _buildStreakSection(streak),
-                  ],
-                ),
+                child: _buildStreakSection(streak),
               ),
             ),
           ),
 
-          // ── Təqvim ──────────────────────────────────────────────────────
+          // ── Təqvim ────────────────────────────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
             sliver: SliverToBoxAdapter(
@@ -310,37 +330,58 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     );
   }
 
-  // ─── NİYYƏT ─────────────────────────────────────────────────────────────
+  // ─── NİYYƏT ──────────────────────────────────────────────────────────────
 
   Widget _buildIntentionSection() {
+    final hasIntention = _amal.intention?.isNotEmpty == true;
+
     return GestureDetector(
       onTap: _showIntentionSheet,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.bgCard,
+          color: hasIntention
+              ? AppColors.accent.withValues(alpha: 0.06)
+              : AppColors.bgCard,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(
+            color: hasIntention
+                ? AppColors.accent.withValues(alpha: 0.25)
+                : AppColors.border,
+          ),
         ),
-        child: _amal.intention?.isNotEmpty == true
-            ? Text(
-                _amal.intention!,
-                style: GoogleFonts.nunito(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                  fontStyle: FontStyle.italic,
-                  height: 1.5,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+        child: hasIntention
+            ? Row(
+                children: [
+                  Text('🤍', style: const TextStyle(fontSize: 13)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _amal.intention!,
+                      style: GoogleFonts.nunito(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                        fontStyle: FontStyle.italic,
+                        height: 1.5,
+                      ),
+                      maxLines: null,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
               )
             : Row(
                 children: [
-                  const Icon(Icons.add, size: 15, color: AppColors.textHint),
-                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.add_circle_outline,
+                    size: 15,
+                    color: AppColors.textHint,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    'Niyyət əlavə et',
+                    'Niyyətin yoxdur — əlavə et',
                     style: GoogleFonts.nunito(
                       fontSize: 13,
                       color: AppColors.textHint,
@@ -352,14 +393,16 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     );
   }
 
-  // ─── STREAK ──────────────────────────────────────────────────────────────
+  // ─── STREAK ───────────────────────────────────────────────────────────────
 
   Widget _buildStreakSection(int streak) {
+    final completedCount = _allRecords.values.where((v) => v).length;
+    // Sub-line: remaining / expired / best streak
     Widget? subLine;
     if (_amal.durationDays != null) {
       if (_amal.isExpired) {
         subLine = Text(
-          'Proqram tamamlandı 🎉',
+          'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲',
           style: GoogleFonts.nunito(
             fontSize: 13,
             color: AppColors.accent,
@@ -368,7 +411,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         );
       } else {
         subLine = Text(
-          '${_amal.remainingDays} gün qaldı',
+          '${_amal.remainingDaysFor(completedCount)} gün qaldı 🌙 (${_amal.durationDays} gün)',
           style: GoogleFonts.nunito(
             fontSize: 13,
             color: AppColors.textSecondary,
@@ -382,26 +425,41 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       );
     }
 
+    // Main streak label
+    final String streakLabel;
+    if (streak == 0) {
+      streakLabel = 'Hələ başlanmayıb';
+    } else if (_amal.isExpired) {
+      streakLabel = 'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲';
+    } else {
+      streakLabel = '$streak gün ardıcıl 🔥';
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Text('🔥', style: TextStyle(fontSize: 24)),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$streak gündür davamlılıq',
-              style: GoogleFonts.nunito(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppColors.accent,
-                height: 1.1,
+        if (streak > 0 && !_amal.isExpired)
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: Text('🔥', style: TextStyle(fontSize: 22)),
+          ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                streakLabel,
+                style: GoogleFonts.nunito(
+                  fontSize: _amal.isExpired ? 14 : 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.accent,
+                  height: 1.2,
+                ),
               ),
-            ),
-            if (subLine != null) ...[const SizedBox(height: 2), subLine],
-          ],
+              if (subLine != null) ...[const SizedBox(height: 3), subLine],
+            ],
+          ),
         ),
       ],
     );
@@ -491,8 +549,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               final ds = _dateStr(day);
               final isToday = ds == _todayStr;
               final completed = _allRecords[ds] ?? false;
-              final dayNum = day.difference(startDate).inDays + 1;
-              final isMilestone = _milestones.contains(dayNum);
 
               return Expanded(
                 child: Stack(
@@ -533,23 +589,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                         ),
                       ),
                     ),
-                    if (isMilestone && !isFuture)
-                      Positioned(
-                        top: 1,
-                        right: 2,
-                        child: Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.accentLight,
-                            border: Border.all(
-                              color: AppColors.bgBase,
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               );
