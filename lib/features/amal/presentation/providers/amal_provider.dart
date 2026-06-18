@@ -110,12 +110,21 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     final existing = current.records[amalId];
     final isCurrentlyDone = existing?.isCompleted ?? false;
 
+    final amal = current.amals.firstWhere((a) => a.id == amalId);
+    final isCounter = amal.type == AmalType.counter;
+    final target = amal.countTarget ?? 1;
+    final newCountDone = isCurrentlyDone
+        ? (existing?.countDone ?? 0)
+        : isCounter
+        ? target
+        : (existing?.countDone ?? 0);
+
     final record = AmalRecord(
       id: existing?.id,
       amalId: amalId,
       recordDate: today,
       isCompleted: !isCurrentlyDone,
-      countDone: existing?.countDone ?? 0, 
+      countDone: newCountDone,
       completedAt: !isCurrentlyDone ? DateTime.now().toIso8601String() : null,
     );
     await _repo.upsertRecord(record);
@@ -125,7 +134,7 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
   Future<void> incrementCounter(int amalId) => incrementCounterBy(amalId, 1);
 
   Future<void> decrementCounter(int amalId) => decrementCounterBy(amalId, 1);
-  
+
   Future<void> incrementCounterBy(int amalId, int amount) async {
     final current = state.value;
     if (current == null) return;

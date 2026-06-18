@@ -397,7 +397,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
 
   Widget _buildStreakSection(int streak) {
     final completedCount = _allRecords.values.where((v) => v).length;
-    // Sub-line: remaining / expired / best streak
     Widget? subLine;
     if (_amal.durationDays != null) {
       if (_amal.isExpired) {
@@ -425,7 +424,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       );
     }
 
-    // Main streak label
     final String streakLabel;
     if (streak == 0) {
       streakLabel = 'Hələ başlanmayıb';

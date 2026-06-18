@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -82,15 +83,10 @@ class ManageScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.add_circle_outline,
-                    size: 52,
-                    color: AppColors.textHint,
-                  ),
-                  const SizedBox(height: 14),
+                  const Text('🌙', style: TextStyle(fontSize: 44)),
+                  const SizedBox(height: 16),
                   Text(
-                    'Siyahı boşdur.',
-                    textAlign: TextAlign.center,
+                    'Hələ heç nə yoxdur',
                     style: GoogleFonts.nunito(
                       color: AppColors.textSecondary,
                       fontSize: 16,
@@ -99,7 +95,7 @@ class ManageScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Yuxarıdakı + ilə ilk əməlini əlavə et.',
+                    'Yuxarıdakı + ilə ilk niyyətini yarat',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.nunito(
                       color: AppColors.textHint,
@@ -123,7 +119,7 @@ class ManageScreen extends ConsumerWidget {
             },
             children: [
               for (int i = 0; i < state.amals.length; i++)
-                _AmalManageRow(
+                _AmalManageCard(
                   key: ValueKey(state.amals[i].id),
                   amal: state.amals[i],
                   index: i,
@@ -151,13 +147,14 @@ class ManageScreen extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref, Amal amal) {
+    HapticFeedback.mediumImpact();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Silmək istəyirsiniz?',
+          'Silinsin?',
           style: GoogleFonts.nunito(
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -165,7 +162,7 @@ class ManageScreen extends ConsumerWidget {
           ),
         ),
         content: Text(
-          '"${amal.title}" əməlinin bütün tarixçəsi silinəcək.',
+          '"${amal.title}" əməlinə aid bütün tarixçə silinəcək.',
           style: GoogleFonts.nunito(
             color: AppColors.textSecondary,
             fontSize: 14,
@@ -199,16 +196,16 @@ class ManageScreen extends ConsumerWidget {
   }
 }
 
-// ─── AMAL MANAGE ROW ─────────────────────────────────────────────────────────
+// ─── CARD ─────────────────────────────────────────────────────────────────────
 
-class _AmalManageRow extends StatelessWidget {
+class _AmalManageCard extends StatelessWidget {
   final Amal amal;
   final int index;
+  final VoidCallback onInfo;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback onInfo;
 
-  const _AmalManageRow({
+  const _AmalManageCard({
     super.key,
     required this.amal,
     required this.index,
@@ -217,14 +214,36 @@ class _AmalManageRow extends StatelessWidget {
     required this.onDelete,
   });
 
+  String get _typeIcon {
+    switch (amal.type) {
+      case AmalType.checkbox:
+        return '✓';
+      case AmalType.counter:
+        return '📿';
+      case AmalType.text:
+        return '📖';
+    }
+  }
+
   String get _typeLabel {
     switch (amal.type) {
       case AmalType.checkbox:
-        return 'Checkbox';
+        return 'Sadə';
       case AmalType.counter:
-        return 'Sayğac';
+        return 'Zikr';
       case AmalType.text:
-        return 'Mətnli';
+        return 'Qiraət';
+    }
+  }
+
+  Color get _badgeColor {
+    switch (amal.type) {
+      case AmalType.checkbox:
+        return const Color(0xFF5A8A5E);
+      case AmalType.counter:
+        return AppColors.accent;
+      case AmalType.text:
+        return const Color(0xFF6B7FA3);
     }
   }
 
@@ -239,80 +258,121 @@ class _AmalManageRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Drag handle
           ReorderableDragStartListener(
             index: index,
             child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 18),
               child: Icon(
                 Icons.drag_handle,
                 color: AppColors.textHint,
-                size: 20,
+                size: 18,
               ),
             ),
           ),
-          // Type badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              _typeLabel,
-              style: GoogleFonts.nunito(
-                fontSize: 11,
-                color: AppColors.accent,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          // Title
+
           Expanded(
-            child: Text(
-              amal.title,
-              style: GoogleFonts.nunito(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _badgeColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _typeLabel,
+                          style: GoogleFonts.nunito(
+                            fontSize: 10,
+                            color: _badgeColor,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _typeIcon,
+                          style: TextStyle(fontSize: 10, color: _badgeColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    amal.title,
+                    style: GoogleFonts.nunito(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ],
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
-          IconButton(
-            icon: const Icon(
-              Icons.info_outline,
-              size: 18,
-              color: AppColors.textSecondary,
-            ),
-            onPressed: onInfo,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+
+          // ── Action zone ───────────────────────────────────────────────────
+          Container(
+            height: 52,
+            width: 1,
+            color: AppColors.separator,
+            margin: const EdgeInsets.symmetric(vertical: 8),
           ),
-          // Edit
-          IconButton(
-            icon: const Icon(
-              Icons.edit_outlined,
-              size: 18,
-              color: AppColors.textSecondary,
-            ),
-            onPressed: onEdit,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          _ActionButton(
+            icon: Icons.info_outline,
+            color: AppColors.textSecondary,
+            onTap: onInfo,
           ),
-          // Delete
-          IconButton(
-            icon: Icon(
-              Icons.delete_outline,
-              size: 18,
-              color: Colors.red.shade300,
-            ),
-            onPressed: onDelete,
-            padding: const EdgeInsets.only(right: 4),
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          Container(height: 28, width: 1, color: AppColors.separator),
+          _ActionButton(
+            icon: Icons.edit_outlined,
+            color: AppColors.textSecondary,
+            onTap: onEdit,
           ),
+          Container(height: 28, width: 1, color: AppColors.separator),
+          _ActionButton(
+            icon: Icons.delete_outline,
+            color: Colors.red.shade300,
+            onTap: onDelete,
+          ),
+          const SizedBox(width: 4),
         ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 40,
+        height: 52,
+        child: Icon(icon, size: 17, color: color),
       ),
     );
   }

@@ -10,7 +10,8 @@ import '../providers/amal_provider.dart';
 
 class AmalFormScreen extends ConsumerStatefulWidget {
   final Amal? amal;
-  const AmalFormScreen({super.key, this.amal});
+  final bool focusContent;
+  const AmalFormScreen({super.key, this.amal, this.focusContent = false});
 
   @override
   ConsumerState<AmalFormScreen> createState() => _AmalFormScreenState();
@@ -22,6 +23,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   late final TextEditingController _contentCtrl;
   late final TextEditingController _intentionCtrl;
   late final TextEditingController _customDurCtrl;
+  final FocusNode _contentFocus = FocusNode();
 
   late AmalType _type;
   int? _durationPreset;
@@ -42,6 +44,11 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     super.initState();
     final a = widget.amal;
     _titleCtrl = TextEditingController(text: a?.title ?? '');
+    if (widget.focusContent) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _contentFocus.requestFocus();
+      });
+    }
     _countCtrl = TextEditingController(
       text: a?.countTarget != null ? '${a!.countTarget}' : '',
     );
@@ -69,6 +76,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     _contentCtrl.dispose();
     _intentionCtrl.dispose();
     _customDurCtrl.dispose();
+    _contentFocus.dispose();
     super.dispose();
   }
 
@@ -344,9 +352,9 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
 
   Widget _typeSelector() {
     final types = [
-      (AmalType.checkbox, '✓', 'Tamamla'),
-      (AmalType.counter, '📿', 'Sayğac'),
-      (AmalType.text, '📖', 'Mətnli'),
+      (AmalType.checkbox, '✓', 'Sadə'),
+      (AmalType.counter, '📿', 'Zikr'),
+      (AmalType.text, '📖', 'Qiraət'),
     ];
 
     return Row(
@@ -420,12 +428,15 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
 
   Widget _contentField() => TextField(
     controller: _contentCtrl,
+    focusNode: _contentFocus,
     maxLines: null,
     minLines: 8,
     style: GoogleFonts.scheherazadeNew(
-      fontSize: 17,
-      height: 1.9,
-      color: AppColors.textPrimary,
+      textStyle: GoogleFonts.nunito(
+        fontSize: 16,
+        height: 1.9,
+        color: AppColors.textPrimary,
+      ),
     ),
     decoration: _dec(
       hint: 'Dua, ziyarətnamə, zikr və ya oxunacaq mətni bura yaz..',
