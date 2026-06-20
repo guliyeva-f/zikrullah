@@ -18,6 +18,7 @@ class _Cal {
   static const missedBg = Color(0xFFF5DADA);
   static const missedText = Color(0xFFC0594A);
   static const futureTxt = Color(0xFFCEC5BB);
+  static const partialBg = Color(0xFFE8D5BC);
 }
 
 // ─── PROVIDER ─────────────────────────────────────────────────────────────────
@@ -92,6 +93,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       widget.initialDate.day,
     );
     _displayMonth = DateTime(_selectedDate.year, _selectedDate.month, 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(_calendarDayProvider);
+      ref.invalidate(_amalCountProvider);
+    });
   }
 
   String _fmt(DateTime d) =>
@@ -101,6 +106,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   String get _monthKey =>
       '${_displayMonth.year}-${_displayMonth.month.toString().padLeft(2, '0')}';
+
+  void _goToToday() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    ref.invalidate(_calendarDayProvider);
+    setState(() {
+      _selectedDate = today;
+      _displayMonth = DateTime(today.year, today.month, 1);
+    });
+  }
 
   void _prevMonth(DateTime? earliest) {
     final prev = DateTime(_displayMonth.year, _displayMonth.month - 1, 1);
@@ -125,6 +140,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     if (earliest == null) return false;
     final prev = DateTime(_displayMonth.year, _displayMonth.month - 1, 1);
     return !prev.isBefore(earliest);
+  }
+
+  bool get _isOnToday {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return _selectedDate == today;
   }
 
   @override
@@ -159,30 +180,40 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Təqvim',
+          'təqvim',
           style: GoogleFonts.nunito(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
           ),
         ),
+        actions: [
+          if (!_isOnToday)
+            TextButton(
+              onPressed: _goToToday,
+              child: Text(
+                'bu gün',
+                style: GoogleFonts.nunito(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.accent,
+                ),
+              ),
+            ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: Column(
         children: [
           // ── Ay naviqasiyası ──────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
             child: Row(
               children: [
-                IconButton(
-                  onPressed: _canGoPrev(earliest)
-                      ? () => _prevMonth(earliest)
-                      : null,
-                  icon: const Icon(Icons.chevron_left_rounded),
-                  color: _canGoPrev(earliest)
-                      ? AppColors.accent
-                      : AppColors.textHint,
-                  iconSize: 28,
+                _NavButton(
+                  icon: Icons.chevron_left_rounded,
+                  enabled: _canGoPrev(earliest),
+                  onTap: () => _prevMonth(earliest),
                 ),
                 Expanded(
                   child: Center(
@@ -196,11 +227,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     ),
                   ),
                 ),
-                IconButton(
-                  onPressed: _canGoNext() ? _nextMonth : null,
-                  icon: const Icon(Icons.chevron_right_rounded),
-                  color: _canGoNext() ? AppColors.accent : AppColors.textHint,
-                  iconSize: 28,
+                _NavButton(
+                  icon: Icons.chevron_right_rounded,
+                  enabled: _canGoNext(),
+                  onTap: _nextMonth,
                 ),
               ],
             ),
@@ -208,9 +238,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
           // ── Həftə başlıqları ─────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: Row(
-              children: ['B.e', 'Ç.a', 'Ç', 'C.a', 'C', 'Ş', 'B']
+              children: AppConstants.weekdaysShort
                   .map(
                     (d) => Expanded(
                       child: Center(
@@ -235,23 +265,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             child: _buildGrid(todayNorm, amalCount),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           // ── Legend ───────────────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _legendItem(_Cal.doneBg, 'Tamamlandı'),
-              const SizedBox(width: 14),
-              _legendItem(_Cal.missedBg, 'Buraxıldı'),
-              const SizedBox(width: 14),
-              _legendItem(_Cal.selectedBg, 'Seçili'),
-            ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _LegendItem(color: _Cal.doneBg, label: 'tamamlandı'),
+                const SizedBox(width: 14),
+                _LegendItem(color: _Cal.partialBg, label: 'qismən'),
+                const SizedBox(width: 14),
+                _LegendItem(color: _Cal.missedBg, label: 'buraxıldı'),
+                const SizedBox(width: 14),
+                _LegendItem(color: _Cal.selectedBg, label: 'seçili'),
+              ],
+            ),
           ),
 
           const SizedBox(height: 14),
           const Divider(color: AppColors.separator, height: 1),
-          const SizedBox(height: 4),
 
           // ── Gün siyahısı ─────────────────────────────────────────────────
           Expanded(
@@ -263,9 +297,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ),
               ),
               error: (_, _) => Center(
-                child: Text(
-                  'Məlumat yüklənmədi',
-                  style: GoogleFonts.nunito(color: AppColors.textSecondary),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppColors.textHint,
+                      size: 32,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Məlumat açılmadı',
+                      style: GoogleFonts.nunito(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               data: (data) => _buildDayList(data, todayNorm),
@@ -273,26 +321,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _legendItem(Color color, String label) {
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: GoogleFonts.nunito(fontSize: 11, color: AppColors.textHint),
-        ),
-      ],
     );
   }
 
@@ -336,29 +364,35 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             Color textColor = AppColors.textPrimary;
             Border? border;
 
-            if (isSelected) {
+            if (isSelected && !isDone) {
               bgColor = _Cal.selectedBg;
               textColor = _Cal.selectedText;
             } else if (isDone) {
               bgColor = _Cal.doneBg;
-              textColor = _Cal.doneText;
+              textColor = isSelected ? Colors.white : _Cal.doneText;
+              if (isSelected) {
+                border = Border.all(color: _Cal.selectedBg, width: 2);
+              }
             } else if (isMissed) {
               bgColor = _Cal.missedBg;
               textColor = _Cal.missedText;
             } else if (isPartial) {
-              bgColor = AppColors.accentMuted.withValues(
-                alpha: 0.35 + ratio * 0.4,
-              );
+              bgColor = _Cal.partialBg;
+              textColor = AppColors.accent;
             } else if (isToday) {
               border = Border.all(color: _Cal.todayBorder, width: 1.5);
             } else if (isFuture) {
               textColor = _Cal.futureTxt;
             }
+
             return Expanded(
               child: GestureDetector(
                 onTap: isFuture
                     ? null
-                    : () => setState(() => _selectedDate = date),
+                    : () {
+                        ref.invalidate(_calendarDayProvider);
+                        setState(() => _selectedDate = date);
+                      },
                 child: Container(
                   height: 44,
                   margin: const EdgeInsets.all(2),
@@ -389,11 +423,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Widget _buildDayList(_DayData data, DateTime todayNorm) {
+    final isToday = _selectedDate == todayNorm;
+    final isPast = _selectedDate.isBefore(todayNorm);
+
     if (data.amals.isEmpty) {
       return Center(
-        child: Text(
-          'Bu tarixdə heç bir əməl yox idi',
-          style: GoogleFonts.nunito(fontSize: 14, color: AppColors.textHint),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '✦',
+              style: TextStyle(fontSize: 20, color: AppColors.accentMuted),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Bu tarixdə heç bir əməl yox idi',
+              style: GoogleFonts.nunito(
+                fontSize: 14,
+                color: AppColors.textHint,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -404,38 +455,130 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final notDone = data.amals
         .where((a) => data.recordMap[a.id]?.isCompleted != true)
         .toList();
-    final isToday = _selectedDate == todayNorm;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       children: [
-        if (notDone.isNotEmpty)
+        if (notDone.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              isToday
+                  ? 'gözlənilir'
+                  : (isPast ? 'yerinə yetirilmədi' : 'gözlənilir'),
+              style: GoogleFonts.nunito(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textHint,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
           ...notDone.map(
             (a) => _Tile(amal: a, isDone: false, isToday: isToday),
           ),
+        ],
         if (done.isNotEmpty) ...[
-          if (notDone.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                children: [
-                  const Expanded(child: Divider(color: AppColors.separator)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text(
-                      'tamamlandı',
-                      style: GoogleFonts.nunito(
-                        fontSize: 11,
-                        color: AppColors.textHint,
+          Padding(
+            padding: EdgeInsets.only(
+              top: notDone.isNotEmpty ? 14 : 0,
+              bottom: 10,
+            ),
+            child: notDone.isNotEmpty
+                ? Row(
+                    children: [
+                      const Expanded(
+                        child: Divider(color: AppColors.separator),
                       ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          'yerinə yetirildi',
+                          style: GoogleFonts.nunito(
+                            fontSize: 11,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      ),
+                      const Expanded(
+                        child: Divider(color: AppColors.separator),
+                      ),
+                    ],
+                  )
+                : Text(
+                    'yerinə yetirildi',
+                    style: GoogleFonts.nunito(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textHint,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const Expanded(child: Divider(color: AppColors.separator)),
-                ],
-              ),
-            ),
+          ),
           ...done.map((a) => _Tile(amal: a, isDone: true, isToday: isToday)),
         ],
+      ],
+    );
+  }
+}
+
+// ─── NAV BUTTON ──────────────────────────────────────────────────────────────
+
+class _NavButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _NavButton({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          size: 28,
+          color: enabled ? AppColors.accent : AppColors.textHint,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── LEGEND ITEM ─────────────────────────────────────────────────────────────
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendItem({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: GoogleFonts.nunito(fontSize: 11, color: AppColors.textHint),
+        ),
       ],
     );
   }
@@ -461,13 +604,13 @@ class _Tile extends StatelessWidget {
 
     if (isDone) {
       icon = Icons.check_circle_outline_rounded;
-      iconColor = _Cal.doneBg;
+      iconColor = AppColors.accent;
     } else if (isToday) {
-      icon = Icons.help_outline_rounded;
+      icon = Icons.radio_button_unchecked_rounded;
       iconColor = AppColors.textHint;
     } else {
-      icon = Icons.cancel_outlined;
-      iconColor = _Cal.missedText;
+      icon = Icons.remove_circle_outline_rounded;
+      iconColor = _Cal.missedText.withValues(alpha: 0.7);
     }
 
     return Padding(
@@ -481,7 +624,6 @@ class _Tile extends StatelessWidget {
               amal.title,
               style: GoogleFonts.nunito(
                 fontSize: 14,
-                fontStyle: FontStyle.italic,
                 color: isDone ? AppColors.textSecondary : AppColors.textPrimary,
               ),
             ),

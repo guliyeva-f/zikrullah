@@ -37,7 +37,7 @@ class AmalApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Şəxsi Əməllər',
+      title: 'Zikrullah',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

@@ -267,7 +267,7 @@ class NotificationService {
 
       await _plugin.zonedSchedule(
         id: id,
-        title: 'Şəxsi Əməllər',
+        title: 'Zikrullah',
         body: body,
         scheduledDate: scheduled,
         notificationDetails: const NotificationDetails(
@@ -311,7 +311,7 @@ class NotificationService {
 
       await _plugin.zonedSchedule(
         id: id,
-        title: 'Şəxsi Əməllər',
+        title: 'Zikrullah',
         body: body,
         scheduledDate: scheduled,
         notificationDetails: const NotificationDetails(
@@ -366,7 +366,7 @@ class NotificationService {
 
       await _plugin.zonedSchedule(
         id: 5,
-        title: 'Şəxsi Əməllər',
+        title: 'Zikrullah',
         body: body,
         scheduledDate: scheduled,
         notificationDetails: const NotificationDetails(
