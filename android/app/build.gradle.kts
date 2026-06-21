@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.amal_app"
+    namespace = "az.amalapp.app"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 

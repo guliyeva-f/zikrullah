@@ -11,6 +11,7 @@ class AmalState {
   final List<Amal> amals;
   final Map<int, AmalRecord?> records;
   final Map<int, int> streaks;
+  final Map<int, int> completedCounts;
   final String today;
   final List<Amal> recentlyArchived;
 
@@ -18,6 +19,7 @@ class AmalState {
     required this.amals,
     required this.records,
     required this.streaks,
+    required this.completedCounts,
     required this.today,
     this.recentlyArchived = const [],
   });
@@ -31,12 +33,14 @@ class AmalState {
     List<Amal>? amals,
     Map<int, AmalRecord?>? records,
     Map<int, int>? streaks,
+    Map<int, int>? completedCounts,
     String? today,
     List<Amal>? recentlyArchived,
   }) => AmalState(
     amals: amals ?? this.amals,
     records: records ?? this.records,
     streaks: streaks ?? this.streaks,
+    completedCounts: completedCounts ?? this.completedCounts,
     today: today ?? this.today,
     recentlyArchived: recentlyArchived ?? this.recentlyArchived,
   );
@@ -56,7 +60,7 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
 
   Future<AmalState> _load() async {
     final archived = await _repo.archiveExpiredAmals();
-
+    await _repo.resetBrokenStreakAmals();
     final broken = await _repo.getStreakBrokenAmals();
     if (broken.isNotEmpty) {
       await _notifService.scheduleReturnNotifications(
@@ -74,10 +78,17 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
 
     final records = <int, AmalRecord?>{};
     final streaks = <int, int>{};
+    final completedCounts = <int, int>{};
+
     await Future.wait(
       amals.map((amal) async {
         records[amal.id] = todayRecordsMap[amal.id];
         streaks[amal.id] = await _repo.calculateStreak(amal.id);
+        final cycleStart = amal.createdAt.substring(0, 10);
+        completedCounts[amal.id] = await _repo.countCompletedDays(
+          amal.id,
+          fromDate: cycleStart,
+        );
       }),
     );
 
@@ -85,6 +96,7 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
       amals: amals,
       records: records,
       streaks: streaks,
+      completedCounts: completedCounts,
       today: today,
       recentlyArchived: archived,
     );
@@ -190,8 +202,21 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     final newStreaks = Map<int, int>.from(current.streaks)
       ..[amalId] = newStreak;
 
+    final amal = current.amals.firstWhere((a) => a.id == amalId);
+    final cycleStart = amal.createdAt.substring(0, 10);
+    final newCompletedCount = await _repo.countCompletedDays(
+      amalId,
+      fromDate: cycleStart,
+    );
+    final newCompletedCounts = Map<int, int>.from(current.completedCounts)
+      ..[amalId] = newCompletedCount;
+
     state = AsyncData(
-      current.copyWith(records: newRecords, streaks: newStreaks),
+      current.copyWith(
+        records: newRecords,
+        streaks: newStreaks,
+        completedCounts: newCompletedCounts,
+      ),
     );
 
     if (state.value?.allCompleted == true) {

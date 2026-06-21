@@ -19,6 +19,7 @@ class AmalDetailScreen extends ConsumerStatefulWidget {
 class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   late Amal _amal;
   Map<String, bool> _allRecords = {};
+  int _cycleCompletedCount = 0;
   int _bestStreak = 0;
   bool _loading = true;
   final _scrollController = ScrollController();
@@ -44,10 +45,17 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     setState(() => _loading = true);
     final repo = AmalRepository();
     final records = await repo.getAmalAllRecords(_amal.id);
-    final best = await repo.getBestStreak(_amal.id);
+    final cycleStart = _amal.createdAt.substring(0, 10);
+    final cycleCompleted = await repo.countCompletedDays(
+      _amal.id,
+      fromDate: cycleStart,
+    );
+    final best = await repo.getBestStreak(_amal.id, fromDate: cycleStart);
+
     if (!mounted) return;
     setState(() {
       _allRecords = records;
+      _cycleCompletedCount = cycleCompleted;
       _bestStreak = best;
       _loading = false;
     });
@@ -56,12 +64,18 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
 
   void _scrollToToday() {
     if (!_scrollController.hasClients) return;
-    final startDate = DateTime.parse(_amal.createdAt.substring(0, 10));
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    if (today.isBefore(startDate)) return;
-    final gridStart = startDate.subtract(
-      Duration(days: (startDate.weekday - 1) % 7),
+    DateTime historyStart = DateTime.parse(_amal.createdAt.substring(0, 10));
+    if (_allRecords.isNotEmpty) {
+      final sortedKeys = _allRecords.keys.toList()..sort();
+      final earliest = DateTime.parse(sortedKeys.first);
+      if (earliest.isBefore(historyStart)) historyStart = earliest;
+    }
+
+    if (today.isBefore(historyStart)) return;
+    final gridStart = historyStart.subtract(
+      Duration(days: (historyStart.weekday - 1) % 7),
     );
     final weeksToToday = today.difference(gridStart).inDays ~/ 7;
     int separatorCount = 0;
@@ -70,7 +84,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       final weekStart = gridStart.add(Duration(days: w * 7));
       for (int d = 0; d < 7; d++) {
         final day = weekStart.add(Duration(days: d));
-        if (!day.isBefore(startDate)) {
+        if (!day.isBefore(historyStart)) {
           if (lastMonth != null && day.month != lastMonth) separatorCount++;
           lastMonth = day.month;
           break;
@@ -118,7 +132,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Sheet header ──────────────────────────────────────────────
             Row(
               children: [
                 Text(
@@ -149,7 +162,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            // ── Input ─────────────────────────────────────────────────────
             Container(
               decoration: BoxDecoration(
                 color: AppColors.bgElevated,
@@ -186,7 +198,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            // ── Save button ───────────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -235,7 +246,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
-          // ── AppBar ────────────────────────────────────────────────────
           SliverAppBar(
             backgroundColor: AppColors.bgBase,
             elevation: 0,
@@ -287,7 +297,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             ],
           ),
 
-          // ── Niyyət (scroll ilə gedir) ─────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
@@ -295,7 +304,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             ),
           ),
 
-          // ── Sticky: yalnız streak ─────────────────────────────────────
           SliverPersistentHeader(
             pinned: true,
             delegate: _StickyTopDelegate(
@@ -309,7 +317,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             ),
           ),
 
-          // ── Təqvim ────────────────────────────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
             sliver: SliverToBoxAdapter(
@@ -355,7 +362,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         child: hasIntention
             ? Row(
                 children: [
-                  Text('🤍', style: const TextStyle(fontSize: 13)),
+                  const Text('🤍', style: TextStyle(fontSize: 13)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -374,7 +381,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               )
             : Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.add_circle_outline,
                     size: 15,
                     color: AppColors.textHint,
@@ -396,7 +403,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   // ─── STREAK ───────────────────────────────────────────────────────────────
 
   Widget _buildStreakSection(int streak) {
-    final completedCount = _allRecords.values.where((v) => v).length;
     Widget? subLine;
     if (_amal.durationDays != null) {
       if (_amal.isExpired) {
@@ -409,8 +415,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
           ),
         );
       } else {
+        final remaining = _amal.remainingDaysFor(_cycleCompletedCount);
         subLine = Text(
-          '${_amal.remainingDaysFor(completedCount)} gün qaldı 🌙 (${_amal.durationDays} gün)',
+          '$remaining gün qaldı 🌙 (${_amal.durationDays} gün)',
           style: GoogleFonts.nunito(
             fontSize: 13,
             color: AppColors.textSecondary,
@@ -463,18 +470,31 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     );
   }
 
-  // ─── TARİXÇƏ LÖVHƏSİ ────────────────────────────────────────────────────
+  // ─── TƏQVİM ──────────────────────────────────────────────────────────────
 
   Widget _buildContinuousGrid() {
-    final startDate = DateTime.parse(_amal.createdAt.substring(0, 10));
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
+    final activeCycleStart = DateTime.parse(_amal.createdAt.substring(0, 10));
+
+    DateTime historyStart = activeCycleStart;
+    if (_allRecords.isNotEmpty) {
+      final sortedKeys = _allRecords.keys.toList()..sort();
+      final earliest = DateTime.parse(sortedKeys.first);
+      if (earliest.isBefore(historyStart)) historyStart = earliest;
+    }
+
+    final startDate = historyStart;
+
     final DateTime gridEnd;
     if (_amal.durationDays != null) {
-      gridEnd = startDate.add(Duration(days: _amal.durationDays! - 1));
+      final cycleEnd = activeCycleStart.add(
+        Duration(days: _amal.durationDays! - 1),
+      );
+      gridEnd = cycleEnd.isAfter(today) ? cycleEnd : today;
     } else {
-      final minEnd = startDate.add(const Duration(days: 39));
+      final minEnd = activeCycleStart.add(const Duration(days: 39));
       gridEnd = today.isAfter(minEnd) ? today : minEnd;
     }
 
@@ -547,47 +567,45 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               final ds = _dateStr(day);
               final isToday = ds == _todayStr;
               final completed = _allRecords[ds] ?? false;
+              final isOldCycle = day.isBefore(activeCycleStart);
 
               return Expanded(
-                child: Stack(
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      height: 36,
-                      margin: const EdgeInsets.all(1.5),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
+                child: Container(
+                  height: 36,
+                  margin: const EdgeInsets.all(1.5),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isFuture
+                        ? Colors.transparent
+                        : completed
+                        ? isOldCycle
+                              ? AppColors.accent.withValues(alpha: 0.8)
+                              : AppColors.accent
+                        : AppColors.bgElevated,
+                    border: isToday
+                        ? Border.all(color: AppColors.accentLight, width: 1.5)
+                        : isFuture
+                        ? Border.all(color: AppColors.border, width: 1)
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${day.day}',
+                      style: GoogleFonts.nunito(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                         color: isFuture
-                            ? Colors.transparent
+                            ? AppColors.textHint.withValues(alpha: 0.35)
                             : completed
-                            ? AppColors.accent
-                            : AppColors.bgElevated,
-                        border: isToday
-                            ? Border.all(
-                                color: AppColors.accentLight,
-                                width: 1.5,
+                            ? Colors.white.withValues(
+                                alpha: isOldCycle ? 0.7 : 1.0,
                               )
-                            : isFuture
-                            ? Border.all(color: AppColors.border, width: 1)
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${day.day}',
-                          style: GoogleFonts.nunito(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: isFuture
-                                ? AppColors.textHint.withValues(alpha: 0.35)
-                                : completed
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                          ),
-                        ),
+                            : isOldCycle
+                            ? AppColors.textHint.withValues(alpha: 0.8)
+                            : AppColors.textSecondary,
                       ),
                     ),
-                  ],
+                  ),
                 ),
               );
             }),

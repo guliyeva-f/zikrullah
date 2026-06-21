@@ -6,6 +6,14 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:app_settings/app_settings.dart';
 
+class _NotifIds {
+  static const int morning = 1;
+  static const int noon = 2;
+  static const int evening = 3;
+  static const int night = 4;
+  static const int returnReminder = 5; 
+}
+
 class NotificationService {
   NotificationService._internal();
   static final NotificationService _instance = NotificationService._internal();
@@ -158,30 +166,36 @@ class NotificationService {
   }
 
   // ─── SCHEDULE ────────────────────────────────────────────────────────────
+  Future<void> _cancelDailyOnly() async {
+    await _plugin.cancel(id: _NotifIds.morning);
+    await _plugin.cancel(id: _NotifIds.noon);
+    await _plugin.cancel(id: _NotifIds.evening);
+    await _plugin.cancel(id: _NotifIds.night);
+  }
 
   Future<void> cancelTodayIfAllDone() async {
     try {
       if (!await isEnabled()) return;
-      await _plugin.cancelAll();
+      await _cancelDailyOnly();
 
       final morning = await getMorningTime();
       final noon = await getNoonTime();
       final evening = await getEveningTime();
 
       await _scheduleDailyFromTomorrow(
-        id: 1,
+        id: _NotifIds.morning,
         hour: morning.hour,
         minute: morning.minute,
         body: 'Günün əməlləri sənini gözləyir 🤲',
       );
       await _scheduleDailyFromTomorrow(
-        id: 2,
+        id: _NotifIds.noon,
         hour: noon.hour,
         minute: noon.minute,
         body: 'Əməllərini tamamlamağı unutma',
       );
       await _scheduleDailyFromTomorrow(
-        id: 3,
+        id: _NotifIds.evening,
         hour: evening.hour,
         minute: evening.minute,
         body: 'Günün hələ bitməyib',
@@ -189,7 +203,7 @@ class NotificationService {
 
       if (await isNightEnabled()) {
         await _scheduleDailyFromTomorrow(
-          id: 4,
+          id: _NotifIds.night,
           hour: 23,
           minute: 0,
           body: 'Günün bitmə vaxtı yaxınlaşır ⏳',
@@ -210,19 +224,19 @@ class NotificationService {
       final evening = await getEveningTime();
 
       await _scheduleDaily(
-        id: 1,
+        id: _NotifIds.morning,
         hour: morning.hour,
         minute: morning.minute,
         body: 'Günün əməlləri sənini gözləyir 🤲',
       );
       await _scheduleDaily(
-        id: 2,
+        id: _NotifIds.noon,
         hour: noon.hour,
         minute: noon.minute,
         body: 'Əməllərini tamamlamağı unutma',
       );
       await _scheduleDaily(
-        id: 3,
+        id: _NotifIds.evening,
         hour: evening.hour,
         minute: evening.minute,
         body: 'Günün hələ bitməyib',
@@ -230,7 +244,7 @@ class NotificationService {
 
       if (await isNightEnabled()) {
         await _scheduleDaily(
-          id: 4,
+          id: _NotifIds.night,
           hour: 23,
           minute: 0,
           body: 'Günün bitmə vaxtı yaxınlaşır ⏳',
@@ -335,7 +349,7 @@ class NotificationService {
 
   Future<void> scheduleReturnNotifications(List<String> amalTitles) async {
     if (amalTitles.isEmpty) {
-      await _plugin.cancel(id: 5);
+      await _plugin.cancel(id: _NotifIds.returnReminder);
       return;
     }
 
@@ -365,7 +379,7 @@ class NotificationService {
           : AndroidScheduleMode.inexactAllowWhileIdle;
 
       await _plugin.zonedSchedule(
-        id: 5,
+        id: _NotifIds.returnReminder,
         title: 'Zikrullah',
         body: body,
         scheduledDate: scheduled,

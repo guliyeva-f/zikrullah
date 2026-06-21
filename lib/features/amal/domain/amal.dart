@@ -28,16 +28,17 @@ class Amal {
   // ─── COMPUTED ─────────────────────────────────────────────────────────────
 
   DateTime get _startDate => DateTime.parse(createdAt.substring(0, 10));
-
+  
   DateTime? get endDate {
     if (durationDays == null) return null;
-    return _startDate.add(Duration(days: durationDays!));
+    return _startDate.add(Duration(days: durationDays! - 1));
   }
 
   bool get isExpired {
     if (endDate == null) return false;
     final today = DateTime.now();
-    return endDate!.isBefore(DateTime(today.year, today.month, today.day));
+    final todayNormalized = DateTime(today.year, today.month, today.day);
+    return todayNormalized.isAfter(endDate!);
   }
 
   int get daysSinceStart {

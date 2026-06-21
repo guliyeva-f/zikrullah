@@ -155,6 +155,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       amal == completed.first;
                                   final record = state.records[amal.id];
                                   final streak = state.streaks[amal.id] ?? 0;
+                                  final completedCount =
+                                      state.completedCounts[amal.id] ?? 0;
 
                                   return Column(
                                     key: ValueKey(amal.id),
@@ -206,6 +208,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           amal: amal,
                                           record: record,
                                           streak: streak,
+                                          completedCount: completedCount,
                                           showCounterHint:
                                               !hintShown &&
                                               amal.type == AmalType.counter &&
@@ -754,6 +757,7 @@ class _AmalCard extends StatefulWidget {
   final Amal amal;
   final AmalRecord? record;
   final int streak;
+  final int completedCount;
   final bool showCounterHint;
   final VoidCallback onCompleteTap;
   final VoidCallback onCounterTap;
@@ -765,6 +769,7 @@ class _AmalCard extends StatefulWidget {
     required this.amal,
     required this.record,
     required this.streak,
+    required this.completedCount,
     required this.showCounterHint,
     required this.onCompleteTap,
     required this.onCounterTap,
@@ -929,7 +934,7 @@ class _AmalCardState extends State<_AmalCard> {
     final bool isProgramComplete =
         _done &&
         widget.amal.durationDays != null &&
-        widget.streak >= widget.amal.durationDays!;
+        widget.completedCount >= widget.amal.durationDays!;
 
     String? milestoneText(int s) {
       if (s == 7) return 'bir həftə — MaşaAllah! 🔥';
@@ -1026,7 +1031,7 @@ class _AmalCardState extends State<_AmalCard> {
                 ],
                 TextSpan(
                   text:
-                      '${((widget.amal.remainingDays ?? 0) - (_done ? 1 : 0)).clamp(0, 999)} gün qaldı',
+                      '${widget.amal.remainingDaysFor(widget.completedCount).clamp(0, 999)} gün qaldı',
                   style: TextStyle(color: AppColors.textHint),
                 ),
               ],
