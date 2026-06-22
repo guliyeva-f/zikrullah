@@ -88,11 +88,13 @@ class AmalRepository {
       if (amal.isExpired) {
         await db.update(
           'amals',
-          {'is_active': 0},
+          {'is_active': 0, 'archived_at': '$_today 00:00:00'},
           where: 'id = ?',
           whereArgs: [amal.id],
         );
-        archived.add(amal);
+        archived.add(
+          amal.copyWith(isActive: false, archivedAt: '$_today 00:00:00'),
+        );
       }
     }
     return archived;
@@ -134,7 +136,7 @@ class AmalRepository {
           [amal.id, startDateStr],
         );
         final completedInCycle = (anyCompleted.first['cnt'] as int?) ?? 0;
-        if (completedInCycle == 0) continue; 
+        if (completedInCycle == 0) continue;
         await db.update(
           'amals',
           {'created_at': '$today 00:00:00'},
@@ -149,6 +151,38 @@ class AmalRepository {
     }
 
     return reset;
+  }
+
+  Future<List<Amal>> getArchivedAmals() async {
+    final db = await _db;
+    final maps = await db.query(
+      'amals',
+      where: 'is_active = 0',
+      orderBy: 'archived_at DESC',
+    );
+    return maps.map(Amal.fromMap).toList();
+  }
+
+  Future<List<({Amal amal, int completedDays})>>
+  getArchivedAmalsWithStats() async {
+    final amals = await getArchivedAmals();
+    final result = <({Amal amal, int completedDays})>[];
+    for (final amal in amals) {
+      final cycleStart = amal.createdAt.substring(0, 10);
+      final completed = await countCompletedDays(amal.id, fromDate: cycleStart);
+      result.add((amal: amal, completedDays: completed));
+    }
+    return result;
+  }
+
+  Future<void> reactivateAmal(int id) async {
+    final db = await _db;
+    await db.update(
+      'amals',
+      {'is_active': 1, 'archived_at': null, 'created_at': '$_today 00:00:00'},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   // ─── AMAL RECORDS ─────────────────────────────────────────────────────────
@@ -193,13 +227,18 @@ class AmalRepository {
     final toStr = _formatDate(to);
 
     final amalRows = await db.rawQuery(
-      'SELECT substr(created_at, 1, 10) AS created_date FROM amals ORDER BY created_date ASC',
+      'SELECT substr(created_at, 1, 10) AS created_date, '
+      'substr(archived_at, 1, 10) AS archived_date '
+      'FROM amals ORDER BY created_date ASC',
     );
+    if (amalRows.isEmpty) return {};
+
     final createdDates = amalRows
         .map((r) => r['created_date'] as String)
         .toList();
-
-    if (createdDates.isEmpty) return {};
+    final archivedDates = amalRows
+        .map((r) => r['archived_date'] as String?)
+        .toList();
 
     final completedRows = await db.rawQuery(
       '''
@@ -226,7 +265,15 @@ class AmalRepository {
           hi = mid;
         }
       }
-      final totalOnDate = lo;
+
+      // Yalnız bu tarixdə HƏLƏ aktiv olan (o vaxt arxivləşməmiş) əməlləri sayırıq.
+      int totalOnDate = 0;
+      for (int i = 0; i < lo; i++) {
+        final archivedDate = archivedDates[i];
+        if (archivedDate == null || archivedDate.compareTo(date) > 0) {
+          totalOnDate++;
+        }
+      }
 
       if (totalOnDate > 0) {
         result[date] = (cnt / totalOnDate).clamp(0.0, 1.0);
@@ -241,12 +288,19 @@ class AmalRepository {
   }) async {
     final db = await _db;
     final amalRows = await db.rawQuery(
-      'SELECT substr(created_at, 1, 10) AS created_date FROM amals ORDER BY created_date ASC',
+      'SELECT substr(created_at, 1, 10) AS created_date, '
+      'substr(archived_at, 1, 10) AS archived_date '
+      'FROM amals ORDER BY created_date ASC',
     );
+    if (amalRows.isEmpty) return {};
+
     final createdDates = amalRows
         .map((r) => r['created_date'] as String)
         .toList();
-    if (createdDates.isEmpty) return {};
+    final archivedDates = amalRows
+        .map((r) => r['archived_date'] as String?)
+        .toList();
+
     final result = <String, int>{};
     var cur = from;
     while (!cur.isAfter(to)) {
@@ -260,7 +314,14 @@ class AmalRepository {
           hi = mid;
         }
       }
-      if (lo > 0) result[dateStr] = lo;
+      int count = 0;
+      for (int i = 0; i < lo; i++) {
+        final archivedDate = archivedDates[i];
+        if (archivedDate == null || archivedDate.compareTo(dateStr) > 0) {
+          count++;
+        }
+      }
+      if (count > 0) result[dateStr] = count;
       cur = cur.add(const Duration(days: 1));
     }
     return result;

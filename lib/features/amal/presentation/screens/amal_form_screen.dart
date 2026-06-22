@@ -122,11 +122,69 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     return true;
   }
 
+  bool get _willLoseData {
+    final original = widget.amal;
+    if (original == null) return false;
+    if (original.type == AmalType.text &&
+        _type != AmalType.text &&
+        (original.content?.trim().isNotEmpty ?? false)) {
+      return true;
+    }
+    if (original.type == AmalType.counter &&
+        _type != AmalType.counter &&
+        original.countTarget != null) {
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> _confirmTypeChange() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgBase,
+        title: Text(
+          'Diqqət',
+          style: GoogleFonts.nunito(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Tipi dəyişsən, əvvəlki yazdığın mətn/hədəf həmişəlik silinəcək. Davam etmək istəyirsən?',
+          style: GoogleFonts.nunito(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Ləğv et',
+              style: GoogleFonts.nunito(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Davam et',
+              style: GoogleFonts.nunito(
+                color: Colors.red.shade400,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   // ─── SAXLA ────────────────────────────────────────────────────────────────
 
   Future<void> _save() async {
     setState(() => _submitted = true);
     if (!_isValid) return;
+
+    if (_isEditing && _willLoseData) {
+      final confirmed = await _confirmTypeChange();
+      if (!confirmed) return;
+    }
 
     final title = _titleCtrl.text.trim();
     final intention = _intentionCtrl.text.trim().isEmpty

@@ -239,7 +239,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final streak = ref.watch(amalProvider).value?.streaks[_amal.id] ?? 0;
+    final streak = _amal.isActive
+        ? (ref.watch(amalProvider).value?.streaks[_amal.id] ?? 0)
+        : 0;
 
     return Scaffold(
       backgroundColor: AppColors.bgBase,
@@ -268,32 +270,33 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               ),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  size: 20,
-                  color: AppColors.textSecondary,
+              if (_amal.isActive)
+                IconButton(
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
+                  tooltip: 'Düzəliş et',
+                  onPressed: () =>
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AmalFormScreen(amal: _amal),
+                        ),
+                      ).then((_) async {
+                        await ref.read(amalProvider.notifier).refresh();
+                        final state = ref.read(amalProvider).value;
+                        if (state != null && mounted) {
+                          final updated = state.amals.firstWhere(
+                            (a) => a.id == _amal.id,
+                            orElse: () => _amal,
+                          );
+                          setState(() => _amal = updated);
+                        }
+                        _loadData();
+                      }),
                 ),
-                tooltip: 'Düzəliş et',
-                onPressed: () =>
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AmalFormScreen(amal: _amal),
-                      ),
-                    ).then((_) async {
-                      await ref.read(amalProvider.notifier).refresh();
-                      final state = ref.read(amalProvider).value;
-                      if (state != null && mounted) {
-                        final updated = state.amals.firstWhere(
-                          (a) => a.id == _amal.id,
-                          orElse: () => _amal,
-                        );
-                        setState(() => _amal = updated);
-                      }
-                      _loadData();
-                    }),
-              ),
             ],
           ),
 
@@ -404,20 +407,25 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
 
   Widget _buildStreakSection(int streak) {
     Widget? subLine;
-    if (_amal.durationDays != null) {
+    final target = _amal.durationDays;
+    final isFullyCompleted = target != null && _cycleCompletedCount >= target;
+
+    if (target != null) {
       if (_amal.isExpired) {
         subLine = Text(
-          'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲',
+          isFullyCompleted
+              ? 'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲'
+              : '$_cycleCompletedCount/$target gün tamamlandı — yarımçıq qaldı',
           style: GoogleFonts.nunito(
             fontSize: 13,
-            color: AppColors.accent,
+            color: isFullyCompleted ? AppColors.accent : AppColors.textHint,
             fontWeight: FontWeight.w600,
           ),
         );
       } else {
         final remaining = _amal.remainingDaysFor(_cycleCompletedCount);
         subLine = Text(
-          '$remaining gün qaldı 🌙 (${_amal.durationDays} gün)',
+          '$remaining gün qaldı 🌙 ($target gün)',
           style: GoogleFonts.nunito(
             fontSize: 13,
             color: AppColors.textSecondary,
@@ -432,10 +440,12 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     }
 
     final String streakLabel;
-    if (streak == 0) {
+    if (_amal.isExpired) {
+      streakLabel = isFullyCompleted
+          ? 'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲'
+          : 'Müddət bitdi — yarımçıq qaldı';
+    } else if (streak == 0) {
       streakLabel = 'Hələ başlanmayıb';
-    } else if (_amal.isExpired) {
-      streakLabel = 'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲';
     } else {
       streakLabel = '$streak gün ardıcıl 🔥';
     }

@@ -30,7 +30,12 @@ final _calendarDayProvider = FutureProvider.family<_DayData, String>((
   final repo = AmalRepository();
   final allAmals = await repo.getAllAmals();
   final amals = allAmals
-      .where((a) => a.createdAt.substring(0, 10).compareTo(dateStr) <= 0)
+      .where(
+        (a) =>
+            a.createdAt.substring(0, 10).compareTo(dateStr) <= 0 &&
+            (a.archivedAt == null ||
+                a.archivedAt!.substring(0, 10).compareTo(dateStr) > 0),
+      )
       .toList();
   final records = await repo.getRecordsForDate(dateStr);
   final recordMap = {for (final r in records) r.amalId: r};

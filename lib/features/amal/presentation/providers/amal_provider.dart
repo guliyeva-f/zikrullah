@@ -14,6 +14,7 @@ class AmalState {
   final Map<int, int> completedCounts;
   final String today;
   final List<Amal> recentlyArchived;
+  final List<Amal> recentlyReset;
 
   const AmalState({
     required this.amals,
@@ -22,6 +23,7 @@ class AmalState {
     required this.completedCounts,
     required this.today,
     this.recentlyArchived = const [],
+    this.recentlyReset = const [],
   });
 
   int get totalCount => amals.length;
@@ -36,6 +38,7 @@ class AmalState {
     Map<int, int>? completedCounts,
     String? today,
     List<Amal>? recentlyArchived,
+    List<Amal>? recentlyReset,
   }) => AmalState(
     amals: amals ?? this.amals,
     records: records ?? this.records,
@@ -43,6 +46,7 @@ class AmalState {
     completedCounts: completedCounts ?? this.completedCounts,
     today: today ?? this.today,
     recentlyArchived: recentlyArchived ?? this.recentlyArchived,
+    recentlyReset: recentlyReset ?? this.recentlyReset,
   );
 }
 
@@ -60,7 +64,7 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
 
   Future<AmalState> _load() async {
     final archived = await _repo.archiveExpiredAmals();
-    await _repo.resetBrokenStreakAmals();
+    final resetAmals = await _repo.resetBrokenStreakAmals();
     final broken = await _repo.getStreakBrokenAmals();
     if (broken.isNotEmpty) {
       await _notifService.scheduleReturnNotifications(
@@ -105,6 +109,7 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
       completedCounts: completedCounts,
       today: today,
       recentlyArchived: archived,
+      recentlyReset: resetAmals,
     );
   }
 
@@ -117,6 +122,12 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     final current = state.value;
     if (current == null) return;
     state = AsyncData(current.copyWith(recentlyArchived: []));
+  }
+
+  void clearReset() {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(current.copyWith(recentlyReset: []));
   }
 
   // ─── TAMAMLAMA HƏRƏKƏTLƏRİ ───────────────────────────────────────────────
@@ -257,6 +268,11 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     final current = state.value;
     if (current == null) return;
     state = AsyncData(current.copyWith(amals: reordered));
+  }
+
+  Future<void> reactivateAmal(int id) async {
+    await _repo.reactivateAmal(id);
+    await refresh();
   }
 }
 

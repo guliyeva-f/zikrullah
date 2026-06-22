@@ -26,7 +26,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
       onOpen: (db) async {
@@ -47,7 +47,8 @@ class DatabaseHelper {
       is_active     INTEGER DEFAULT 1,
       created_at    TEXT NOT NULL,
       intention     TEXT,
-      duration_days INTEGER
+      duration_days INTEGER,
+       archived_at   TEXT
     )
   ''');
 
@@ -78,6 +79,9 @@ class DatabaseHelper {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_records_amal_date ON amal_records (amal_id, record_date)',
       );
+    }
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE amals ADD COLUMN archived_at TEXT');
     }
   }
 

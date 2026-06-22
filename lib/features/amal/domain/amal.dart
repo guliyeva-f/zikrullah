@@ -11,6 +11,7 @@ class Amal {
   final String createdAt;
   final String? intention;
   final int? durationDays;
+  final String? archivedAt;
 
   const Amal({
     required this.id,
@@ -23,12 +24,13 @@ class Amal {
     required this.createdAt,
     this.intention,
     this.durationDays,
+    this.archivedAt,
   });
 
   // ─── COMPUTED ─────────────────────────────────────────────────────────────
 
   DateTime get _startDate => DateTime.parse(createdAt.substring(0, 10));
-  
+
   DateTime? get endDate {
     if (durationDays == null) return null;
     return _startDate.add(Duration(days: durationDays! - 1));
@@ -75,6 +77,7 @@ class Amal {
     createdAt: map['created_at'] as String,
     intention: map['intention'] as String?,
     durationDays: map['duration_days'] as int?,
+    archivedAt: map['archived_at'] as String?,
   );
 
   static const _unset = Object();
@@ -90,6 +93,7 @@ class Amal {
     String? createdAt,
     Object? intention = _unset,
     Object? durationDays = _unset,
+    Object? archivedAt = _unset,
   }) => Amal(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -107,6 +111,9 @@ class Amal {
     durationDays: identical(durationDays, _unset)
         ? this.durationDays
         : durationDays as int?,
+    archivedAt: identical(archivedAt, _unset)
+        ? this.archivedAt
+        : archivedAt as String?,
   );
 
   Map<String, dynamic> toMap() => {
@@ -119,6 +126,7 @@ class Amal {
     'created_at': createdAt,
     'intention': intention,
     'duration_days': durationDays,
+    'archived_at': archivedAt,
   };
 
   Map<String, dynamic> toJson() => {
@@ -132,6 +140,7 @@ class Amal {
     'created_at': createdAt,
     'intention': intention,
     'duration_days': durationDays,
+    'archived_at': archivedAt,
   };
 
   factory Amal.fromJson(Map<String, dynamic> json) => Amal.fromMap(json);

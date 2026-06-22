@@ -7,6 +7,14 @@ import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
 import 'amal_form_screen.dart';
 import 'amal_detail_screen.dart';
+import '../../data/amal_repository.dart';
+
+final _archivedAmalsProvider =
+    FutureProvider.autoDispose<List<({Amal amal, int completedDays})>>((
+      ref,
+    ) async {
+      return AmalRepository().getArchivedAmalsWithStats();
+    });
 
 class ManageScreen extends ConsumerWidget {
   const ManageScreen({super.key});
@@ -14,6 +22,7 @@ class ManageScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncState = ref.watch(amalProvider);
+    final asyncArchived = ref.watch(_archivedAmalsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bgBase,
@@ -78,7 +87,9 @@ class ManageScreen extends ConsumerWidget {
           ),
         ),
         data: (state) {
-          if (state.amals.isEmpty) {
+          final archivedList = asyncArchived.value ?? [];
+
+          if (state.amals.isEmpty && archivedList.isEmpty) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -108,30 +119,80 @@ class ManageScreen extends ConsumerWidget {
             );
           }
 
-          return ReorderableListView(
+          return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            buildDefaultDragHandles: false,
-            onReorderItem: (oldIndex, newIndex) {
-              final list = [...state.amals];
-              final item = list.removeAt(oldIndex);
-              list.insert(newIndex, item);
-              ref.read(amalProvider.notifier).updateSortOrders(list);
-            },
             children: [
-              for (int i = 0; i < state.amals.length; i++)
-                _AmalManageCard(
-                  key: ValueKey(state.amals[i].id),
-                  amal: state.amals[i],
-                  index: i,
-                  onInfo: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AmalDetailScreen(amal: state.amals[i]),
-                    ),
-                  ),
-                  onEdit: () => _openForm(context, ref, state.amals[i]),
-                  onDelete: () => _confirmDelete(context, ref, state.amals[i]),
+              if (state.amals.isNotEmpty)
+                ReorderableListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  buildDefaultDragHandles: false,
+                  onReorderItem: (oldIndex, newIndex) {
+                    final list = [...state.amals];
+                    final item = list.removeAt(oldIndex);
+                    list.insert(newIndex, item);
+                    ref.read(amalProvider.notifier).updateSortOrders(list);
+                  },
+                  children: [
+                    for (int i = 0; i < state.amals.length; i++)
+                      _AmalManageCard(
+                        key: ValueKey(state.amals[i].id),
+                        amal: state.amals[i],
+                        index: i,
+                        onInfo: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AmalDetailScreen(amal: state.amals[i]),
+                          ),
+                        ),
+                        onEdit: () => _openForm(context, ref, state.amals[i]),
+                        onDelete: () =>
+                            _confirmDelete(context, ref, state.amals[i]),
+                      ),
+                  ],
                 ),
+
+              if (archivedList.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Text(
+                      'Bitmiş əhdlər',
+                      style: GoogleFonts.nunito(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Divider(color: AppColors.separator, height: 1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                for (final entry in archivedList)
+                  _ArchivedAmalCard(
+                    key: ValueKey('archived_${entry.amal.id}'),
+                    amal: entry.amal,
+                    completedDays: entry.completedDays,
+                    onInfo: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AmalDetailScreen(amal: entry.amal),
+                      ),
+                    ),
+                    onRestart: () async {
+                      await ref
+                          .read(amalProvider.notifier)
+                          .reactivateAmal(entry.amal.id);
+                      ref.invalidate(_archivedAmalsProvider);
+                    },
+                    onDelete: () => _confirmDelete(context, ref, entry.amal),
+                  ),
+              ],
             ],
           );
         },
@@ -181,6 +242,7 @@ class ManageScreen extends ConsumerWidget {
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(amalProvider.notifier).deleteAmal(amal.id);
+              ref.invalidate(_archivedAmalsProvider);
             },
             child: Text(
               'Sil',
@@ -373,6 +435,125 @@ class _ActionButton extends StatelessWidget {
         width: 40,
         height: 52,
         child: Icon(icon, size: 17, color: color),
+      ),
+    );
+  }
+}
+
+// ─── ARXİVLƏNMİŞ KART ─────────────────────────────────────────────────────────
+
+class _ArchivedAmalCard extends StatelessWidget {
+  final Amal amal;
+  final int completedDays;
+  final VoidCallback onInfo;
+  final VoidCallback onRestart;
+  final VoidCallback onDelete;
+
+  const _ArchivedAmalCard({
+    super.key,
+    required this.amal,
+    required this.completedDays,
+    required this.onInfo,
+    required this.onRestart,
+    required this.onDelete,
+  });
+
+  bool get _fullyCompleted => completedDays >= (amal.durationDays ?? 0);
+
+  String get _typeIcon {
+    switch (amal.type) {
+      case AmalType.checkbox:
+        return '✓';
+      case AmalType.counter:
+        return '📿';
+      case AmalType.text:
+        return '📖';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 16),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Text(_typeIcon, style: const TextStyle(fontSize: 12)),
+                      const SizedBox(width: 6),
+                      Text(
+                        _fullyCompleted ? '✅ Tamamlandı' : '⏳ Yarımçıq qaldı',
+                        style: GoogleFonts.nunito(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _fullyCompleted
+                              ? const Color(0xFF5A8A5E)
+                              : AppColors.textHint,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    amal.title,
+                    style: GoogleFonts.nunito(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$completedDays/${amal.durationDays ?? completedDays} gün',
+                    style: GoogleFonts.nunito(
+                      fontSize: 11,
+                      color: AppColors.textHint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Container(
+            height: 52,
+            width: 1,
+            color: AppColors.separator,
+            margin: const EdgeInsets.symmetric(vertical: 8),
+          ),
+          _ActionButton(
+            icon: Icons.info_outline,
+            color: AppColors.textSecondary,
+            onTap: onInfo,
+          ),
+          Container(height: 28, width: 1, color: AppColors.separator),
+          _ActionButton(
+            icon: Icons.refresh,
+            color: AppColors.accent,
+            onTap: onRestart,
+          ),
+          Container(height: 28, width: 1, color: AppColors.separator),
+          _ActionButton(
+            icon: Icons.delete_outline,
+            color: Colors.red.shade300,
+            onTap: onDelete,
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
     );
   }

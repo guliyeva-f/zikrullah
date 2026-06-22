@@ -71,6 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (state.completedCount > prevCount) {
           ref.read(heatmapProvider.notifier).refresh();
         }
+
         if (state.recentlyArchived.isNotEmpty) {
           final titles = state.recentlyArchived.map((a) => a.title).join(', ');
           ScaffoldMessenger.of(context).showSnackBar(
@@ -84,6 +85,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           );
           ref.read(amalProvider.notifier).clearArchived();
+        }
+
+        if (state.recentlyReset.isNotEmpty) {
+          final titles = state.recentlyReset.map((a) => a.title).join(', ');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '"$titles" üçün ardıcıllıq pozuldu — proqram bugündən yenidən başladı 🔄',
+                style: GoogleFonts.nunito(color: Colors.white),
+              ),
+              backgroundColor: AppColors.textSecondary,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+          ref.read(amalProvider.notifier).clearReset();
         }
       });
     });
@@ -866,28 +882,32 @@ class _AmalCardState extends State<_AmalCard> {
   }
 
   Widget _buildLeading(BuildContext context) {
+    Widget circle(VoidCallback onTap) => GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _done ? AppColors.accent : Colors.transparent,
+          border: Border.all(
+            color: _done ? AppColors.accent : AppColors.textHint,
+            width: 2,
+          ),
+        ),
+        child: _done
+            ? const Icon(Icons.check, color: Colors.white, size: 15)
+            : null,
+      ),
+    );
+
     switch (widget.amal.type) {
       case AmalType.checkbox:
+        return circle(widget.onCompleteTap);
+
       case AmalType.text:
-        return GestureDetector(
-          onTap: widget.onCompleteTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _done ? AppColors.accent : Colors.transparent,
-              border: Border.all(
-                color: _done ? AppColors.accent : AppColors.textHint,
-                width: 2,
-              ),
-            ),
-            child: _done
-                ? const Icon(Icons.check, color: Colors.white, size: 15)
-                : null,
-          ),
-        );
+        return circle(_done ? widget.onCompleteTap : widget.onOpenScreen);
 
       case AmalType.counter:
         final cnt = widget.record?.countDone ?? 0;
