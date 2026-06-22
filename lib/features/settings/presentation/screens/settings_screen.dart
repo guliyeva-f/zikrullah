@@ -7,6 +7,7 @@ import '../../../amal/data/import_export_service.dart';
 import '../../../amal/domain/amal.dart';
 import '../../../amal/presentation/providers/amal_provider.dart';
 import '../providers/settings_provider.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -207,6 +208,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                   label: 'Məlumatları idxal et',
                   subtitle: 'Əvvəlki JSON fayldan bərpa et',
                   onTap: () => _import(context, ref),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _SectionLabel(label: 'Tətbiq haqqında'),
+            _GroupCard(
+              children: [
+                _ActionRow(
+                  icon: Icons.info_outline,
+                  label: 'Haqqında',
+                  subtitle: 'Versiya və məxfilik siyasəti',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AboutScreen()),
+                  ),
                 ),
               ],
             ),
@@ -769,7 +785,7 @@ class _GroupCard extends StatelessWidget {
 }
 
 class _Separator extends StatelessWidget {
-  const _Separator(); 
+  const _Separator();
   @override
   Widget build(BuildContext context) => const Divider(
     height: 1,

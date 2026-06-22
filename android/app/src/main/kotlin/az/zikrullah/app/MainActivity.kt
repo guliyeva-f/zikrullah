@@ -1,4 +1,4 @@
-package az.amalapp.app
+package az.zikrullah.app
 
 import io.flutter.embedding.android.FlutterActivity
 

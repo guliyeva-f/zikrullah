@@ -71,6 +71,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (state.completedCount > prevCount) {
           ref.read(heatmapProvider.notifier).refresh();
         }
+        if (state.recentlyArchived.isNotEmpty) {
+          final titles = state.recentlyArchived.map((a) => a.title).join(', ');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '"$titles" əhdi tamamlandı və arxivləndi 🤲',
+                style: GoogleFonts.nunito(color: Colors.white),
+              ),
+              backgroundColor: AppColors.accent,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+          ref.read(amalProvider.notifier).clearArchived();
+        }
       });
     });
 

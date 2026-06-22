@@ -28,7 +28,7 @@ class _OnboardingWrapperState extends ConsumerState<OnboardingWrapper> {
     await service.markNotifAsked(granted: granted);
 
     if (granted) {
-      await service.reschedule();
+      await service.refreshTodayNotifications();
     }
 
     ref.invalidate(notifDeclinedProvider);

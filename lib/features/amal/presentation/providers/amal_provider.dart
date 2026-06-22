@@ -92,6 +92,12 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
       }),
     );
 
+    final incompleteTitles = amals
+        .where((a) => !(todayRecordsMap[a.id]?.isCompleted ?? false))
+        .map((a) => a.title)
+        .toList();
+    await _notifService.updateTodayProgress(incompleteTitles);
+
     return AmalState(
       amals: amals,
       records: records,
@@ -219,8 +225,13 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
       ),
     );
 
-    if (state.value?.allCompleted == true) {
-      await _notifService.cancelTodayIfAllDone();
+    final updated = state.value;
+    if (updated != null) {
+      final incompleteTitles = updated.amals
+          .where((a) => !(updated.records[a.id]?.isCompleted ?? false))
+          .map((a) => a.title)
+          .toList();
+      await _notifService.updateTodayProgress(incompleteTitles);
     }
   }
 
