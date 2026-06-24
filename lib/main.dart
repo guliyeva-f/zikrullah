@@ -28,11 +28,11 @@ void main() async {
     debugPrint('Bildiriş init xətası: $e');
   }
 
-  runApp(const ProviderScope(child: AmalApp()));
+  runApp(const ProviderScope(child: ZikrullahApp()));
 }
 
-class AmalApp extends StatelessWidget {
-  const AmalApp({super.key});
+class ZikrullahApp extends StatelessWidget {
+  const ZikrullahApp({super.key});
 
   @override
   Widget build(BuildContext context) {

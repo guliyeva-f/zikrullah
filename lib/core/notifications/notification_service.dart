@@ -29,9 +29,9 @@ class NotificationService {
   static const _keyEvening = 'notif_evening';
   static const _keyNight = 'notif_night';
 
-  static const _channelId = 'amal_channel';
-  static const _channelName = 'Əməl Xatırlatmaları';
-  static const _channelDesc = 'Gündəlik əməl xatırlatmaları';
+  static const _channelId = 'zikrullah_channel';
+  static const _channelName = 'Zikrullah Xatırlatmaları';
+  static const _channelDesc = 'Gündəlik zikrullah xatırlatmaları';
 
   AndroidFlutterLocalNotificationsPlugin? get _androidImpl => _plugin
       .resolvePlatformSpecificImplementation<

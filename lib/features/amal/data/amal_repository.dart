@@ -5,6 +5,7 @@ import '../domain/amal.dart';
 import '../domain/amal_record.dart';
 import 'import_models.dart';
 import 'package:flutter/foundation.dart';
+import '../domain/amal_cycle.dart';
 
 class AmalRepository {
   final _dbHelper = DatabaseHelper();
@@ -34,7 +35,18 @@ class AmalRepository {
 
   Future<int> insertAmal(Amal amal) async {
     final db = await _db;
-    return db.insert('amals', amal.toMap());
+    return db.transaction((txn) async {
+      final id = await txn.insert('amals', amal.toMap());
+      if (amal.durationDays != null) {
+        await txn.insert('amal_cycles', {
+          'amal_id': id,
+          'started_at': amal.createdAt,
+          'ended_at': null,
+          'days_done': 0,
+        });
+      }
+      return id;
+    });
   }
 
   Future<void> updateAmal(Amal amal) async {
@@ -45,6 +57,21 @@ class AmalRepository {
       where: 'id = ?',
       whereArgs: [amal.id],
     );
+    if (amal.durationDays != null) {
+      final existing = await db.query(
+        'amal_cycles',
+        where: 'amal_id = ? AND ended_at IS NULL',
+        whereArgs: [amal.id],
+      );
+      if (existing.isEmpty) {
+        await db.insert('amal_cycles', {
+          'amal_id': amal.id,
+          'started_at': amal.effectiveCycleStart,
+          'ended_at': null,
+          'days_done': 0,
+        });
+      }
+    }
   }
 
   Future<void> deleteAmal(int id) async {
@@ -76,7 +103,7 @@ class AmalRepository {
 
   // ─── MÜDDƏTİ BİTMİŞ ƏMƏLLƏR ──────────────────────────────────────────────
 
-  Future<List<Amal>> archiveExpiredAmals() async {
+  Future<List<Amal>> archiveCompletedAmals() async {
     final db = await _db;
     final maps = await db.query(
       'amals',
@@ -85,22 +112,29 @@ class AmalRepository {
     final archived = <Amal>[];
     for (final m in maps) {
       final amal = Amal.fromMap(m);
-      if (amal.isExpired) {
+      final cycleStart = amal.effectiveCycleStart.substring(0, 10);
+      final completed = await countCompletedDays(amal.id, fromDate: cycleStart);
+      if (completed >= amal.durationDays!) {
+        final archivedAtStr = '$_today 00:00:00';
         await db.update(
           'amals',
-          {'is_active': 0, 'archived_at': '$_today 00:00:00'},
+          {'is_active': 0, 'archived_at': archivedAtStr},
           where: 'id = ?',
           whereArgs: [amal.id],
         );
-        archived.add(
-          amal.copyWith(isActive: false, archivedAt: '$_today 00:00:00'),
+        await db.update(
+          'amal_cycles',
+          {'ended_at': archivedAtStr, 'days_done': completed},
+          where: 'amal_id = ? AND ended_at IS NULL',
+          whereArgs: [amal.id],
         );
+        archived.add(amal.copyWith(isActive: false, archivedAt: archivedAtStr));
       }
     }
     return archived;
   }
 
-  Future<List<Amal>> resetBrokenStreakAmals() async {
+  Future<List<Amal>> processStrictBreaks() async {
     final db = await _db;
     final today = _today;
     final yesterday = _formatDate(
@@ -109,48 +143,58 @@ class AmalRepository {
 
     final maps = await db.query(
       'amals',
-      where: 'is_active = 1 AND duration_days IS NOT NULL',
+      where: 'is_active = 1 AND duration_days IS NOT NULL AND allow_break = 0',
     );
 
-    final reset = <Amal>[];
+    final broken = <Amal>[];
 
     for (final m in maps) {
       final amal = Amal.fromMap(m);
-      if (amal.isExpired) continue;
+      final cycleStartStr = amal.effectiveCycleStart.substring(0, 10);
 
-      final startDateStr = amal.createdAt.substring(0, 10);
-      if (startDateStr == today) continue;
+      if (cycleStartStr == today) continue;
+      if (cycleStartStr.compareTo(yesterday) >= 0) continue;
+
       final yesterdayRecord = await db.query(
         'amal_records',
         where: 'amal_id = ? AND record_date = ? AND is_completed = 1',
         whereArgs: [amal.id, yesterday],
       );
-      final startedBeforeYesterday = startDateStr.compareTo(yesterday) < 0;
+      if (yesterdayRecord.isNotEmpty) continue;
 
-      if (yesterdayRecord.isEmpty && startedBeforeYesterday) {
-        final anyCompleted = await db.rawQuery(
-          '''
-          SELECT COUNT(*) AS cnt FROM amal_records
-          WHERE amal_id = ? AND record_date >= ? AND is_completed = 1
-          ''',
-          [amal.id, startDateStr],
+      final completedInCycle = await countCompletedDays(
+        amal.id,
+        fromDate: cycleStartStr,
+      );
+      if (completedInCycle == 0) continue;
+
+      final newCycleStart = '$today 00:00:00';
+      await db.transaction((txn) async {
+        await txn.update(
+          'amal_cycles',
+          {'ended_at': newCycleStart, 'days_done': completedInCycle},
+          where: 'amal_id = ? AND ended_at IS NULL',
+          whereArgs: [amal.id],
         );
-        final completedInCycle = (anyCompleted.first['cnt'] as int?) ?? 0;
-        if (completedInCycle == 0) continue;
-        await db.update(
+        await txn.insert('amal_cycles', {
+          'amal_id': amal.id,
+          'started_at': newCycleStart,
+          'ended_at': null,
+          'days_done': 0,
+        });
+        await txn.update(
           'amals',
-          {'created_at': '$today 00:00:00'},
+          {'cycle_started_at': newCycleStart},
           where: 'id = ?',
           whereArgs: [amal.id],
         );
+      });
 
-        final updated = amal.copyWith(createdAt: '$today 00:00:00');
-        reset.add(updated);
-        debugPrint('Streak reset: ${amal.title} → $today');
-      }
+      broken.add(amal.copyWith(cycleStartedAt: newCycleStart));
+      debugPrint('Ardıcıllıq qırıldı: ${amal.title} → $today');
     }
 
-    return reset;
+    return broken;
   }
 
   Future<List<Amal>> getArchivedAmals() async {
@@ -168,7 +212,7 @@ class AmalRepository {
     final amals = await getArchivedAmals();
     final result = <({Amal amal, int completedDays})>[];
     for (final amal in amals) {
-      final cycleStart = amal.createdAt.substring(0, 10);
+      final cycleStart = amal.effectiveCycleStart.substring(0, 10);
       final completed = await countCompletedDays(amal.id, fromDate: cycleStart);
       result.add((amal: amal, completedDays: completed));
     }
@@ -177,12 +221,25 @@ class AmalRepository {
 
   Future<void> reactivateAmal(int id) async {
     final db = await _db;
-    await db.update(
-      'amals',
-      {'is_active': 1, 'archived_at': null, 'created_at': '$_today 00:00:00'},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    final newCycleStart = '$_today 00:00:00';
+    await db.transaction((txn) async {
+      await txn.update(
+        'amals',
+        {
+          'is_active': 1,
+          'archived_at': null,
+          'cycle_started_at': newCycleStart,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      await txn.insert('amal_cycles', {
+        'amal_id': id,
+        'started_at': newCycleStart,
+        'ended_at': null,
+        'days_done': 0,
+      });
+    });
   }
 
   // ─── AMAL RECORDS ─────────────────────────────────────────────────────────
@@ -350,7 +407,7 @@ class AmalRepository {
 
   // ─── STREAK ───────────────────────────────────────────────────────────────
 
-  Future<int> calculateStreak(int amalId) async {
+  Future<int> calculateStreak(int amalId, {String? fromDate}) async {
     final db = await _db;
     final today = _today;
     final todayRecord = await getRecord(amalId, today);
@@ -360,7 +417,10 @@ class AmalRepository {
         ? DateTime.now()
         : DateTime.now().subtract(const Duration(days: 1));
 
-    final fromDate = _formatDate(startDate.subtract(const Duration(days: 365)));
+    final lowerBound = fromDate != null ? DateTime.parse(fromDate) : null;
+    final rangeFrom = _formatDate(
+      startDate.subtract(const Duration(days: 365)),
+    );
     final toDate = _formatDate(startDate);
 
     final maps = await db.rawQuery(
@@ -372,15 +432,17 @@ class AmalRepository {
         AND is_completed = 1
       ORDER BY record_date DESC
       ''',
-      [amalId, fromDate, toDate],
+      [amalId, rangeFrom, toDate],
     );
 
     final recordSet = {for (final m in maps) m['record_date'] as String};
 
     int streak = 0;
     for (int i = 0; i < 366; i++) {
-      final date = _formatDate(startDate.subtract(Duration(days: i)));
-      if (recordSet.contains(date)) {
+      final date = startDate.subtract(Duration(days: i));
+      if (lowerBound != null && date.isBefore(lowerBound)) break;
+      final ds = _formatDate(date);
+      if (recordSet.contains(ds)) {
         streak++;
       } else {
         break;
@@ -447,6 +509,17 @@ class AmalRepository {
       }
     }
     return best;
+  }
+
+  Future<List<AmalCycle>> getCyclesForAmal(int amalId) async {
+    final db = await _db;
+    final maps = await db.query(
+      'amal_cycles',
+      where: 'amal_id = ?',
+      whereArgs: [amalId],
+      orderBy: 'started_at ASC',
+    );
+    return maps.map(AmalCycle.fromMap).toList();
   }
 
   // ─── "GERİ QAYT" BİLDİRİŞİ ÜÇÜN ──────────────────────────────────────────
@@ -528,6 +601,14 @@ class AmalRepository {
         final newId = await db.insert('amals', map);
         idMap[amal.id] = newId;
         imported++;
+        if (amal.durationDays != null) {
+          await db.insert('amal_cycles', {
+            'amal_id': newId,
+            'started_at': amal.effectiveCycleStart,
+            'ended_at': null,
+            'days_done': 0,
+          });
+        }
       } catch (e) {
         debugPrint('Yeni amal insert xətası [${amal.title}]: $e');
         errors.add(amal.title);

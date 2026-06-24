@@ -28,6 +28,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   late AmalType _type;
   int? _durationPreset;
   bool _submitted = false;
+  bool _strictMode = true;
 
   bool get _isEditing => widget.amal != null;
 
@@ -55,6 +56,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     _contentCtrl = TextEditingController(text: a?.content ?? '');
     _intentionCtrl = TextEditingController(text: a?.intention ?? '');
     _type = a?.type ?? AmalType.checkbox;
+    _strictMode = !(a?.allowBreak ?? false);
 
     final dur = a?.durationDays;
     if (dur == null) {
@@ -194,6 +196,8 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
         ? (int.tryParse(_countCtrl.text.trim()) ?? 1)
         : null;
     final content = _type == AmalType.text ? _contentCtrl.text.trim() : null;
+    final resolvedDuration = _resolvedDuration;
+    final allowBreak = resolvedDuration != null ? !_strictMode : false;
 
     if (_isEditing) {
       await ref
@@ -205,7 +209,8 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               countTarget: countTarget,
               content: content,
               intention: intention,
-              durationDays: _resolvedDuration,
+              durationDays: resolvedDuration,
+              allowBreak: allowBreak,
             ),
           );
     } else {
@@ -225,7 +230,8 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
                 "yyyy-MM-dd'T'HH:mm:ss",
               ).format(DateTime.now()),
               intention: intention,
-              durationDays: _resolvedDuration,
+              durationDays: resolvedDuration,
+              allowBreak: allowBreak,
             ),
           );
     }
@@ -323,6 +329,10 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
             if (_durationPreset == -1) ...[
               const SizedBox(height: 10),
               _customDurationField(),
+            ],
+            if (_durationPreset != null) ...[
+              const SizedBox(height: 14),
+              _strictModeCheckbox(),
             ],
             const SizedBox(height: 24),
 
@@ -563,5 +573,67 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     decoration: _dec(
       hint: 'Qəlbindəkini yaz — Allah üçün, özün üçün... 🤍',
     ).copyWith(contentPadding: const EdgeInsets.all(14)),
+  );
+
+  Widget _strictModeCheckbox() => GestureDetector(
+    onTap: () => setState(() => _strictMode = !_strictMode),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 22,
+            height: 22,
+            margin: const EdgeInsets.only(top: 1),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _strictMode ? AppColors.accent : Colors.transparent,
+              border: Border.all(
+                color: _strictMode ? AppColors.accent : AppColors.textHint,
+                width: 2,
+              ),
+            ),
+            child: _strictMode
+                ? const Icon(Icons.check, color: Colors.white, size: 14)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Fasilə versəm sıfırdan başlasın',
+                  style: GoogleFonts.nunito(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _strictMode
+                      ? 'Bir gün buraxsan, say sıfırdan başlayacaq'
+                      : 'Buraxılan günlər sayılmayacaq, sadəcə tamamlanma sayı izlənəcək',
+                  style: GoogleFonts.nunito(
+                    fontSize: 12,
+                    color: AppColors.textHint,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 }

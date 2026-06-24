@@ -12,6 +12,8 @@ class Amal {
   final String? intention;
   final int? durationDays;
   final String? archivedAt;
+  final String? cycleStartedAt;
+  final bool allowBreak;
 
   const Amal({
     required this.id,
@@ -25,38 +27,14 @@ class Amal {
     this.intention,
     this.durationDays,
     this.archivedAt,
+    this.cycleStartedAt,
+    this.allowBreak = false,
   });
 
   // ─── COMPUTED ─────────────────────────────────────────────────────────────
 
-  DateTime get _startDate => DateTime.parse(createdAt.substring(0, 10));
-
-  DateTime? get endDate {
-    if (durationDays == null) return null;
-    return _startDate.add(Duration(days: durationDays! - 1));
-  }
-
-  bool get isExpired {
-    if (endDate == null) return false;
-    final today = DateTime.now();
-    final todayNormalized = DateTime(today.year, today.month, today.day);
-    return todayNormalized.isAfter(endDate!);
-  }
-
-  int get daysSinceStart {
-    final today = DateTime.now();
-    return DateTime(
-      today.year,
-      today.month,
-      today.day,
-    ).difference(_startDate).inDays;
-  }
-
-  int? get remainingDays {
-    if (durationDays == null) return null;
-    final r = durationDays! - daysSinceStart;
-    return r < 0 ? 0 : r;
-  }
+  /// Hazırkı dövrün başlanğıcı. Heç vaxt sıfırlanmayıbsa, yaranma tarixi ilə eynidir.
+  String get effectiveCycleStart => cycleStartedAt ?? createdAt;
 
   int remainingDaysFor(int completedCount) {
     if (durationDays == null) return 0;
@@ -78,6 +56,8 @@ class Amal {
     intention: map['intention'] as String?,
     durationDays: map['duration_days'] as int?,
     archivedAt: map['archived_at'] as String?,
+    cycleStartedAt: map['cycle_started_at'] as String?,
+    allowBreak: ((map['allow_break'] as int?) ?? 0) == 1,
   );
 
   static const _unset = Object();
@@ -94,6 +74,8 @@ class Amal {
     Object? intention = _unset,
     Object? durationDays = _unset,
     Object? archivedAt = _unset,
+    Object? cycleStartedAt = _unset,
+    bool? allowBreak,
   }) => Amal(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -114,6 +96,10 @@ class Amal {
     archivedAt: identical(archivedAt, _unset)
         ? this.archivedAt
         : archivedAt as String?,
+    cycleStartedAt: identical(cycleStartedAt, _unset)
+        ? this.cycleStartedAt
+        : cycleStartedAt as String?,
+    allowBreak: allowBreak ?? this.allowBreak,
   );
 
   Map<String, dynamic> toMap() => {
@@ -127,6 +113,8 @@ class Amal {
     'intention': intention,
     'duration_days': durationDays,
     'archived_at': archivedAt,
+    'cycle_started_at': cycleStartedAt,
+    'allow_break': allowBreak ? 1 : 0,
   };
 
   Map<String, dynamic> toJson() => {
@@ -141,6 +129,8 @@ class Amal {
     'intention': intention,
     'duration_days': durationDays,
     'archived_at': archivedAt,
+    'cycle_started_at': cycleStartedAt,
+    'allow_break': allowBreak ? 1 : 0,
   };
 
   factory Amal.fromJson(Map<String, dynamic> json) => Amal.fromMap(json);

@@ -7,7 +7,6 @@ class DatabaseHelper {
   factory DatabaseHelper() => _instance;
 
   static Database? _db;
-
   static String? _overridePath;
 
   Future<Database> get database async {
@@ -26,7 +25,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
       onOpen: (db) async {
@@ -38,17 +37,19 @@ class DatabaseHelper {
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
     CREATE TABLE amals (
-      id            INTEGER PRIMARY KEY AUTOINCREMENT,
-      title         TEXT NOT NULL,
-      type          TEXT NOT NULL,
-      count_target  INTEGER,
-      content       TEXT,
-      sort_order    INTEGER DEFAULT 0,
-      is_active     INTEGER DEFAULT 1,
-      created_at    TEXT NOT NULL,
-      intention     TEXT,
-      duration_days INTEGER,
-       archived_at   TEXT
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      title            TEXT NOT NULL,
+      type             TEXT NOT NULL,
+      count_target     INTEGER,
+      content          TEXT,
+      sort_order       INTEGER DEFAULT 0,
+      is_active        INTEGER DEFAULT 1,
+      created_at       TEXT NOT NULL,
+      intention        TEXT,
+      duration_days    INTEGER,
+      archived_at      TEXT,
+      cycle_started_at TEXT,
+      allow_break      INTEGER DEFAULT 0
     )
   ''');
 
@@ -65,9 +66,21 @@ class DatabaseHelper {
     )
   ''');
 
+    await db.execute('''
+    CREATE TABLE amal_cycles (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      amal_id     INTEGER NOT NULL,
+      started_at  TEXT NOT NULL,
+      ended_at    TEXT,
+      days_done   INTEGER DEFAULT 0,
+      FOREIGN KEY (amal_id) REFERENCES amals (id) ON DELETE CASCADE
+    )
+  ''');
+
     await db.execute(
       'CREATE INDEX idx_records_amal_date ON amal_records (amal_id, record_date)',
     );
+    await db.execute('CREATE INDEX idx_cycles_amal ON amal_cycles (amal_id)');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -82,6 +95,30 @@ class DatabaseHelper {
     }
     if (oldVersion < 4) {
       await db.execute('ALTER TABLE amals ADD COLUMN archived_at TEXT');
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE amals ADD COLUMN cycle_started_at TEXT');
+      await db.execute(
+        'ALTER TABLE amals ADD COLUMN allow_break INTEGER DEFAULT 0',
+      );
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS amal_cycles (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          amal_id     INTEGER NOT NULL,
+          started_at  TEXT NOT NULL,
+          ended_at    TEXT,
+          days_done   INTEGER DEFAULT 0,
+          FOREIGN KEY (amal_id) REFERENCES amals (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_cycles_amal ON amal_cycles (amal_id)',
+      );
+      // Mövcud müddətli əməllər üçün başlanğıc dövr yaradılır (köhnə istifadəçilər üçün)
+      await db.execute('''
+        INSERT INTO amal_cycles (amal_id, started_at, ended_at, days_done)
+        SELECT id, created_at, NULL, 0 FROM amals WHERE duration_days IS NOT NULL
+      ''');
     }
   }
 

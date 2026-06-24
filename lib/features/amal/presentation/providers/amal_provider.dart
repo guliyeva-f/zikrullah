@@ -63,8 +63,8 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
   }
 
   Future<AmalState> _load() async {
-    final archived = await _repo.archiveExpiredAmals();
-    final resetAmals = await _repo.resetBrokenStreakAmals();
+    final archived = await _repo.archiveCompletedAmals();
+    final resetAmals = await _repo.processStrictBreaks();
     final broken = await _repo.getStreakBrokenAmals();
     if (broken.isNotEmpty) {
       await _notifService.scheduleReturnNotifications(
@@ -87,8 +87,14 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     await Future.wait(
       amals.map((amal) async {
         records[amal.id] = todayRecordsMap[amal.id];
-        streaks[amal.id] = await _repo.calculateStreak(amal.id);
-        final cycleStart = amal.createdAt.substring(0, 10);
+        final streakFromDate = amal.durationDays != null
+            ? amal.effectiveCycleStart.substring(0, 10)
+            : null;
+        streaks[amal.id] = await _repo.calculateStreak(
+          amal.id,
+          fromDate: streakFromDate,
+        );
+        final cycleStart = amal.effectiveCycleStart.substring(0, 10);
         completedCounts[amal.id] = await _repo.countCompletedDays(
           amal.id,
           fromDate: cycleStart,
@@ -215,12 +221,18 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     final newRecords = Map<int, AmalRecord?>.from(current.records)
       ..[amalId] = record;
 
-    final newStreak = await _repo.calculateStreak(amalId);
+    final amal = current.amals.firstWhere((a) => a.id == amalId);
+    final streakFromDate = amal.durationDays != null
+        ? amal.effectiveCycleStart.substring(0, 10)
+        : null;
+    final newStreak = await _repo.calculateStreak(
+      amalId,
+      fromDate: streakFromDate,
+    );
     final newStreaks = Map<int, int>.from(current.streaks)
       ..[amalId] = newStreak;
 
-    final amal = current.amals.firstWhere((a) => a.id == amalId);
-    final cycleStart = amal.createdAt.substring(0, 10);
+    final cycleStart = amal.effectiveCycleStart.substring(0, 10);
     final newCompletedCount = await _repo.countCompletedDays(
       amalId,
       fromDate: cycleStart,

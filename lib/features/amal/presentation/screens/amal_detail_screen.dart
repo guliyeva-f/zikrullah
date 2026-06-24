@@ -7,6 +7,7 @@ import '../../domain/amal.dart';
 import '../../data/amal_repository.dart';
 import '../providers/amal_provider.dart';
 import 'amal_form_screen.dart';
+import '../../domain/amal_cycle.dart';
 
 class AmalDetailScreen extends ConsumerStatefulWidget {
   final Amal amal;
@@ -21,6 +22,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   Map<String, bool> _allRecords = {};
   int _cycleCompletedCount = 0;
   int _bestStreak = 0;
+  List<AmalCycle> _cycles = [];
   bool _loading = true;
   final _scrollController = ScrollController();
 
@@ -45,18 +47,25 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     setState(() => _loading = true);
     final repo = AmalRepository();
     final records = await repo.getAmalAllRecords(_amal.id);
-    final cycleStart = _amal.createdAt.substring(0, 10);
+    final cycleStart = _amal.effectiveCycleStart.substring(0, 10);
     final cycleCompleted = await repo.countCompletedDays(
       _amal.id,
       fromDate: cycleStart,
     );
-    final best = await repo.getBestStreak(_amal.id, fromDate: cycleStart);
+    final best = await repo.getBestStreak(
+      _amal.id,
+      fromDate: _amal.createdAt.substring(0, 10),
+    );
+    final cycles = _amal.durationDays != null
+        ? await repo.getCyclesForAmal(_amal.id)
+        : <AmalCycle>[];
 
     if (!mounted) return;
     setState(() {
       _allRecords = records;
       _cycleCompletedCount = cycleCompleted;
       _bestStreak = best;
+      _cycles = cycles;
       _loading = false;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToToday());
@@ -320,6 +329,8 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             ),
           ),
 
+          SliverToBoxAdapter(child: _buildCycleHistory()),
+
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
             sliver: SliverToBoxAdapter(
@@ -406,33 +417,18 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   // ─── STREAK ───────────────────────────────────────────────────────────────
 
   Widget _buildStreakSection(int streak) {
-    Widget? subLine;
     final target = _amal.durationDays;
-    final isFullyCompleted = target != null && _cycleCompletedCount >= target;
+    final isProgramComplete = target != null && _cycleCompletedCount >= target;
+    final isLoose = _amal.allowBreak;
 
-    if (target != null) {
-      if (_amal.isExpired) {
-        subLine = Text(
-          isFullyCompleted
-              ? 'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲'
-              : '$_cycleCompletedCount/$target gün tamamlandı — yarımçıq qaldı',
-          style: GoogleFonts.nunito(
-            fontSize: 13,
-            color: isFullyCompleted ? AppColors.accent : AppColors.textHint,
-            fontWeight: FontWeight.w600,
-          ),
-        );
-      } else {
-        final remaining = _amal.remainingDaysFor(_cycleCompletedCount);
-        subLine = Text(
-          '$remaining gün qaldı 🌙 ($target gün)',
-          style: GoogleFonts.nunito(
-            fontSize: 13,
-            color: AppColors.textSecondary,
-          ),
-        );
-      }
-    } else if (_bestStreak > streak) {
+    Widget? subLine;
+    if (target != null && !isProgramComplete && !isLoose) {
+      final remaining = _amal.remainingDaysFor(_cycleCompletedCount);
+      subLine = Text(
+        '$remaining gün qaldı 🌙 ($target gün)',
+        style: GoogleFonts.nunito(fontSize: 13, color: AppColors.textSecondary),
+      );
+    } else if (target == null && _bestStreak > streak) {
       subLine = Text(
         'Rekord: $_bestStreak gün',
         style: GoogleFonts.nunito(fontSize: 13, color: AppColors.textSecondary),
@@ -440,20 +436,25 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     }
 
     final String streakLabel;
-    if (_amal.isExpired) {
-      streakLabel = isFullyCompleted
-          ? 'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲'
-          : 'Müddət bitdi — yarımçıq qaldı';
+    if (isProgramComplete) {
+      streakLabel = 'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲';
+    } else if (!_amal.isActive) {
+      streakLabel = 'Yarımçıq qaldı';
+    } else if (target != null && isLoose) {
+      streakLabel = '$_cycleCompletedCount/$target gün';
     } else if (streak == 0) {
       streakLabel = 'Hələ başlanmayıb';
     } else {
       streakLabel = '$streak gün ardıcıl 🔥';
     }
 
+    final showFireIcon =
+        streak > 0 && !isProgramComplete && _amal.isActive && !isLoose;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (streak > 0 && !_amal.isExpired)
+        if (showFireIcon)
           const Padding(
             padding: EdgeInsets.only(right: 8),
             child: Text('🔥', style: TextStyle(fontSize: 22)),
@@ -466,7 +467,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               Text(
                 streakLabel,
                 style: GoogleFonts.nunito(
-                  fontSize: _amal.isExpired ? 14 : 20,
+                  fontSize: (isProgramComplete || !_amal.isActive) ? 14 : 20,
                   fontWeight: FontWeight.w800,
                   color: AppColors.accent,
                   height: 1.2,
@@ -485,9 +486,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   Widget _buildContinuousGrid() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-
-    final activeCycleStart = DateTime.parse(_amal.createdAt.substring(0, 10));
-
+    final activeCycleStart = DateTime.parse(
+      _amal.effectiveCycleStart.substring(0, 10),
+    );
     DateTime historyStart = activeCycleStart;
     if (_allRecords.isNotEmpty) {
       final sortedKeys = _allRecords.keys.toList()..sort();
@@ -643,6 +644,87 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         const SizedBox(width: 10),
         const Expanded(
           child: Divider(color: AppColors.separator, height: 1, thickness: 1),
+        ),
+      ],
+    );
+  }
+
+  // ─── CƏHD TARİXÇƏSİ (yalnız ardıcıl rejim, 1-dən çox cəhd varsa) ───────────
+
+  Widget _buildCycleHistory() {
+    if (_amal.allowBreak || _amal.durationDays == null || _cycles.length <= 1) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.bgCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Cəhd tarixçəsi',
+              style: GoogleFonts.nunito(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            for (int i = 0; i < _cycles.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              _buildCycleRow(i + 1, _cycles[i]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _shortDate(String isoDate) {
+    final d = DateTime.parse(isoDate.substring(0, 10));
+    return '${d.day} ${AppConstants.monthsShort[d.month - 1]}';
+  }
+
+  Widget _buildCycleRow(int index, AmalCycle cycle) {
+    final start = _shortDate(cycle.startedAt);
+    final isOngoing = cycle.isOngoing;
+    final endLabel = isOngoing ? '...' : _shortDate(cycle.endedAt!);
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 62,
+          child: Text(
+            'Cəhd $index:',
+            style: GoogleFonts.nunito(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            '$start – $endLabel',
+            style: GoogleFonts.nunito(
+              fontSize: 12,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        Text(
+          isOngoing ? 'davam edir' : '${cycle.daysDone} gün (qırıldı)',
+          style: GoogleFonts.nunito(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isOngoing ? AppColors.accent : AppColors.textHint,
+          ),
         ),
       ],
     );

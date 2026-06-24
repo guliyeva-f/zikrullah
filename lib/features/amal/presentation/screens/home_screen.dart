@@ -68,7 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.listen<AsyncValue<AmalState>>(amalProvider, (prev, next) {
       next.whenData((state) {
         final prevCount = prev?.value?.completedCount ?? 0;
-        if (state.completedCount > prevCount) {
+        if (state.completedCount != prevCount) {
           ref.read(heatmapProvider.notifier).refresh();
         }
 
@@ -1039,38 +1039,48 @@ class _AmalCardState extends State<_AmalCard> {
           ),
         if (widget.amal.durationDays != null && !isProgramComplete) ...[
           const SizedBox(height: 2),
-          RichText(
-            text: TextSpan(
+          if (widget.amal.allowBreak)
+            Text(
+              '${widget.completedCount}/${widget.amal.durationDays} gün',
               style: GoogleFonts.nunito(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
+                color: AppColors.textHint,
               ),
-              children: [
-                if (_done && streakText != null) ...[
-                  TextSpan(
-                    text: streakText,
-                    style: TextStyle(
-                      color: isMilestone
-                          ? AppColors.accent
-                          : AppColors.accentLight,
-                      fontWeight: isMilestone
-                          ? FontWeight.w600
-                          : FontWeight.w500,
+            )
+          else
+            RichText(
+              text: TextSpan(
+                style: GoogleFonts.nunito(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                children: [
+                  if (_done && streakText != null) ...[
+                    TextSpan(
+                      text: streakText,
+                      style: TextStyle(
+                        color: isMilestone
+                            ? AppColors.accent
+                            : AppColors.accentLight,
+                        fontWeight: isMilestone
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
                     ),
-                  ),
+                    TextSpan(
+                      text: '  ·  ',
+                      style: TextStyle(color: AppColors.textHint),
+                    ),
+                  ],
                   TextSpan(
-                    text: '  ·  ',
+                    text:
+                        '${widget.amal.remainingDaysFor(widget.completedCount).clamp(0, 999)} gün qaldı',
                     style: TextStyle(color: AppColors.textHint),
                   ),
                 ],
-                TextSpan(
-                  text:
-                      '${widget.amal.remainingDaysFor(widget.completedCount).clamp(0, 999)} gün qaldı',
-                  style: TextStyle(color: AppColors.textHint),
-                ),
-              ],
+              ),
             ),
-          ),
         ],
       ],
     );
