@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../domain/amal.dart';
@@ -143,9 +142,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
           children: [
             Row(
               children: [
-                Text(
+                const Text(
                   'Niyyətin',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -163,12 +162,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               ],
             ),
             const SizedBox(height: 4),
-            Text(
+            const Text(
               'Bu əməli nə üçün edirsən?',
-              style: GoogleFonts.nunito(
-                fontSize: 13,
-                color: AppColors.textHint,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColors.textHint),
             ),
             const SizedBox(height: 14),
             Container(
@@ -183,18 +179,18 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                 minLines: 3,
                 maxLength: 200,
                 textCapitalization: TextCapitalization.sentences,
-                style: GoogleFonts.nunito(
+                style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.textPrimary,
                   height: 1.6,
                 ),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Allah üçün, özüm üçün... niyyətini yaz 🤍',
-                  hintStyle: GoogleFonts.nunito(
+                  hintStyle: TextStyle(
                     color: AppColors.textHint,
                     fontSize: 14,
                   ),
-                  counterStyle: GoogleFonts.nunito(
+                  counterStyle: TextStyle(
                     fontSize: 11,
                     color: AppColors.textHint,
                   ),
@@ -202,7 +198,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
+                  contentPadding: EdgeInsets.fromLTRB(14, 14, 14, 4),
                 ),
               ),
             ),
@@ -231,9 +227,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   ref.read(amalProvider.notifier).refresh();
                   nav.pop();
                 },
-                child: Text(
+                child: const Text(
                   'Saxla',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
@@ -272,7 +268,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             ),
             title: Text(
               _amal.title,
-              style: GoogleFonts.nunito(
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -381,7 +377,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   Expanded(
                     child: Text(
                       _amal.intention!,
-                      style: GoogleFonts.nunito(
+                      style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,
                         fontStyle: FontStyle.italic,
@@ -393,17 +389,17 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   const SizedBox(width: 6),
                 ],
               )
-            : Row(
+            : const Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.add_circle_outline,
                     size: 15,
                     color: AppColors.textHint,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     'Niyyətin yoxdur — əlavə et',
-                    style: GoogleFonts.nunito(
+                    style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textHint,
                     ),
@@ -426,12 +422,12 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       final remaining = _amal.remainingDaysFor(_cycleCompletedCount);
       subLine = Text(
         '$remaining gün qaldı 🌙 ($target gün)',
-        style: GoogleFonts.nunito(fontSize: 13, color: AppColors.textSecondary),
+        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
       );
     } else if (target == null && _bestStreak > streak) {
       subLine = Text(
         'Rekord: $_bestStreak gün',
-        style: GoogleFonts.nunito(fontSize: 13, color: AppColors.textSecondary),
+        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
       );
     }
 
@@ -466,7 +462,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             children: [
               Text(
                 streakLabel,
-                style: GoogleFonts.nunito(
+                style: TextStyle(
                   fontSize: (isProgramComplete || !_amal.isActive) ? 14 : 20,
                   fontWeight: FontWeight.w800,
                   color: AppColors.accent,
@@ -524,7 +520,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                 child: Center(
                   child: Text(
                     h,
-                    style: GoogleFonts.nunito(
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textSecondary,
@@ -602,7 +598,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   child: Center(
                     child: Text(
                       '${day.day}',
-                      style: GoogleFonts.nunito(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: isFuture
@@ -635,7 +631,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
           showYear
               ? '${AppConstants.months[month - 1]} $year'
               : AppConstants.months[month - 1],
-          style: GoogleFonts.nunito(
+          style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
             color: AppColors.textSecondary,
@@ -667,9 +663,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Cəhd tarixçəsi',
-              style: GoogleFonts.nunito(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textSecondary,
@@ -702,7 +698,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
           width: 62,
           child: Text(
             'Cəhd $index:',
-            style: GoogleFonts.nunito(
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
@@ -712,15 +708,12 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         Expanded(
           child: Text(
             '$start – $endLabel',
-            style: GoogleFonts.nunito(
-              fontSize: 12,
-              color: AppColors.textPrimary,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
           ),
         ),
         Text(
           isOngoing ? 'davam edir' : '${cycle.daysDone} gün (qırıldı)',
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: isOngoing ? AppColors.accent : AppColors.textHint,

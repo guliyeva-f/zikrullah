@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/constants/app_colors.dart';
 
@@ -41,9 +40,9 @@ class _AboutScreenState extends State<AboutScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Haqqında',
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -53,9 +52,9 @@ class _AboutScreenState extends State<AboutScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         children: [
-          Text(
+          const Text(
             'Zikrullah',
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
               color: AppColors.accent,
@@ -64,35 +63,35 @@ class _AboutScreenState extends State<AboutScreen> {
           const SizedBox(height: 4),
           Text(
             'Versiya $_version',
-            style: GoogleFonts.nunito(fontSize: 13, color: AppColors.textHint),
+            style: const TextStyle(fontSize: 13, color: AppColors.textHint),
           ),
           const SizedBox(height: 24),
-          Text(
+          const Text(
             'Zikrullah — gündəlik zikr, dua və əməlləri izləmək üçün şəxsi yardımçı tətbiqdir.',
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
               height: 1.6,
             ),
           ),
           const SizedBox(height: 28),
-          Text(
+          const Text(
             'Məxfilik siyasəti',
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Zikrullah heç bir şəxsi məlumatınızı toplamır, sərvərə ötürmür və üçüncü '
             'tərəflərlə paylaşmır. Bütün əməllər, qeydlər və ayarlar yalnız sizin '
             'cihazınızda yerli olaraq saxlanılır. Bildirişlər tamamilə cihaz daxilində '
             'planlaşdırılır, internetə ehtiyac yoxdur. "Məlumatları ixrac et" funksiyası '
             'ilə yaratdığınız fayl yalnız siz seçdiyiniz yerə (paylaşma menyusu vasitəsilə) '
             'göndərilir.',
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary,
               height: 1.7,

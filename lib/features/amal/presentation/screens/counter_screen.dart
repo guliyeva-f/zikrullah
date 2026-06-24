@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
@@ -102,9 +101,9 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'Bitirdim',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
@@ -128,7 +127,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                   child: Text(
                     widget.amal.title,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.nunito(
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -163,7 +162,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                             // ── Əsas say ──────────────────────────────────
                             AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 200),
-                              style: GoogleFonts.nunito(
+                              style: TextStyle(
                                 fontSize: 78,
                                 fontWeight: FontWeight.w700,
                                 color: done
@@ -181,17 +180,18 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                                   ? Text(
                                       'hədəfdən ${count - target} artıq etdin ✨',
                                       key: const ValueKey('over'),
-                                      style: GoogleFonts.nunito(
+                                      style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.accentLight,
                                       ),
                                     )
                                   : done
-                                  ? Text(
+                                  ? const Text(
                                       'اَلْحَمْدُ لِلّٰهِ',
-                                      key: const ValueKey('done'),
-                                      style: GoogleFonts.scheherazadeNew(
+                                      key: ValueKey('done'),
+                                      style: TextStyle(
+                                        fontFamily: 'Scheherazade New',
                                         fontSize: 22,
                                         color: AppColors.success,
                                         height: 1.4,
@@ -200,7 +200,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                                   : Text(
                                       '/ $target dəfə',
                                       key: const ValueKey('progress'),
-                                      style: GoogleFonts.nunito(
+                                      style: const TextStyle(
                                         fontSize: 13,
                                         color: AppColors.textHint,
                                       ),
@@ -219,10 +219,10 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                 AnimatedOpacity(
                   opacity: showHint ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 400),
-                  child: IgnorePointer(
+                  child: const IgnorePointer(
                     child: Text(
                       '👆 hər tap bir zikr',
-                      style: GoogleFonts.nunito(
+                      style: TextStyle(
                         fontSize: 13,
                         color: AppColors.textHint,
                         letterSpacing: 0.2,
@@ -240,7 +240,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
                         'uzun bas — geri al',
-                        style: GoogleFonts.nunito(
+                        style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textHint.withValues(alpha: 0.6),
                           letterSpacing: 0.1,

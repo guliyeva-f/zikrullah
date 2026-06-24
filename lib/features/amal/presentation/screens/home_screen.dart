@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../calendar/presentation/providers/heatmap_provider.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
@@ -78,7 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SnackBar(
               content: Text(
                 '"$titles" əhdi tamamlandı və arxivləndi 🤲',
-                style: GoogleFonts.nunito(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: AppColors.accent,
               duration: const Duration(seconds: 5),
@@ -93,7 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SnackBar(
               content: Text(
                 '"$titles" üçün ardıcıllıq pozuldu — proqram bugündən yenidən başladı 🔄',
-                style: GoogleFonts.nunito(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: AppColors.textSecondary,
               duration: const Duration(seconds: 5),
@@ -121,9 +120,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   size: 40,
                 ),
                 const SizedBox(height: 12),
-                Text(
+                const Text(
                   'Bir şey səhv getdi',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
@@ -132,9 +131,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: () => ref.invalidate(amalProvider),
-                  child: Text(
+                  child: const Text(
                     'Yenidən yüklə',
-                    style: GoogleFonts.nunito(color: AppColors.accent),
+                    style: TextStyle(color: AppColors.accent),
                   ),
                 ),
               ],
@@ -192,8 +191,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     key: ValueKey(amal.id),
                                     children: [
                                       if (isFirstCompleted)
-                                        Padding(
-                                          padding: const EdgeInsets.fromLTRB(
+                                        const Padding(
+                                          padding: EdgeInsets.fromLTRB(
                                             16,
                                             4,
                                             16,
@@ -201,25 +200,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           ),
                                           child: Row(
                                             children: [
-                                              const Expanded(
+                                              Expanded(
                                                 child: Divider(
                                                   color: AppColors.separator,
                                                 ),
                                               ),
                                               Padding(
                                                 padding:
-                                                    const EdgeInsets.symmetric(
+                                                    EdgeInsets.symmetric(
                                                       horizontal: 10,
                                                     ),
                                                 child: Text(
                                                   'bu gün əda olundu ✓',
-                                                  style: GoogleFonts.nunito(
+                                                  style: TextStyle(
                                                     fontSize: 11,
                                                     color: AppColors.textHint,
                                                   ),
                                                 ),
                                               ),
-                                              const Expanded(
+                                              Expanded(
                                                 child: Divider(
                                                   color: AppColors.separator,
                                                 ),
@@ -332,18 +331,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           ),
                                         ),
                                       ),
-                                      child: Row(
+                                      child: const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(
+                                          Icon(
                                             Icons.add,
                                             color: AppColors.accent,
                                             size: 18,
                                           ),
-                                          const SizedBox(width: 6),
+                                          SizedBox(width: 6),
                                           Text(
                                             'Yeni əməl əlavə et',
-                                            style: GoogleFonts.nunito(
+                                            style: TextStyle(
                                               fontSize: 13,
                                               color: AppColors.accent,
                                               fontWeight: FontWeight.w600,
@@ -389,7 +388,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     Text(
                       _timeGreetingOrDone(state),
-                      style: GoogleFonts.nunito(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: AppColors.accent,
@@ -399,7 +398,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 3),
                     Text(
                       _progressTitle(state),
-                      style: GoogleFonts.nunito(
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -483,7 +482,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 Text(
                   '$done / $total tamamlandı',
-                  style: GoogleFonts.nunito(
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
@@ -491,7 +490,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 Text(
                   '${(progress * 100).round()}%',
-                  style: GoogleFonts.nunito(
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.accent,
                     fontWeight: FontWeight.w600,
@@ -605,14 +604,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             RichText(
               textAlign: TextAlign.center,
               textDirection: TextDirection.rtl,
-              text: TextSpan(
-                style: GoogleFonts.scheherazadeNew(
+              text: const TextSpan(
+                style: TextStyle(
+                  fontFamily: 'Scheherazade New',
                   fontSize: 28,
                   height: 2.0,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textPrimary,
                 ),
-                children: const [
+                children: [
                   TextSpan(text: 'أَلاَ بِ'),
                   TextSpan(
                     text: 'ذِكْرِ اللّهِ',
@@ -629,10 +629,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               color: AppColors.accentLight.withValues(alpha: 0.6),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Bilin ki, qəlblər yalnız Allahı zikr etməklə\nrahatlıq tapar',
               textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(
+              style: TextStyle(
                 fontSize: 13,
                 color: AppColors.textSecondary,
                 height: 1.7,
@@ -643,11 +643,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('🌿', style: TextStyle(fontSize: 11)),
+                const Text('🌿', style: TextStyle(fontSize: 11)),
                 const SizedBox(width: 6),
-                Text(
+                const Text(
                   'Ər-Rəd surəsi, 28',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontSize: 11,
                     color: AppColors.textHint,
                     letterSpacing: 0.4,
@@ -657,7 +657,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Transform(
                   alignment: Alignment.center,
                   transform: Matrix4.rotationY(3.14159),
-                  child: Text('🌿', style: TextStyle(fontSize: 11)),
+                  child: const Text('🌿', style: TextStyle(fontSize: 11)),
                 ),
               ],
             ),
@@ -676,9 +676,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: AppColors.accent,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Text(
+                child: const Text(
                   'İlk əməlini əlavə et',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -723,19 +723,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               );
             },
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'İllik yolun',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(width: 2),
-                const Icon(
+                SizedBox(width: 2),
+                Icon(
                   Icons.chevron_right,
                   color: AppColors.textPrimary,
                   size: 16,
@@ -951,7 +951,7 @@ class _AmalCardState extends State<_AmalCard> {
                       const SizedBox(height: 2),
                       Text(
                         '$cnt/$target',
-                        style: GoogleFonts.nunito(
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: AppColors.accent,
@@ -1000,7 +1000,7 @@ class _AmalCardState extends State<_AmalCard> {
       children: [
         Text(
           widget.amal.title,
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: _done ? AppColors.textSecondary : AppColors.textPrimary,
@@ -1010,7 +1010,7 @@ class _AmalCardState extends State<_AmalCard> {
           const SizedBox(height: 2),
           Text(
             streakText,
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 12,
               color: isProgramComplete || isMilestone
                   ? AppColors.accent
@@ -1025,11 +1025,11 @@ class _AmalCardState extends State<_AmalCard> {
           AnimatedOpacity(
             opacity: _hintVisible ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 600),
-            child: Padding(
-              padding: const EdgeInsets.only(top: 3),
+            child: const Padding(
+              padding: EdgeInsets.only(top: 3),
               child: Text(
                 'azaltmaq üçün uzun bas',
-                style: GoogleFonts.nunito(
+                style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textHint,
                   fontWeight: FontWeight.w500,
@@ -1042,7 +1042,7 @@ class _AmalCardState extends State<_AmalCard> {
           if (widget.amal.allowBreak)
             Text(
               '${widget.completedCount}/${widget.amal.durationDays} gün',
-              style: GoogleFonts.nunito(
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textHint,
@@ -1051,7 +1051,7 @@ class _AmalCardState extends State<_AmalCard> {
           else
             RichText(
               text: TextSpan(
-                style: GoogleFonts.nunito(
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -1068,7 +1068,7 @@ class _AmalCardState extends State<_AmalCard> {
                             : FontWeight.w500,
                       ),
                     ),
-                    TextSpan(
+                    const TextSpan(
                       text: '  ·  ',
                       style: TextStyle(color: AppColors.textHint),
                     ),
@@ -1076,7 +1076,7 @@ class _AmalCardState extends State<_AmalCard> {
                   TextSpan(
                     text:
                         '${widget.amal.remainingDaysFor(widget.completedCount).clamp(0, 999)} gün qaldı',
-                    style: TextStyle(color: AppColors.textHint),
+                    style: const TextStyle(color: AppColors.textHint),
                   ),
                 ],
               ),

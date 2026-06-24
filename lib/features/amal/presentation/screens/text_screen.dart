@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../domain/amal.dart';
 import '../../domain/amal_record.dart';
@@ -59,7 +58,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
         spans.add(
           TextSpan(
             text: text.substring(lastEnd, match.start),
-            style: GoogleFonts.nunito(
+            style: const TextStyle(
               fontSize: 16,
               height: 2.0,
               color: AppColors.textPrimary,
@@ -70,7 +69,8 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       spans.add(
         TextSpan(
           text: match.group(0),
-          style: GoogleFonts.scheherazadeNew(
+          style: const TextStyle(
+            fontFamily: 'Scheherazade New',
             fontSize: 22,
             height: 2.0,
             color: AppColors.textPrimary,
@@ -84,7 +84,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       spans.add(
         TextSpan(
           text: text.substring(lastEnd),
-          style: GoogleFonts.nunito(
+          style: const TextStyle(
             fontSize: 16,
             height: 2.0,
             color: AppColors.textPrimary,
@@ -97,7 +97,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
         ? [
             TextSpan(
               text: text,
-              style: GoogleFonts.nunito(
+              style: const TextStyle(
                 fontSize: 16,
                 height: 2.0,
                 color: AppColors.textPrimary,
@@ -143,7 +143,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                   if (hasIntention) ...[
                     _IntentionBox(intention: widget.amal.intention!),
                     const SizedBox(height: 20),
-                    Divider(color: AppColors.separator, thickness: 1),
+                    const Divider(color: AppColors.separator, thickness: 1),
                     const SizedBox(height: 20),
                   ],
 
@@ -179,7 +179,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                         ),
                         child: Text(
                           isCompleted ? 'Oxundu ✓' : 'Bitirdim',
-                          style: GoogleFonts.nunito(
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                           ),
@@ -215,7 +215,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
         children: [
           Text(
             widget.amal.title,
-            style: GoogleFonts.nunito(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -223,9 +223,9 @@ class _TextScreenState extends ConsumerState<TextScreen> {
             overflow: TextOverflow.ellipsis,
           ),
           if (isCompleted)
-            Text(
+            const Text(
               'oxundu ✓',
-              style: GoogleFonts.nunito(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppColors.success,
                 fontWeight: FontWeight.w500,
@@ -253,7 +253,7 @@ class _IntentionBox extends StatelessWidget {
           child: Text(
             intention,
             textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(
+            style: const TextStyle(
               fontSize: 13,
               fontStyle: FontStyle.italic,
               color: AppColors.textHint,
@@ -278,11 +278,11 @@ class _EmptyContent extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         children: [
-          Text('📄', style: const TextStyle(fontSize: 36)),
+          const Text('📄', style: TextStyle(fontSize: 36)),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Bu əməlin oxunacaq mətni hələ yazılmayıb',
-            style: GoogleFonts.nunito(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
@@ -301,12 +301,9 @@ class _EmptyContent extends StatelessWidget {
               if (context.mounted) Navigator.pop(context);
             },
             icon: const Icon(Icons.edit_outlined, size: 16),
-            label: Text(
+            label: const Text(
               'Məzmun əlavə et',
-              style: GoogleFonts.nunito(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.accent,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../amal/data/import_export_service.dart';
@@ -68,9 +67,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Parametrlər',
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -91,9 +90,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 size: 40,
               ),
               const SizedBox(height: 12),
-              Text(
+              const Text(
                 'Bir şey səhv getdi',
-                style: GoogleFonts.nunito(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary,
@@ -102,9 +101,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => ref.invalidate(settingsProvider),
-                child: Text(
+                child: const Text(
                   'Yenidən cəhd et',
-                  style: GoogleFonts.nunito(color: AppColors.accent),
+                  style: TextStyle(color: AppColors.accent),
                 ),
               ),
             ],
@@ -113,7 +112,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         data: (state) => ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
           children: [
-            _SectionLabel(label: 'Bildirişlər'),
+            const _SectionLabel(label: 'Bildirişlər'),
             _ToggleRow(
               icon: Icons.notifications_none_rounded,
               title: 'Gündəlik bildirişlər',
@@ -131,7 +130,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _SectionLabel(label: 'Vaxtlar'),
+                    const _SectionLabel(label: 'Vaxtlar'),
 
                     _GroupCard(
                       children: [
@@ -177,7 +176,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                     ),
                     const SizedBox(height: 20),
 
-                    _SectionLabel(label: 'Gecə bildirişi'),
+                    const _SectionLabel(label: 'Gecə bildirişi'),
                     _ToggleRow(
                       icon: Icons.bedtime_outlined,
                       title: 'Son xatırlatma',
@@ -193,7 +192,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ),
             ),
 
-            _SectionLabel(label: 'Yedəklə / Bərpa'),
+            const _SectionLabel(label: 'Yedəklə / Bərpa'),
             _GroupCard(
               children: [
                 _ActionRow(
@@ -212,7 +211,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ],
             ),
             const SizedBox(height: 20),
-            _SectionLabel(label: 'Tətbiq haqqında'),
+            const _SectionLabel(label: 'Tətbiq haqqında'),
             _GroupCard(
               children: [
                 _ActionRow(
@@ -357,7 +356,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: GoogleFonts.nunito(color: Colors.white)),
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
         backgroundColor: isError ? const Color(0xFFC0594A) : AppColors.accent,
         duration: Duration(seconds: actionLabel != null ? 7 : 4),
         action: actionLabel != null && onAction != null
@@ -383,7 +382,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       initialTime: current,
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          timePickerTheme: TimePickerThemeData(
+          timePickerTheme: const TimePickerThemeData(
             backgroundColor: AppColors.bgCard,
             dialHandColor: AppColors.accent,
             hourMinuteColor: AppColors.bgElevated,
@@ -426,11 +425,11 @@ class _ConflictDialogState extends State<_ConflictDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 4),
             child: Text(
               'Üst-üstə düşən əməllər',
-              style: GoogleFonts.nunito(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
@@ -441,7 +440,7 @@ class _ConflictDialogState extends State<_ConflictDialog> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
             child: Text(
               _summaryLine(widget.preview),
-              style: GoogleFonts.nunito(
+              style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.textSecondary,
               ),
@@ -480,9 +479,9 @@ class _ConflictDialogState extends State<_ConflictDialog> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Ləğv et',
-                      style: GoogleFonts.nunito(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: AppColors.textSecondary,
                       ),
@@ -502,9 +501,9 @@ class _ConflictDialogState extends State<_ConflictDialog> {
                       ),
                       elevation: 0,
                     ),
-                    child: Text(
+                    child: const Text(
                       'Tətbiq et',
-                      style: GoogleFonts.nunito(fontWeight: FontWeight.w700),
+                      style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -548,7 +547,7 @@ class _ConflictDialogState extends State<_ConflictDialog> {
                 Expanded(
                   child: Text(
                     conflict.existing.title,
-                    style: GoogleFonts.nunito(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -567,7 +566,7 @@ class _ConflictDialogState extends State<_ConflictDialog> {
                   ),
                   child: Text(
                     typeLabel,
-                    style: GoogleFonts.nunito(
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: AppColors.accent,
@@ -645,7 +644,7 @@ class _SidePanel extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: isSelected
@@ -687,11 +686,11 @@ class _SidePanel extends StatelessWidget {
                   : '∞ Həmişəlik',
             ),
             if (!amal.isActive)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
                 child: Text(
                   '· arxivdə',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontSize: 11,
                     color: AppColors.textHint,
                     fontStyle: FontStyle.italic,
@@ -712,7 +711,7 @@ class _SidePanel extends StatelessWidget {
         const SizedBox(width: 3),
         Text(
           text,
-          style: GoogleFonts.nunito(
+          style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
@@ -731,14 +730,14 @@ class _SidePanel extends StatelessWidget {
         children: [
           TextSpan(
             text: '$key: ',
-            style: GoogleFonts.nunito(
+            style: const TextStyle(
               fontSize: 11,
               color: AppColors.textSecondary,
             ),
           ),
           TextSpan(
             text: value,
-            style: GoogleFonts.nunito(
+            style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
@@ -759,7 +758,7 @@ class _SectionLabel extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 8, left: 2),
     child: Text(
       label.toUpperCase(),
-      style: GoogleFonts.nunito(
+      style: const TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w700,
         color: AppColors.textHint,
@@ -823,7 +822,7 @@ class _TimeRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: GoogleFonts.nunito(
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
@@ -832,7 +831,7 @@ class _TimeRow extends StatelessWidget {
           ),
           Text(
             _fmt(time),
-            style: GoogleFonts.nunito(
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: AppColors.accent,
@@ -883,7 +882,7 @@ class _ToggleRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.nunito(
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
@@ -891,7 +890,7 @@ class _ToggleRow extends StatelessWidget {
               ),
               Text(
                 subtitle,
-                style: GoogleFonts.nunito(
+                style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
                 ),
@@ -939,7 +938,7 @@ class _ActionRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.nunito(
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -947,7 +946,7 @@ class _ActionRow extends StatelessWidget {
                 ),
                 Text(
                   subtitle,
-                  style: GoogleFonts.nunito(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),

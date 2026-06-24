@@ -15,6 +15,7 @@ class AppColors {
   static const accentLight = Color(0xFFC49A6C);
   static const accentMuted = Color(0xFFD4B896);
   static const success = Color(0xFF5A8A5E);
+  static const error = Color(0xFFE57373);
 
   static const border = Color(0xFFEDE8E0);
   static const separator = Color(0xFFE5DED5);

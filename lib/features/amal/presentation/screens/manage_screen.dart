@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
@@ -38,9 +37,9 @@ class ManageScreen extends ConsumerWidget {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Əməllərim',
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -67,9 +66,9 @@ class ManageScreen extends ConsumerWidget {
                 size: 40,
               ),
               const SizedBox(height: 12),
-              Text(
+              const Text(
                 'Bir xəta baş verdi',
-                style: GoogleFonts.nunito(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary,
@@ -78,9 +77,9 @@ class ManageScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => ref.invalidate(amalProvider),
-                child: Text(
+                child: const Text(
                   'Yenidən cəhd et',
-                  style: GoogleFonts.nunito(color: AppColors.accent),
+                  style: TextStyle(color: AppColors.accent),
                 ),
               ),
             ],
@@ -90,25 +89,25 @@ class ManageScreen extends ConsumerWidget {
           final archivedList = asyncArchived.value ?? [];
 
           if (state.amals.isEmpty && archivedList.isEmpty) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('🌙', style: TextStyle(fontSize: 44)),
-                  const SizedBox(height: 16),
+                  Text('🌙', style: TextStyle(fontSize: 44)),
+                  SizedBox(height: 16),
                   Text(
                     'Hələ heç nə yoxdur',
-                    style: GoogleFonts.nunito(
+                    style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     'Yuxarıdakı + ilə ilk niyyətini yarat',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.nunito(
+                    style: TextStyle(
                       color: AppColors.textHint,
                       fontSize: 14,
                       height: 1.5,
@@ -156,18 +155,18 @@ class ManageScreen extends ConsumerWidget {
 
               if (archivedList.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                Row(
+                const Row(
                   children: [
                     Text(
                       'Bitmiş əhdlər',
-                      style: GoogleFonts.nunito(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    const Expanded(
+                    SizedBox(width: 10),
+                    Expanded(
                       child: Divider(color: AppColors.separator, height: 1),
                     ),
                   ],
@@ -214,9 +213,9 @@ class ManageScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
+        title: const Text(
           'Silinsin?',
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
             fontSize: 17,
@@ -224,7 +223,7 @@ class ManageScreen extends ConsumerWidget {
         ),
         content: Text(
           '"${amal.title}" əməlinə aid bütün tarixçə silinəcək.',
-          style: GoogleFonts.nunito(
+          style: const TextStyle(
             color: AppColors.textSecondary,
             fontSize: 14,
             height: 1.5,
@@ -233,9 +232,9 @@ class ManageScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
+            child: const Text(
               'Ləğv et',
-              style: GoogleFonts.nunito(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
@@ -244,10 +243,10 @@ class ManageScreen extends ConsumerWidget {
               ref.read(amalProvider.notifier).deleteAmal(amal.id);
               ref.invalidate(_archivedAmalsProvider);
             },
-            child: Text(
+            child: const Text(
               'Sil',
-              style: GoogleFonts.nunito(
-                color: Colors.red.shade400,
+              style: TextStyle(
+                color: AppColors.error,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -353,7 +352,7 @@ class _AmalManageCard extends StatelessWidget {
                       children: [
                         Text(
                           _typeLabel,
-                          style: GoogleFonts.nunito(
+                          style: TextStyle(
                             fontSize: 10,
                             color: _badgeColor,
                             fontWeight: FontWeight.w700,
@@ -371,7 +370,7 @@ class _AmalManageCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     amal.title,
-                    style: GoogleFonts.nunito(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
@@ -405,7 +404,7 @@ class _AmalManageCard extends StatelessWidget {
           Container(height: 28, width: 1, color: AppColors.separator),
           _ActionButton(
             icon: Icons.delete_outline,
-            color: Colors.red.shade300,
+            color: AppColors.error,
             onTap: onDelete,
           ),
           const SizedBox(width: 4),
@@ -496,7 +495,7 @@ class _ArchivedAmalCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         _fullyCompleted ? '✅ Tamamlandı' : '⏳ Yarımçıq qaldı',
-                        style: GoogleFonts.nunito(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: _fullyCompleted
@@ -509,7 +508,7 @@ class _ArchivedAmalCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     amal.title,
-                    style: GoogleFonts.nunito(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textSecondary,
@@ -520,7 +519,7 @@ class _ArchivedAmalCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$completedDays/${amal.durationDays ?? completedDays} gün',
-                    style: GoogleFonts.nunito(
+                    style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.textHint,
                     ),
@@ -549,7 +548,7 @@ class _ArchivedAmalCard extends StatelessWidget {
           Container(height: 28, width: 1, color: AppColors.separator),
           _ActionButton(
             icon: Icons.delete_outline,
-            color: Colors.red.shade300,
+            color: AppColors.error,
             onTap: onDelete,
           ),
           const SizedBox(width: 4),

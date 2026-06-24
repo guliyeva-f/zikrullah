@@ -41,6 +41,7 @@ class ZikrullahApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: 'Roboto',
         scaffoldBackgroundColor: AppColors.bgBase,
         colorScheme: const ColorScheme.light(
           primary: AppColors.accent,

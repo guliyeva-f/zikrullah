@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../amal/data/amal_repository.dart';
@@ -184,9 +183,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           color: AppColors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
+        title: const Text(
           'təqvim',
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -196,9 +195,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           if (!_isOnToday)
             TextButton(
               onPressed: _goToToday,
-              child: Text(
+              child: const Text(
                 'bu gün',
-                style: GoogleFonts.nunito(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: AppColors.accent,
@@ -224,7 +223,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   child: Center(
                     child: Text(
                       '${AppConstants.months[_displayMonth.month - 1]} ${_displayMonth.year}',
-                      style: GoogleFonts.nunito(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -251,7 +250,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       child: Center(
                         child: Text(
                           d,
-                          style: GoogleFonts.nunito(
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textHint,
@@ -273,17 +272,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           const SizedBox(height: 14),
 
           // ── Legend ───────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _LegendItem(color: _Cal.doneBg, label: 'tamamlandı'),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 _LegendItem(color: _Cal.partialBg, label: 'qismən'),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 _LegendItem(color: _Cal.missedBg, label: 'buraxıldı'),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 _LegendItem(color: _Cal.selectedBg, label: 'seçili'),
               ],
             ),
@@ -301,19 +300,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   strokeWidth: 2,
                 ),
               ),
-              error: (_, _) => Center(
+              error: (_, _) => const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.error_outline,
                       color: AppColors.textHint,
                       size: 32,
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Text(
                       'Məlumat açılmadı',
-                      style: GoogleFonts.nunito(
+                      style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
                       ),
@@ -409,7 +408,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   child: Center(
                     child: Text(
                       '$dayNum',
-                      style: GoogleFonts.nunito(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: isSelected || isToday || isDone
                             ? FontWeight.w700
@@ -432,7 +431,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final isPast = _selectedDate.isBefore(todayNorm);
 
     if (data.amals.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -440,10 +439,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               '✦',
               style: TextStyle(fontSize: 20, color: AppColors.accentMuted),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               'Bu tarixdə heç bir əməl yox idi',
-              style: GoogleFonts.nunito(
+              style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textHint,
                 fontStyle: FontStyle.italic,
@@ -471,7 +470,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               isToday
                   ? 'gözlənilir'
                   : (isPast ? 'yerinə yetirilmədi' : 'gözlənilir'),
-              style: GoogleFonts.nunito(
+              style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textHint,
@@ -490,29 +489,29 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               bottom: 10,
             ),
             child: notDone.isNotEmpty
-                ? Row(
+                ? const Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Divider(color: AppColors.separator),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: EdgeInsets.symmetric(horizontal: 10),
                         child: Text(
                           'yerinə yetirildi',
-                          style: GoogleFonts.nunito(
+                          style: TextStyle(
                             fontSize: 11,
                             color: AppColors.textHint,
                           ),
                         ),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Divider(color: AppColors.separator),
                       ),
                     ],
                   )
-                : Text(
+                : const Text(
                     'yerinə yetirildi',
-                    style: GoogleFonts.nunito(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textHint,
@@ -580,10 +579,7 @@ class _LegendItem extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 5),
-        Text(
-          label,
-          style: GoogleFonts.nunito(fontSize: 11, color: AppColors.textHint),
-        ),
+        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
       ],
     );
   }
@@ -627,7 +623,7 @@ class _Tile extends StatelessWidget {
           Expanded(
             child: Text(
               amal.title,
-              style: GoogleFonts.nunito(
+              style: TextStyle(
                 fontSize: 14,
                 color: isDone ? AppColors.textSecondary : AppColors.textPrimary,
               ),

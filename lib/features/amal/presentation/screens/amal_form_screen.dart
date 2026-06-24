@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../data/amal_repository.dart';
@@ -145,28 +144,28 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgBase,
-        title: Text(
+        title: const Text(
           'Diqqət',
-          style: GoogleFonts.nunito(fontWeight: FontWeight.w700),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
-        content: Text(
+        content: const Text(
           'Tipi dəyişsən, əvvəlki yazdığın mətn/hədəf həmişəlik silinəcək. Davam etmək istəyirsən?',
-          style: GoogleFonts.nunito(color: AppColors.textSecondary),
+          style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
+            child: const Text(
               'Ləğv et',
-              style: GoogleFonts.nunito(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
+            child: const Text(
               'Davam et',
-              style: GoogleFonts.nunito(
-                color: Colors.red.shade400,
+              style: TextStyle(
+                color: AppColors.error,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -259,7 +258,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
         ),
         title: Text(
           _isEditing ? 'Düzəliş et' : 'Yeni əməl',
-          style: GoogleFonts.nunito(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -285,7 +284,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               ),
               child: Text(
                 _isEditing ? 'Yenilə' : 'Hazır',
-                style: GoogleFonts.nunito(
+                style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
@@ -349,7 +348,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
 
   Widget _label(String text) => Text(
     text,
-    style: GoogleFonts.nunito(
+    style: const TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w700,
       color: AppColors.textPrimary,
@@ -358,9 +357,9 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
 
   InputDecoration _dec({String? hint, String? error}) => InputDecoration(
     hintText: hint,
-    hintStyle: GoogleFonts.nunito(color: AppColors.textHint, fontSize: 14),
+    hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
     errorText: error,
-    errorStyle: GoogleFonts.nunito(fontSize: 12),
+    errorStyle: const TextStyle(fontSize: 12),
     filled: true,
     fillColor: AppColors.bgCard,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -378,11 +377,11 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.red.shade300),
+      borderSide: const BorderSide(color: AppColors.error),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.red.shade300, width: 1.5),
+      borderSide: const BorderSide(color: AppColors.error, width: 1.5),
     ),
   );
 
@@ -394,7 +393,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     onChanged: (_) {
       if (_submitted) setState(() {});
     },
-    style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
+    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
     decoration:
         _dec(
           hint: 'Aşura ziyarətnaməsi, Nüdbə duası, 100 salavat..',
@@ -408,9 +407,9 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               if (len <= 50) return const SizedBox.shrink();
               return Text(
                 '$len/60',
-                style: GoogleFonts.nunito(
+                style: TextStyle(
                   fontSize: 11,
-                  color: len >= 60 ? Colors.red.shade400 : AppColors.textHint,
+                  color: len >= 60 ? AppColors.error : AppColors.textHint,
                 ),
               );
             },
@@ -461,7 +460,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
                     const SizedBox(height: 5),
                     Text(
                       types[i].$3,
-                      style: GoogleFonts.nunito(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: _type == types[i].$1
@@ -489,7 +488,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       onChanged: (_) {
         if (_submitted) setState(() {});
       },
-      style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
+      style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
       decoration: _dec(hint: 'say yaz.. məs: 100, 500', error: _countError),
     ),
   );
@@ -499,12 +498,12 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     focusNode: _contentFocus,
     maxLines: null,
     minLines: 8,
-    style: GoogleFonts.scheherazadeNew(
-      textStyle: GoogleFonts.nunito(
-        fontSize: 16,
-        height: 1.9,
-        color: AppColors.textPrimary,
-      ),
+    style: const TextStyle(
+      fontFamily: 'Scheherazade New',
+      fontFamilyFallback: ['Roboto'],
+      fontSize: 16,
+      height: 1.9,
+      color: AppColors.textPrimary,
     ),
     decoration: _dec(
       hint: 'Dua, ziyarətnamə, zikr və ya oxunacaq mətni bura yaz..',
@@ -534,7 +533,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
             ),
             child: Text(
               p.$2,
-              style: GoogleFonts.nunito(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: selected ? AppColors.accent : AppColors.textSecondary,
@@ -555,7 +554,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       onChanged: (_) {
         if (_submitted) setState(() {});
       },
-      style: GoogleFonts.nunito(fontSize: 15, color: AppColors.textPrimary),
+      style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
       decoration: _dec(hint: 'özün yaz... məs: 10', error: _customDurError),
     ),
   );
@@ -565,7 +564,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     maxLines: 3,
     minLines: 2,
     textCapitalization: TextCapitalization.sentences,
-    style: GoogleFonts.nunito(
+    style: const TextStyle(
       fontSize: 14,
       color: AppColors.textPrimary,
       height: 1.5,
@@ -610,9 +609,9 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                const Text(
                   'Fasilə versəm sıfırdan başlasın',
-                  style: GoogleFonts.nunito(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -623,7 +622,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
                   _strictMode
                       ? 'Bir gün buraxsan, say sıfırdan başlayacaq'
                       : 'Buraxılan günlər sayılmayacaq, sadəcə tamamlanma sayı izlənəcək',
-                  style: GoogleFonts.nunito(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textHint,
                     height: 1.4,

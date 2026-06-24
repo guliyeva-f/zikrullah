@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 
@@ -137,7 +136,7 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.visible,
-                    style: GoogleFonts.nunito(
+                    style: const TextStyle(
                       fontSize: 9,
                       color: AppColors.textSecondary,
                     ),
@@ -192,10 +191,7 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          'Az',
-          style: GoogleFonts.nunito(fontSize: 10, color: AppColors.textHint),
-        ),
+        const Text('Az', style: TextStyle(fontSize: 10, color: AppColors.textHint)),
         const SizedBox(width: 4),
         ...[null, 0.2, 0.4, 0.7, 1.0].map(
           (r) => Container(
@@ -209,10 +205,7 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
           ),
         ),
         const SizedBox(width: 4),
-        Text(
-          'Çox',
-          style: GoogleFonts.nunito(fontSize: 10, color: AppColors.textHint),
-        ),
+        const Text('Çox', style: TextStyle(fontSize: 10, color: AppColors.textHint)),
       ],
     );
   }
