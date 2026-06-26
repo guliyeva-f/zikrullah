@@ -109,121 +109,133 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             ],
           ),
         ),
-        data: (state) => ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+        data: (state) => Column(
           children: [
-            const _SectionLabel(label: 'Bildirişlər'),
-            _ToggleRow(
-              icon: Icons.notifications_none_rounded,
-              title: 'Gündəlik bildirişlər',
-              subtitle: 'Zikr vaxtlarını xatırlat',
-              value: state.notificationsEnabled,
-              onChanged: (v) => _handleNotifToggle(v, context),
-            ),
-            const SizedBox(height: 20),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                children: [
+                  // ── Bildirişlər ──────────────────────────────────────
+                  const _SectionLabel(label: 'Bildirişlər'),
+                  _ToggleRow(
+                    icon: Icons.notifications_none_rounded,
+                    title: 'Gündəlik bildirişlər',
+                    subtitle: 'Zikr vaxtlarını xatırlat',
+                    value: state.notificationsEnabled,
+                    onChanged: (v) => _handleNotifToggle(v, context),
+                  ),
+                  const SizedBox(height: 20),
 
-            AnimatedOpacity(
-              opacity: state.notificationsEnabled ? 1.0 : 0.38,
-              duration: const Duration(milliseconds: 220),
-              child: AbsorbPointer(
-                absorbing: !state.notificationsEnabled,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _SectionLabel(label: 'Vaxtlar'),
+                  AnimatedOpacity(
+                    opacity: state.notificationsEnabled ? 1.0 : 0.38,
+                    duration: const Duration(milliseconds: 220),
+                    child: AbsorbPointer(
+                      absorbing: !state.notificationsEnabled,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SectionLabel(label: 'Vaxtlar'),
+                          _GroupCard(
+                            children: [
+                              _TimeRow(
+                                emoji: '☀️',
+                                label: 'Səhər',
+                                time: state.morningTime,
+                                onTap: () => _pickTime(
+                                  context,
+                                  current: state.morningTime,
+                                  onPicked: (t) => ref
+                                      .read(settingsProvider.notifier)
+                                      .setMorningTime(t),
+                                ),
+                              ),
+                              const _Separator(),
+                              _TimeRow(
+                                emoji: '⛅',
+                                label: 'Günorta',
+                                time: state.noonTime,
+                                onTap: () => _pickTime(
+                                  context,
+                                  current: state.noonTime,
+                                  onPicked: (t) => ref
+                                      .read(settingsProvider.notifier)
+                                      .setNoonTime(t),
+                                ),
+                              ),
+                              const _Separator(),
+                              _TimeRow(
+                                emoji: '🌆',
+                                label: 'Axşam',
+                                time: state.eveningTime,
+                                onTap: () => _pickTime(
+                                  context,
+                                  current: state.eveningTime,
+                                  onPicked: (t) => ref
+                                      .read(settingsProvider.notifier)
+                                      .setEveningTime(t),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
 
-                    _GroupCard(
-                      children: [
-                        _TimeRow(
-                          emoji: '☀️',
-                          label: 'Səhər',
-                          time: state.morningTime,
-                          onTap: () => _pickTime(
-                            context,
-                            current: state.morningTime,
-                            onPicked: (t) => ref
+                          const _SectionLabel(label: 'Gecə bildirişi'),
+                          _ToggleRow(
+                            icon: Icons.bedtime_outlined,
+                            title: 'Son xatırlatma',
+                            subtitle: 'Günü bağlamadan əvvəl · sabit 23:00',
+                            value: state.nightNotifEnabled,
+                            onChanged: (v) => ref
                                 .read(settingsProvider.notifier)
-                                .setMorningTime(t),
+                                .setNightEnabled(v),
                           ),
-                        ),
-                        const _Separator(),
-                        _TimeRow(
-                          emoji: '⛅',
-                          label: 'Günorta',
-                          time: state.noonTime,
-                          onTap: () => _pickTime(
-                            context,
-                            current: state.noonTime,
-                            onPicked: (t) => ref
-                                .read(settingsProvider.notifier)
-                                .setNoonTime(t),
-                          ),
-                        ),
-                        const _Separator(),
-                        _TimeRow(
-                          emoji: '🌆',
-                          label: 'Axşam',
-                          time: state.eveningTime,
-                          onTap: () => _pickTime(
-                            context,
-                            current: state.eveningTime,
-                            onPicked: (t) => ref
-                                .read(settingsProvider.notifier)
-                                .setEveningTime(t),
-                          ),
-                        ),
-                      ],
+                          const SizedBox(height: 20),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                  ),
 
-                    const _SectionLabel(label: 'Gecə bildirişi'),
-                    _ToggleRow(
-                      icon: Icons.bedtime_outlined,
-                      title: 'Son xatırlatma',
-                      subtitle: 'Günü bağlamadan əvvəl · sabit 23:00',
-                      value: state.nightNotifEnabled,
-                      onChanged: (v) => ref
-                          .read(settingsProvider.notifier)
-                          .setNightEnabled(v),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                  // ── Yedəklə / Bərpa ─────────────────────────────────
+                  const _SectionLabel(label: 'Yedəklə / Bərpa'),
+                  _GroupCard(
+                    children: [
+                      _ActionRow(
+                        icon: Icons.upload_outlined,
+                        label: 'Məlumatları ixrac et',
+                        subtitle: 'Əməlləri JSON kimi paylaş və yedəklə',
+                        onTap: () => _export(context),
+                      ),
+                      const _Separator(),
+                      _ActionRow(
+                        icon: Icons.download_outlined,
+                        label: 'Məlumatları idxal et',
+                        subtitle: 'Əvvəlki JSON fayldan bərpa et',
+                        onTap: () => _import(context, ref),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
 
-            const _SectionLabel(label: 'Yedəklə / Bərpa'),
-            _GroupCard(
-              children: [
-                _ActionRow(
-                  icon: Icons.upload_outlined,
-                  label: 'Məlumatları ixrac et',
-                  subtitle: 'Əməlləri JSON kimi paylaş və yedəklə',
-                  onTap: () => _export(context),
+            // ── Haqqında — ekranın altına sabit ────────────────────────
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 64),
+                child: _GroupCard(
+                  children: [
+                    _ActionRow(
+                      icon: Icons.info_outline,
+                      label: 'Haqqında',
+                      subtitle: 'Tətbiq, funksionallıq və məxfilik',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AboutScreen()),
+                      ),
+                    ),
+                  ],
                 ),
-                const _Separator(),
-                _ActionRow(
-                  icon: Icons.download_outlined,
-                  label: 'Məlumatları idxal et',
-                  subtitle: 'Əvvəlki JSON fayldan bərpa et',
-                  onTap: () => _import(context, ref),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const _SectionLabel(label: 'Tətbiq haqqında'),
-            _GroupCard(
-              children: [
-                _ActionRow(
-                  icon: Icons.info_outline,
-                  label: 'Haqqında',
-                  subtitle: 'Versiya və məxfilik siyasəti',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AboutScreen()),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),
@@ -231,7 +243,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
-  // ─── NOTIFICATION TOGGLE ──────────────────────────────────────────────────
+  // ─── NOTIFICATION TOGGLE ─────────────────────────────────────────────────
 
   Future<void> _handleNotifToggle(bool v, BuildContext context) async {
     if (v) {
@@ -404,6 +416,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   }
 }
 
+// ─── CONFLICT DIALOG ─────────────────────────────────────────────────────────
+
 class _ConflictDialog extends StatefulWidget {
   final ImportPreview preview;
   const _ConflictDialog({required this.preview});
@@ -446,9 +460,7 @@ class _ConflictDialogState extends State<_ConflictDialog> {
               ),
             ),
           ),
-
           const Divider(height: 1, color: AppColors.separator),
-
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
@@ -462,9 +474,7 @@ class _ConflictDialogState extends State<_ConflictDialog> {
               ),
             ),
           ),
-
           const Divider(height: 1, color: AppColors.separator),
-
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
             child: Row(
@@ -576,7 +586,6 @@ class _ConflictDialogState extends State<_ConflictDialog> {
               ],
             ),
           ),
-
           const Divider(height: 1, color: AppColors.separator),
           IntrinsicHeight(
             child: Row(
@@ -609,6 +618,8 @@ class _ConflictDialogState extends State<_ConflictDialog> {
     );
   }
 }
+
+// ─── SIDE PANEL ──────────────────────────────────────────────────────────────
 
 class _SidePanel extends StatelessWidget {
   final String label;
@@ -665,7 +676,6 @@ class _SidePanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 7),
-
             if (streak != null && streak! > 0) ...[
               _statRow('🔥', '$streak gün ardıcıl'),
               const SizedBox(height: 2),
@@ -674,7 +684,6 @@ class _SidePanel extends StatelessWidget {
               _statRow('✓', '$completedDays gün tamamlandı'),
               const SizedBox(height: 4),
             ],
-
             if (amal.type == AmalType.counter && amal.countTarget != null)
               _fieldRow('Hədəf', '${amal.countTarget}'),
             if (amal.intention != null && amal.intention!.isNotEmpty)
@@ -749,6 +758,8 @@ class _SidePanel extends StatelessWidget {
   );
 }
 
+// ─── SHARED WIDGETS ──────────────────────────────────────────────────────────
+
 class _SectionLabel extends StatelessWidget {
   final String label;
   const _SectionLabel({required this.label});
@@ -785,6 +796,7 @@ class _GroupCard extends StatelessWidget {
 
 class _Separator extends StatelessWidget {
   const _Separator();
+
   @override
   Widget build(BuildContext context) => const Divider(
     height: 1,
@@ -799,6 +811,7 @@ class _TimeRow extends StatelessWidget {
   final String label;
   final TimeOfDay time;
   final VoidCallback onTap;
+
   const _TimeRow({
     required this.emoji,
     required this.label,

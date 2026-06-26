@@ -56,8 +56,6 @@ class NotificationMessages {
   ];
 
   // ─── SEÇİM MƏNTİQİ ───────────────────────────────────────────────────────────
-
-  /// `slotKey`: 'morning' | 'noon' | 'evening' | 'night' | 'return'
   static Future<String> compose({
     required String slotKey,
     required List<String> incompleteTitles,

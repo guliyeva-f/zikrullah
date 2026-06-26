@@ -43,13 +43,13 @@ flutter:
           weight: 800
     - family: Scheherazade New
       fonts:
-        - asset: assets/fonts/Scheherazade_New/ScheherazadeNew-Regular.ttf
+        - asset: assets/fonts/Scheherazade/ScheherazadeNew-Regular.ttf
           weight: 400
-        - asset: assets/fonts/Scheherazade_New/ScheherazadeNew-Medium.ttf
+        - asset: assets/fonts/Scheherazade/ScheherazadeNew-Medium.ttf
           weight: 500
-        - asset: assets/fonts/Scheherazade_New/ScheherazadeNew-SemiBold.ttf
+        - asset: assets/fonts/Scheherazade/ScheherazadeNew-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/Scheherazade_New/ScheherazadeNew-Bold.ttf
+        - asset: assets/fonts/Scheherazade/ScheherazadeNew-Bold.ttf
           weight: 700
 
 flutter_launcher_icons:

@@ -323,7 +323,6 @@ class AmalRepository {
         }
       }
 
-      // Yalnız bu tarixdə HƏLƏ aktiv olan (o vaxt arxivləşməmiş) əməlləri sayırıq.
       int totalOnDate = 0;
       for (int i = 0; i < lo; i++) {
         final archivedDate = archivedDates[i];

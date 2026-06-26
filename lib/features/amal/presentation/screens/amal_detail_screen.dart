@@ -186,10 +186,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                 ),
                 decoration: const InputDecoration(
                   hintText: 'Allah üçün, özüm üçün... niyyətini yaz 🤍',
-                  hintStyle: TextStyle(
-                    color: AppColors.textHint,
-                    fontSize: 14,
-                  ),
+                  hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
                   counterStyle: TextStyle(
                     fontSize: 11,
                     color: AppColors.textHint,
@@ -229,10 +226,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                 },
                 child: const Text(
                   'Saxla',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                 ),
               ),
             ),
@@ -399,10 +393,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   SizedBox(width: 8),
                   Text(
                     'Niyyətin yoxdur — əlavə et',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textHint,
-                    ),
+                    style: TextStyle(fontSize: 13, color: AppColors.textHint),
                   ),
                 ],
               ),
@@ -421,7 +412,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     if (target != null && !isProgramComplete && !isLoose) {
       final remaining = _amal.remainingDaysFor(_cycleCompletedCount);
       subLine = Text(
-        '$remaining gün qaldı 🌙 ($target gün)',
+        _cycleCompletedCount == 0
+            ? 'Müddət: $target gün'
+            : '$remaining gün qaldı 🌙 ($target gün)',
         style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
       );
     } else if (target == null && _bestStreak > streak) {
@@ -648,36 +641,35 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   // ─── CƏHD TARİXÇƏSİ (yalnız ardıcıl rejim, 1-dən çox cəhd varsa) ───────────
 
   Widget _buildCycleHistory() {
-    if (_amal.allowBreak || _amal.durationDays == null || _cycles.length <= 1) {
+    if (_amal.allowBreak || _amal.durationDays == null) {
       return const SizedBox.shrink();
     }
+    final broken = _cycles.where((c) => !c.isOngoing).toList();
+    if (broken.isEmpty) return const SizedBox.shrink();
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Cəhd tarixçəsi',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Əvvəlki cəhdlər',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textHint,
+            ),
+          ),
+          const SizedBox(height: 4),
+          for (final c in broken)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Text(
+                '${_shortDate(c.startedAt)} – ${_shortDate(c.endedAt!)}  ·  ${c.daysDone} gün',
+                style: const TextStyle(fontSize: 12, color: AppColors.textHint),
               ),
             ),
-            const SizedBox(height: 10),
-            for (int i = 0; i < _cycles.length; i++) ...[
-              if (i > 0) const SizedBox(height: 8),
-              _buildCycleRow(i + 1, _cycles[i]),
-            ],
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -685,42 +677,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   String _shortDate(String isoDate) {
     final d = DateTime.parse(isoDate.substring(0, 10));
     return '${d.day} ${AppConstants.monthsShort[d.month - 1]}';
-  }
-
-  Widget _buildCycleRow(int index, AmalCycle cycle) {
-    final start = _shortDate(cycle.startedAt);
-    final isOngoing = cycle.isOngoing;
-    final endLabel = isOngoing ? '...' : _shortDate(cycle.endedAt!);
-
-    return Row(
-      children: [
-        SizedBox(
-          width: 62,
-          child: Text(
-            'Cəhd $index:',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            '$start – $endLabel',
-            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
-          ),
-        ),
-        Text(
-          isOngoing ? 'davam edir' : '${cycle.daysDone} gün (qırıldı)',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isOngoing ? AppColors.accent : AppColors.textHint,
-          ),
-        ),
-      ],
-    );
   }
 }
 

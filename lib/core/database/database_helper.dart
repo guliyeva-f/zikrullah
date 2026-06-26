@@ -114,7 +114,6 @@ class DatabaseHelper {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_cycles_amal ON amal_cycles (amal_id)',
       );
-      // Mövcud müddətli əməllər üçün başlanğıc dövr yaradılır (köhnə istifadəçilər üçün)
       await db.execute('''
         INSERT INTO amal_cycles (amal_id, started_at, ended_at, days_done)
         SELECT id, created_at, NULL, 0 FROM amals WHERE duration_days IS NOT NULL

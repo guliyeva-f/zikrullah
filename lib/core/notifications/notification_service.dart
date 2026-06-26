@@ -195,7 +195,6 @@ class NotificationService {
     }
   }
 
-  /// Hər dəfə əməl siyahısı / tamamlanma statusu dəyişəndə çağırılır.
   Future<void> updateTodayProgress(List<String> incompleteTitles) async {
     await _cacheIncompleteTitles(incompleteTitles);
     await refreshTodayNotifications();
@@ -213,7 +212,6 @@ class NotificationService {
       final noon = await getNoonTime();
       final evening = await getEveningTime();
 
-      // Hamısı bitibsə → sabahdan başla. Bitməyibsə → bugünkü (keçməyən) vaxtlara planla.
       final scheduleFn = titles.isEmpty
           ? _scheduleDailyFromTomorrow
           : _scheduleDaily;

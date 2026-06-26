@@ -33,7 +33,6 @@ class Amal {
 
   // ─── COMPUTED ─────────────────────────────────────────────────────────────
 
-  /// Hazırkı dövrün başlanğıcı. Heç vaxt sıfırlanmayıbsa, yaranma tarixi ilə eynidir.
   String get effectiveCycleStart => cycleStartedAt ?? createdAt;
 
   int remainingDaysFor(int completedCount) {

@@ -206,10 +206,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                 ),
                                               ),
                                               Padding(
-                                                padding:
-                                                    EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                    ),
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 10,
+                                                ),
                                                 child: Text(
                                                   'bu gün əda olundu ✓',
                                                   style: TextStyle(
@@ -500,14 +499,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 6),
             ClipRRect(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(10),
               child: LinearProgressIndicator(
                 value: progress,
                 backgroundColor: AppColors.bgElevated,
                 valueColor: const AlwaysStoppedAnimation<Color>(
                   AppColors.accent,
                 ),
-                minHeight: 6,
+                minHeight: 5,
               ),
             ),
           ],
@@ -626,7 +625,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Container(
               width: 32,
               height: 0.5,
-              color: AppColors.accentLight.withValues(alpha: 0.6),
+              color: AppColors.accentStreak.withValues(alpha: 0.6),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -674,7 +673,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.accent,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Text(
                   'İlk əməlini əlavə et',
@@ -812,153 +811,217 @@ class _AmalCard extends StatefulWidget {
   State<_AmalCard> createState() => _AmalCardState();
 }
 
-class _AmalCardState extends State<_AmalCard> {
+class _AmalCardState extends State<_AmalCard>
+    with SingleTickerProviderStateMixin {
   bool _hintVisible = false;
+  bool _pendingComplete = false;
+
+  late final AnimationController _exitController;
+  late final Animation<double> _exitOpacity;
+  late final Animation<Offset> _exitSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _exitController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _exitOpacity = Tween<double>(
+      begin: 1.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _exitController, curve: Curves.easeIn));
+    _exitSlide = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0, 0.06),
+    ).animate(CurvedAnimation(parent: _exitController, curve: Curves.easeIn));
+  }
+
+  @override
+  void dispose() {
+    _exitController.dispose();
+    super.dispose();
+  }
 
   bool get _done => widget.record?.isCompleted ?? false;
   bool get _hasChevron => widget.amal.type == AmalType.text;
 
+  Future<void> _handleComplete() async {
+    if (_done) {
+      widget.onCompleteTap();
+      return;
+    }
+
+    if (_pendingComplete) return;
+    setState(() => _pendingComplete = true);
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    await _exitController.forward();
+    if (!mounted) return;
+    widget.onCompleteTap();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onDetailTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: _done
-                ? AppColors.accent.withValues(alpha: 0.4)
-                : AppColors.border,
-          ),
-        ),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 3,
-              height: 56,
-              decoration: BoxDecoration(
-                color: _done ? AppColors.accent : Colors.transparent,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14),
-                ),
+    return FadeTransition(
+      opacity: _exitOpacity,
+      child: SlideTransition(
+        position: _exitSlide,
+        child: GestureDetector(
+          onTap: widget.onDetailTap,
+          child: Container(
+            clipBehavior: Clip.hardEdge,
+            decoration: BoxDecoration(
+              color: AppColors.bgCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: (_done || _pendingComplete)
+                    ? AppColors.accent.withValues(alpha: 0.4)
+                    : AppColors.border,
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(11, 12, 14, 12),
-                child: Row(
-                  children: [
-                    _buildLeading(context),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildMiddle()),
-                    if (_hasChevron)
-                      GestureDetector(
-                        onTap: widget.onOpenScreen,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: AppColors.bgElevated,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.chevron_right,
-                            color: AppColors.textSecondary,
-                            size: 20,
-                          ),
-                        ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 3,
+                    decoration: BoxDecoration(
+                      color: (_done || _pendingComplete)
+                          ? AppColors.accent
+                          : Colors.transparent,
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(6, 8, 10, 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _buildLeading(context),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildMiddle()),
+                          if (_hasChevron)
+                            GestureDetector(
+                              onTap: widget.onOpenScreen,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: AppColors.bgElevated,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.chevron_right,
+                                  color: AppColors.textSecondary,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildLeading(BuildContext context) {
-    Widget circle(VoidCallback onTap) => GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _done ? AppColors.accent : Colors.transparent,
-          border: Border.all(
-            color: _done ? AppColors.accent : AppColors.textHint,
-            width: 2,
+    final isChecked = _done || _pendingComplete;
+
+    Widget circle(VoidCallback onTap) => SizedBox(
+      width: 44,
+      height: 44,
+      child: Center(
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isChecked ? AppColors.accent : Colors.transparent,
+              border: Border.all(
+                color: isChecked ? AppColors.accent : AppColors.textHint,
+                width: 2,
+              ),
+            ),
+            child: isChecked
+                ? const Icon(Icons.check, color: Colors.white, size: 15)
+                : null,
           ),
         ),
-        child: _done
-            ? const Icon(Icons.check, color: Colors.white, size: 15)
-            : null,
       ),
     );
 
     switch (widget.amal.type) {
       case AmalType.checkbox:
-        return circle(widget.onCompleteTap);
-
       case AmalType.text:
-        return circle(_done ? widget.onCompleteTap : widget.onOpenScreen);
+        return circle(_handleComplete);
 
       case AmalType.counter:
         final cnt = widget.record?.countDone ?? 0;
         final target = widget.amal.countTarget ?? 1;
         final isSmall = target <= 10;
 
-        return GestureDetector(
-          onTap: _done
-              ? null
-              : isSmall
-              ? () {
-                  widget.onCounterTap();
-                  if (widget.showCounterHint && cnt == 0 && !_hintVisible) {
-                    setState(() => _hintVisible = true);
-                    markCounterHintShown();
-                    Future.delayed(const Duration(seconds: 3), () {
-                      if (mounted) setState(() => _hintVisible = false);
-                    });
+        return Center(
+          child: GestureDetector(
+            onTap: _done
+                ? null
+                : isSmall
+                ? () {
+                    widget.onCounterTap();
+                    if (widget.showCounterHint && cnt == 0 && !_hintVisible) {
+                      setState(() => _hintVisible = true);
+                      markCounterHintShown();
+                      Future.delayed(const Duration(seconds: 3), () {
+                        if (mounted) setState(() => _hintVisible = false);
+                      });
+                    }
                   }
-                }
-              : widget.onOpenScreen,
-          onLongPress: isSmall && cnt > 0
-              ? () {
-                  widget.onCounterDecrement();
-                  if (_hintVisible) setState(() => _hintVisible = false);
-                }
-              : null,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: _done
-                ? const Icon(Icons.check, color: AppColors.accent, size: 18)
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.add, color: AppColors.accent, size: 15),
-                      const SizedBox(height: 2),
-                      Text(
-                        '$cnt/$target',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                : widget.onOpenScreen,
+            onLongPress: isSmall && cnt > 0
+                ? () {
+                    widget.onCounterDecrement();
+                    if (_hintVisible) setState(() => _hintVisible = false);
+                  }
+                : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: _done
+                  ? const Icon(Icons.check, color: AppColors.accent, size: 18)
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.add,
                           color: AppColors.accent,
+                          size: 15,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$cnt/$target',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ),
         );
     }
@@ -977,36 +1040,44 @@ class _AmalCardState extends State<_AmalCard> {
       return null;
     }
 
+    final bool isLoose =
+        widget.amal.durationDays != null && widget.amal.allowBreak;
+    final int displayCount = isLoose ? widget.completedCount : widget.streak;
+
     final String? streakText;
     if (isProgramComplete) {
       streakText =
           '${widget.amal.durationDays} günlük əhdinə vəfalı oldun.\nAllah qəbul etsin 🤲';
-    } else if (widget.streak == 0) {
+    } else if (displayCount == 0) {
       streakText = null;
-    } else if (widget.streak == 1) {
+    } else if (displayCount == 1) {
       streakText = 'ilk addım 🌱';
-    } else if (widget.streak <= 3) {
-      streakText = '${widget.streak} gün davamlı ✨';
+    } else if (displayCount <= 3) {
+      streakText = '$displayCount gün davamlı ✨';
     } else {
       streakText =
-          milestoneText(widget.streak) ?? '${widget.streak} gün davamlı 🔥';
+          milestoneText(displayCount) ?? '$displayCount gün davamlı 🔥';
     }
 
     final bool isMilestone =
-        !isProgramComplete && milestoneText(widget.streak) != null;
+        !isProgramComplete && milestoneText(displayCount) != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           widget.amal.title,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: _done ? AppColors.textSecondary : AppColors.textPrimary,
+            color: (_done || _pendingComplete)
+                ? AppColors.textSecondary
+                : AppColors.textPrimary,
           ),
         ),
-        if (streakText != null && widget.amal.durationDays == null) ...[
+        if (streakText != null) ...[
           const SizedBox(height: 2),
           Text(
             streakText,
@@ -1014,7 +1085,7 @@ class _AmalCardState extends State<_AmalCard> {
               fontSize: 12,
               color: isProgramComplete || isMilestone
                   ? AppColors.accent
-                  : AppColors.accentLight,
+                  : AppColors.accentStreak,
               fontWeight: isProgramComplete || isMilestone
                   ? FontWeight.w600
                   : FontWeight.w500,
@@ -1037,51 +1108,6 @@ class _AmalCardState extends State<_AmalCard> {
               ),
             ),
           ),
-        if (widget.amal.durationDays != null && !isProgramComplete) ...[
-          const SizedBox(height: 2),
-          if (widget.amal.allowBreak)
-            Text(
-              '${widget.completedCount}/${widget.amal.durationDays} gün',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textHint,
-              ),
-            )
-          else
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-                children: [
-                  if (_done && streakText != null) ...[
-                    TextSpan(
-                      text: streakText,
-                      style: TextStyle(
-                        color: isMilestone
-                            ? AppColors.accent
-                            : AppColors.accentLight,
-                        fontWeight: isMilestone
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                      ),
-                    ),
-                    const TextSpan(
-                      text: '  ·  ',
-                      style: TextStyle(color: AppColors.textHint),
-                    ),
-                  ],
-                  TextSpan(
-                    text:
-                        '${widget.amal.remainingDaysFor(widget.completedCount).clamp(0, 999)} gün qaldı',
-                    style: const TextStyle(color: AppColors.textHint),
-                  ),
-                ],
-              ),
-            ),
-        ],
       ],
     );
   }
