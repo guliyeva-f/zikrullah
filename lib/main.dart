@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/constants/app_colors.dart';
 import 'core/notifications/notification_service.dart';
 import 'features/amal/presentation/screens/onboarding_wrapper.dart';
+import 'package:flutter/cupertino.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,6 +48,12 @@ class ZikrullahApp extends StatelessWidget {
           primary: AppColors.accent,
           secondary: AppColors.accentLight,
           surface: AppColors.bgCard,
+        ),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.bgBase,

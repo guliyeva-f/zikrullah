@@ -93,13 +93,16 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     final v = int.tryParse(_countCtrl.text.trim());
     if (v == null) return 'Say daxil et';
     if (v < 1) return 'Ən azı 1 dəfə daxil et';
+    if (v > 40000) return 'Maksimum 40000 ola bilər';
     return null;
   }
 
   String? get _customDurError {
     if (!_submitted || _durationPreset != -1) return null;
     final v = int.tryParse(_customDurCtrl.text.trim());
-    return (v == null || v < 1) ? 'Ən azı 1 gün daxil et' : null;
+    if (v == null || v < 1) return 'Ən azı 1 gün daxil et';
+    if (v > 365) return 'Maksimum 365 gün ola bilər';
+    return null;
   }
 
   int? get _resolvedDuration {
@@ -112,13 +115,13 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     if (_titleCtrl.text.trim().isEmpty) {
       return false;
     }
-    if (_type == AmalType.counter &&
-        (int.tryParse(_countCtrl.text.trim()) ?? 0) < 1) {
-      return false;
+    if (_type == AmalType.counter) {
+      final v = int.tryParse(_countCtrl.text.trim()) ?? 0;
+      if (v < 1 || v > 40000) return false;
     }
-    if (_durationPreset == -1 &&
-        (int.tryParse(_customDurCtrl.text.trim()) ?? 0) < 1) {
-      return false;
+    if (_durationPreset == -1) {
+      final v = int.tryParse(_customDurCtrl.text.trim()) ?? 0;
+      if (v < 1 || v > 365) return false;
     }
     return true;
   }
@@ -359,7 +362,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     hintText: hint,
     hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
     errorText: error,
-    errorStyle: const TextStyle(fontSize: 12),
+    errorStyle: const TextStyle(fontSize: 13),
     filled: true,
     fillColor: AppColors.bgCard,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -408,7 +411,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               return Text(
                 '$len/60',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   color: len >= 60 ? AppColors.error : AppColors.textHint,
                 ),
               );
@@ -461,7 +464,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
                     Text(
                       types[i].$3,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: _type == types[i].$1
                             ? AppColors.accent
@@ -489,7 +492,10 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
         if (_submitted) setState(() {});
       },
       style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-      decoration: _dec(hint: 'say yaz.. məs: 100, 500', error: _countError),
+      decoration: _dec(
+        hint: 'say yaz.. məs: 100, 500',
+        error: _countError,
+      ).copyWith(counterText: ''),
     ),
   );
 
@@ -555,7 +561,10 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
         if (_submitted) setState(() {});
       },
       style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-      decoration: _dec(hint: 'özün yaz... məs: 10', error: _customDurError),
+      decoration: _dec(
+        hint: 'özün yaz... məs: 10 (maks. 365)',
+        error: _customDurError,
+      ).copyWith(counterText: ''),
     ),
   );
 
@@ -609,9 +618,11 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Fasilə versəm sıfırdan başlasın',
-                  style: TextStyle(
+                Text(
+                  _strictMode
+                      ? 'Ardıcıl — fasilə versəm sıfırdan başlayır'
+                      : 'Fasiləli — yalnız tamamlanma sayı izlənir',
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -620,10 +631,10 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
                 const SizedBox(height: 2),
                 Text(
                   _strictMode
-                      ? 'Bir gün buraxsan, say sıfırdan başlayacaq'
-                      : 'Buraxılan günlər sayılmayacaq, sadəcə tamamlanma sayı izlənəcək',
+                      ? '40 gün Yasin kimi əhdlər üçün. Bir gün buraxsan zəncir qırılır, yenidən 1-dən başlayırsan.'
+                      : '40 cümə sədəqəsi kimi əhdlər üçün. Fasilə verə bilərsən — yalnız neçə dəfə etdiyin sayılır.',
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: AppColors.textHint,
                     height: 1.4,
                   ),

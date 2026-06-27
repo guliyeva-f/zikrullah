@@ -491,12 +491,12 @@ class _ArchivedAmalCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(_typeIcon, style: const TextStyle(fontSize: 12)),
+                      Text(_typeIcon, style: const TextStyle(fontSize: 13)),
                       const SizedBox(width: 6),
                       Text(
                         _fullyCompleted ? '✅ Tamamlandı' : '⏳ Yarımçıq qaldı',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: _fullyCompleted
                               ? const Color(0xFF5A8A5E)
@@ -520,7 +520,7 @@ class _ArchivedAmalCard extends StatelessWidget {
                   Text(
                     '$completedDays/${amal.durationDays ?? completedDays} gün',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       color: AppColors.textHint,
                     ),
                   ),

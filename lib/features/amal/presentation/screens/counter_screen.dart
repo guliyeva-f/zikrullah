@@ -153,7 +153,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                             progressColor: done
                                 ? AppColors.success
                                 : AppColors.accent,
-                            strokeWidth: 10,
+                            strokeWidth: 11,
                           ),
                         ),
                         Column(
@@ -241,7 +241,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                       child: Text(
                         'uzun bas — geri al',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: AppColors.textHint.withValues(alpha: 0.6),
                           letterSpacing: 0.1,
                         ),

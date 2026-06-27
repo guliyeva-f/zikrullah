@@ -221,7 +221,18 @@ class AmalRepository {
 
   Future<void> reactivateAmal(int id) async {
     final db = await _db;
-    final newCycleStart = '$_today 00:00:00';
+    final today = _today;
+
+    final todayRecord = await db.query(
+      'amal_records',
+      where: 'amal_id = ? AND record_date = ? AND is_completed = 1',
+      whereArgs: [id, today],
+    );
+    final cycleStartDate = todayRecord.isNotEmpty
+        ? _formatDate(DateTime.now().add(const Duration(days: 1)))
+        : today;
+    final newCycleStart = '$cycleStartDate 00:00:00';
+
     await db.transaction((txn) async {
       await txn.update(
         'amals',

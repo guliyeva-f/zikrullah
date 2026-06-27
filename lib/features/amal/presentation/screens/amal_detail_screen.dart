@@ -188,7 +188,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   hintText: 'Allah üçün, özüm üçün... niyyətini yaz 🤍',
                   hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
                   counterStyle: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: AppColors.textHint,
                   ),
                   filled: false,
@@ -592,7 +592,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                     child: Text(
                       '${day.day}',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: isFuture
                             ? AppColors.textHint.withValues(alpha: 0.35)
@@ -625,7 +625,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               ? '${AppConstants.months[month - 1]} $year'
               : AppConstants.months[month - 1],
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.w700,
             color: AppColors.textSecondary,
           ),
@@ -644,8 +644,8 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     if (_amal.allowBreak || _amal.durationDays == null) {
       return const SizedBox.shrink();
     }
-    final broken = _cycles.where((c) => !c.isOngoing).toList();
-    if (broken.isEmpty) return const SizedBox.shrink();
+    final closed = _cycles.where((c) => !c.isOngoing).toList();
+    if (closed.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -653,25 +653,34 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Əvvəlki cəhdlər',
+            'Keçmiş cəhdlər',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               color: AppColors.textHint,
             ),
           ),
           const SizedBox(height: 4),
-          for (final c in broken)
+          for (final c in closed)
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
-                '${_shortDate(c.startedAt)} – ${_shortDate(c.endedAt!)}  ·  ${c.daysDone} gün',
+                _cycleLine(c),
                 style: const TextStyle(fontSize: 12, color: AppColors.textHint),
               ),
             ),
         ],
       ),
     );
+  }
+
+  String _cycleLine(AmalCycle c) {
+    final target = _amal.durationDays ?? 0;
+    final range = '${_shortDate(c.startedAt)} – ${_shortDate(c.endedAt!)}';
+    if (c.daysDone >= target) {
+      return '$range  ·  ✅ Tamamlandı';
+    }
+    return '$range  ·  ${c.daysDone} gün (qırıldı)';
   }
 
   String _shortDate(String isoDate) {

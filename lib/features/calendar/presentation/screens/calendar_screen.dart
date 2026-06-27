@@ -251,7 +251,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         child: Text(
                           d,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textHint,
                           ),
@@ -471,7 +471,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   ? 'gözlənilir'
                   : (isPast ? 'yerinə yetirilmədi' : 'gözlənilir'),
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textHint,
                 letterSpacing: 0.5,
@@ -499,7 +499,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         child: Text(
                           'yerinə yetirildi',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: AppColors.textHint,
                           ),
                         ),
@@ -512,7 +512,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 : const Text(
                     'yerinə yetirildi',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textHint,
                       letterSpacing: 0.5,
@@ -579,7 +579,7 @@ class _LegendItem extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 5),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
+        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
       ],
     );
   }

@@ -188,7 +188,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       state.completedCounts[amal.id] ?? 0;
 
                                   return Column(
-                                    key: ValueKey(amal.id),
                                     children: [
                                       if (isFirstCompleted)
                                         const Padding(
@@ -212,7 +211,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                 child: Text(
                                                   'bu gün əda olundu ✓',
                                                   style: TextStyle(
-                                                    fontSize: 11,
+                                                    fontSize: 12,
                                                     color: AppColors.textHint,
                                                   ),
                                                 ),
@@ -233,6 +232,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           8,
                                         ),
                                         child: _AmalCard(
+                                          key: ValueKey(
+                                            '${amal.id}_${record?.isCompleted ?? false}',
+                                          ),
                                           amal: amal,
                                           record: record,
                                           streak: streak,
@@ -487,26 +489,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                Text(
-                  '${(progress * 100).round()}%',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.accent,
-                    fontWeight: FontWeight.w600,
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: progress * 100),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, animPct, _) => Text(
+                    '${animPct.round()}%',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: progress,
-                backgroundColor: AppColors.bgElevated,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  AppColors.accent,
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: progress),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutCubic,
+              builder: (context, animValue, _) => ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: animValue,
+                  backgroundColor: AppColors.bgElevated,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.accent,
+                  ),
+                  minHeight: 6,
                 ),
-                minHeight: 5,
               ),
             ),
           ],
@@ -632,7 +644,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               'Bilin ki, qəlblər yalnız Allahı zikr etməklə\nrahatlıq tapar',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 color: AppColors.textSecondary,
                 height: 1.7,
                 fontStyle: FontStyle.italic,
@@ -642,12 +654,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('🌿', style: TextStyle(fontSize: 11)),
+                const Text('🌿', style: TextStyle(fontSize: 12)),
                 const SizedBox(width: 6),
                 const Text(
                   'Ər-Rəd surəsi, 28',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 13,
                     color: AppColors.textHint,
                     letterSpacing: 0.4,
                   ),
@@ -656,7 +668,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Transform(
                   alignment: Alignment.center,
                   transform: Matrix4.rotationY(3.14159),
-                  child: const Text('🌿', style: TextStyle(fontSize: 11)),
+                  child: const Text('🌿', style: TextStyle(fontSize: 12)),
                 ),
               ],
             ),
@@ -669,11 +681,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 28,
-                  vertical: 14,
+                  vertical: 17,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.accent,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
                   'İlk əməlini əlavə et',
@@ -726,7 +738,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'İllik yolun',
+                  'İllik yolun, keçid et ',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -795,6 +807,7 @@ class _AmalCard extends StatefulWidget {
   final VoidCallback onDetailTap;
 
   const _AmalCard({
+    super.key,
     required this.amal,
     required this.record,
     required this.streak,
@@ -814,32 +827,32 @@ class _AmalCard extends StatefulWidget {
 class _AmalCardState extends State<_AmalCard>
     with SingleTickerProviderStateMixin {
   bool _hintVisible = false;
-  bool _pendingComplete = false;
+  bool _leaving = false;
 
-  late final AnimationController _exitController;
-  late final Animation<double> _exitOpacity;
-  late final Animation<Offset> _exitSlide;
+  late final AnimationController _leaveCtrl;
+  late final Animation<double> _leaveOpacity;
+  late final Animation<Offset> _leaveSlide;
 
   @override
   void initState() {
     super.initState();
-    _exitController = AnimationController(
+    _leaveCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 260),
     );
-    _exitOpacity = Tween<double>(
+    _leaveOpacity = Tween<double>(
       begin: 1.0,
       end: 0.0,
-    ).animate(CurvedAnimation(parent: _exitController, curve: Curves.easeIn));
-    _exitSlide = Tween<Offset>(
+    ).animate(CurvedAnimation(parent: _leaveCtrl, curve: Curves.easeIn));
+    _leaveSlide = Tween<Offset>(
       begin: Offset.zero,
-      end: const Offset(0, 0.06),
-    ).animate(CurvedAnimation(parent: _exitController, curve: Curves.easeIn));
+      end: const Offset(0, 0.12),
+    ).animate(CurvedAnimation(parent: _leaveCtrl, curve: Curves.easeIn));
   }
 
   @override
   void dispose() {
-    _exitController.dispose();
+    _leaveCtrl.dispose();
     super.dispose();
   }
 
@@ -851,12 +864,11 @@ class _AmalCardState extends State<_AmalCard>
       widget.onCompleteTap();
       return;
     }
-
-    if (_pendingComplete) return;
-    setState(() => _pendingComplete = true);
-    await Future.delayed(const Duration(milliseconds: 700));
+    if (_leaving) return;
+    setState(() => _leaving = true);
+    await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
-    await _exitController.forward();
+    await _leaveCtrl.forward();
     if (!mounted) return;
     widget.onCompleteTap();
   }
@@ -864,18 +876,18 @@ class _AmalCardState extends State<_AmalCard>
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: _exitOpacity,
+      opacity: _leaveOpacity,
       child: SlideTransition(
-        position: _exitSlide,
+        position: _leaveSlide,
         child: GestureDetector(
           onTap: widget.onDetailTap,
           child: Container(
             clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
               color: AppColors.bgCard,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: (_done || _pendingComplete)
+                color: (_done || _leaving)
                     ? AppColors.accent.withValues(alpha: 0.4)
                     : AppColors.border,
               ),
@@ -888,7 +900,7 @@ class _AmalCardState extends State<_AmalCard>
                     duration: const Duration(milliseconds: 300),
                     width: 3,
                     decoration: BoxDecoration(
-                      color: (_done || _pendingComplete)
+                      color: (_done || _leaving)
                           ? AppColors.accent
                           : Colors.transparent,
                     ),
@@ -933,7 +945,7 @@ class _AmalCardState extends State<_AmalCard>
   }
 
   Widget _buildLeading(BuildContext context) {
-    final isChecked = _done || _pendingComplete;
+    final isChecked = _done || _leaving;
 
     Widget circle(VoidCallback onTap) => SizedBox(
       width: 44,
@@ -995,10 +1007,10 @@ class _AmalCardState extends State<_AmalCard>
                 : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: AppColors.accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: _done
                   ? const Icon(Icons.check, color: AppColors.accent, size: 18)
@@ -1014,7 +1026,7 @@ class _AmalCardState extends State<_AmalCard>
                         Text(
                           '$cnt/$target',
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppColors.accent,
                           ),
@@ -1072,7 +1084,7 @@ class _AmalCardState extends State<_AmalCard>
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: (_done || _pendingComplete)
+            color: (_done || _leaving)
                 ? AppColors.textSecondary
                 : AppColors.textPrimary,
           ),
@@ -1082,7 +1094,7 @@ class _AmalCardState extends State<_AmalCard>
           Text(
             streakText,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               color: isProgramComplete || isMilestone
                   ? AppColors.accent
                   : AppColors.accentStreak,
@@ -1101,7 +1113,7 @@ class _AmalCardState extends State<_AmalCard>
               child: Text(
                 'azaltmaq üçün uzun bas',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 13,
                   color: AppColors.textHint,
                   fontWeight: FontWeight.w500,
                 ),

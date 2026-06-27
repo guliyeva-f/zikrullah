@@ -190,7 +190,7 @@ class _AboutScreenState extends State<AboutScreen> {
           Center(
             child: Text(
               'Zikrullah · $_version',
-              style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+              style: const TextStyle(fontSize: 13, color: AppColors.textHint),
             ),
           ),
         ],
@@ -247,7 +247,7 @@ class _HeroCard extends StatelessWidget {
                     Text(
                       'Versiya $version',
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         color: AppColors.textHint,
                       ),
                     ),
@@ -283,7 +283,7 @@ class _SectionLabel extends StatelessWidget {
     child: Text(
       label.toUpperCase(),
       style: const TextStyle(
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: FontWeight.w700,
         color: AppColors.textHint,
         letterSpacing: 0.9,
@@ -476,7 +476,7 @@ class _InfoTile extends StatelessWidget {
           Text(
             body,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               color: AppColors.textSecondary,
               height: 1.55,
             ),

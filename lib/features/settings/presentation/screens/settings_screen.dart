@@ -221,7 +221,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             // ── Haqqında — ekranın altına sabit ────────────────────────
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 64),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 child: _GroupCard(
                   children: [
                     _ActionRow(
@@ -577,7 +577,7 @@ class _ConflictDialogState extends State<_ConflictDialog> {
                   child: Text(
                     typeLabel,
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: AppColors.accent,
                     ),
@@ -656,7 +656,7 @@ class _SidePanel extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: isSelected
                         ? AppColors.accent
@@ -700,7 +700,7 @@ class _SidePanel extends StatelessWidget {
                 child: Text(
                   '· arxivdə',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: AppColors.textHint,
                     fontStyle: FontStyle.italic,
                   ),
@@ -716,12 +716,12 @@ class _SidePanel extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 1),
     child: Row(
       children: [
-        Text(emoji, style: const TextStyle(fontSize: 11)),
+        Text(emoji, style: const TextStyle(fontSize: 12)),
         const SizedBox(width: 3),
         Text(
           text,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
@@ -740,14 +740,14 @@ class _SidePanel extends StatelessWidget {
           TextSpan(
             text: '$key: ',
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               color: AppColors.textSecondary,
             ),
           ),
           TextSpan(
             text: value,
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
@@ -770,7 +770,7 @@ class _SectionLabel extends StatelessWidget {
     child: Text(
       label.toUpperCase(),
       style: const TextStyle(
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: FontWeight.w700,
         color: AppColors.textHint,
         letterSpacing: 0.9,
@@ -904,7 +904,7 @@ class _ToggleRow extends StatelessWidget {
               Text(
                 subtitle,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 13,
                   color: AppColors.textSecondary,
                 ),
               ),
@@ -960,7 +960,7 @@ class _ActionRow extends StatelessWidget {
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: AppColors.textSecondary,
                   ),
                 ),

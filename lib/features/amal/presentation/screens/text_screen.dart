@@ -226,7 +226,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
             const Text(
               'oxundu ✓',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 color: AppColors.success,
                 fontWeight: FontWeight.w500,
               ),
