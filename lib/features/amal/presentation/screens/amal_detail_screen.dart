@@ -163,7 +163,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Bu əməli nə üçün edirsən?',
+              'Bu əməli nə üçün edirsən? ✏️',
               style: TextStyle(fontSize: 13, color: AppColors.textHint),
             ),
             const SizedBox(height: 14),
@@ -414,7 +414,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       subLine = Text(
         _cycleCompletedCount == 0
             ? 'Müddət: $target gün'
-            : '$remaining gün qaldı 🌙 ($target gün)',
+            : '$remaining gün qaldı 🌙 — cəmi $target gün',
         style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
       );
     } else if (target == null && _bestStreak > streak) {
@@ -680,7 +680,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     if (c.daysDone >= target) {
       return '$range  ·  ✅ Tamamlandı';
     }
-    return '$range  ·  ${c.daysDone} gün (qırıldı)';
+    return '$range  ·  ${c.daysDone} gün (yarımçıq qaldı)';
   }
 
   String _shortDate(String isoDate) {

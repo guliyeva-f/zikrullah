@@ -105,7 +105,7 @@ class ManageScreen extends ConsumerWidget {
                   ),
                   SizedBox(height: 6),
                   Text(
-                    'Yuxarıdakı + ilə ilk niyyətini yarat',
+                    'Yuxarıdakı + ilə ilk əməlini yarat',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.textHint,

@@ -281,7 +281,7 @@ class _EmptyContent extends StatelessWidget {
           const Text('📄', style: TextStyle(fontSize: 36)),
           const SizedBox(height: 16),
           const Text(
-            'Bu əməlin oxunacaq mətni hələ yazılmayıb',
+            'Bu əməl üçün hələ mətn əlavə edilməyib',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,

@@ -184,7 +184,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          'təqvim',
+          'Təqvim',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -435,10 +435,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '✦',
-              style: TextStyle(fontSize: 20, color: AppColors.accentMuted),
-            ),
             SizedBox(height: 12),
             Text(
               'Bu tarixdə heç bir əməl yox idi',
@@ -491,9 +487,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             child: notDone.isNotEmpty
                 ? const Row(
                     children: [
-                      Expanded(
-                        child: Divider(color: AppColors.separator),
-                      ),
+                      Expanded(child: Divider(color: AppColors.separator)),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 10),
                         child: Text(
@@ -504,9 +498,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           ),
                         ),
                       ),
-                      Expanded(
-                        child: Divider(color: AppColors.separator),
-                      ),
+                      Expanded(child: Divider(color: AppColors.separator)),
                     ],
                   )
                 : const Text(
@@ -579,7 +571,10 @@ class _LegendItem extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 5),
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+        ),
       ],
     );
   }

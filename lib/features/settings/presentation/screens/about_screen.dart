@@ -15,14 +15,11 @@ class _AboutScreenState extends State<AboutScreen> {
   @override
   void initState() {
     super.initState();
-    _loadVersion();
-  }
-
-  Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() => _version = '${info.version} (${info.buildNumber})');
-    }
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) {
+        setState(() => _version = '${info.version} (${info.buildNumber})');
+      }
+    });
   }
 
   @override
@@ -51,146 +48,71 @@ class _AboutScreenState extends State<AboutScreen> {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 48),
         children: [
-          // ── Başlıq bloku ──────────────────────────────────────────────
-          _HeroCard(version: _version),
-          const SizedBox(height: 20),
-
-          // ── Niyə bu tətbiq? ───────────────────────────────────────────
-          const _SectionCard(
-            icon: Icons.auto_awesome_rounded,
-            title: 'Niyə Zikrullah?',
-            body:
-                'Bəzən niyyət var, amma ardıcıllıq yoxdur. Bəzən 40 günlük bir əhd qurulur, '
-                'amma orta yolda yaddan çıxır. Zikrullah elə bunun üçün yaradıldı — '
-                'gündəlik zikr, dua və götürdüyün əhdlərə sadiq qalmağa kömək edən, '
-                'sadə və sakit bir yoldaş.',
-          ),
-          const SizedBox(height: 12),
+          // ── App identity ───────────────────────────────────────────────
+          _AppHeader(version: _version),
+          const SizedBox(height: 24),
 
           // ── Əməl növləri ──────────────────────────────────────────────
-          const _SectionLabel(label: 'Əməl növləri'),
-          const SizedBox(height: 8),
-          const _FeatureCard(
-            emoji: '✓',
-            title: 'Gündəlik əməl',
-            body:
-                'Hər gün bir işarə ilə tamamladığını qeyd et. Namaz, dua, '
-                'sədəqə — bir toxunuşla işarələ, ardıcıllığını izlə.',
+          const _Label('Əməl növləri'),
+          const SizedBox(height: 10),
+          const _TypeRow(
+            items: [
+              _TypeItem(
+                emoji: '✓',
+                title: 'Gündəlik',
+                sub: 'Hər gün bir toxunuşla işarələ',
+              ),
+              _TypeItem(
+                emoji: '📿',
+                title: 'Zikr',
+                sub: 'Hədəf say təyin et, saydıqca qeyd et',
+              ),
+              _TypeItem(
+                emoji: '📖',
+                title: 'Qiraət',
+                sub: 'Mətni saxla, hər gün oxu',
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          const _FeatureCard(
-            emoji: '📿',
-            title: 'Zikr sayğacı',
-            body:
-                'SubhanAllah, Əlhəmdülillah, Allahuəkbər... Hədəf say '
-                'təyin et, hər oturumda saydıqlarını qeyd et. Tətbiq günün '
-                'tamamlanıb-tamamlanmadığını hədəfə çatmağa görə müəyyən edir.',
-          ),
-          const SizedBox(height: 8),
-          const _FeatureCard(
-            emoji: '📖',
-            title: 'Qiraət / Qeyd',
-            body:
-                'Oxuduqlarını, düşüncələrini, şükür etdiklərini gündəlik '
-                'qeyd et. Quran, hədis, ya da sadəcə gün sonu bir söz.',
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-          // ── Müddətli əhdlər ───────────────────────────────────────────
-          const _SectionLabel(label: 'Müddətli əhdlər'),
-          const SizedBox(height: 8),
-          const _SectionCard(
-            icon: Icons.flag_rounded,
-            title: 'Əhd sistemi',
-            body:
-                'Əməl yaradarkən müddət təyin edə bilərsən — məsələn "40 gün Yasin" '
-                'və ya "100 sədəqə". Tətbiq hədəfə çatana qədər əməli aktiv saxlayır, '
-                'hədəfə çatdıqda isə onu arxivləyir.',
-          ),
-          const SizedBox(height: 8),
-          const _TwoColumnCard(
-            left: _InfoTile(
-              emoji: '🔗',
-              title: 'Ardıcıl rejim',
-              body:
-                  'Gün buraxıldımı, sayaç sıfırlanır. '
-                  '"40 gün Yasin" kimi əhdlər üçün — fasilə olmaz.',
-            ),
-            right: _InfoTile(
-              emoji: '🗓️',
-              title: 'Fasiləli rejim',
-              body:
-                  'Aradakı fasilə sayılmır. '
-                  '"40 cümə sədəqəsi" kimi əhdlər üçün — yalnız say hesablanır.',
-            ),
-          ),
-          const SizedBox(height: 20),
+          // ── Əhd sistemi ───────────────────────────────────────────────
+          const _Label('Əhd sistemi'),
+          const SizedBox(height: 10),
+          const _Block(child: _AhdContent()),
+          const SizedBox(height: 24),
 
-          // ── Streak və statistika ──────────────────────────────────────
-          const _SectionLabel(label: 'Ardıcıllıq və statistika'),
-          const SizedBox(height: 8),
-          const _SectionCard(
-            icon: Icons.local_fire_department_rounded,
-            iconColor: Color(0xFFE07B39),
-            title: 'Streak — ardıcıllıq sayğacı',
-            body:
-                'Hər əməlin öz ardıcıllıq sayğacı var. Bu gün etdinsə — sayğac artır. '
-                'Bir gün buraxdınsa — sayğac sıfırlanır. Amma bu sənin tarixçəni '
-                'silmir: detail ekranında keçmiş bütün cəhdlərini görə bilərsən.',
-          ),
-          const SizedBox(height: 8),
-          const _SectionCard(
-            icon: Icons.grid_view_rounded,
-            title: 'İstilik xəritəsi',
-            body:
-                'Əsas ekranda və əməlin detail səhifəsində aktivliyini rəngli '
-                'xəritə şəklində görürsən. Hər kvadrat bir gündür — nə qədər '
-                'çox etdinsə, o qədər tünd.',
-          ),
-          const SizedBox(height: 20),
+          // ── Ardıcıllıq ────────────────────────────────────────────────
+          const _Label('Ardıcıllıq'),
+          const SizedBox(height: 10),
+          const _Block(child: _StreakContent()),
+          const SizedBox(height: 24),
 
           // ── Yedəkləmə ─────────────────────────────────────────────────
-          const _SectionLabel(label: 'Yedəkləmə'),
-          const SizedBox(height: 8),
-          const _SectionCard(
-            icon: Icons.cloud_sync_rounded,
-            title: 'İxrac və idxal',
-            body:
-                'Parametrlər → Yedəklə / Bərpa bölməsindən bütün əməllərin '
-                'və tarixçəni JSON faylı kimi ixrac edə bilərsən. Cihaz dəyişdirəndə '
-                'və ya yedəkdən bərpa edəndə isə həmin faylı idxal et. '
-                'Eyni adlı əməllər üst-üstə düşəndə tətbiq sənə seçim təqdim edir — '
-                'hansının saxlanacağına sən qərar verirsən.',
-          ),
-          const SizedBox(height: 20),
+          const _Label('Yedəkləmə'),
+          const SizedBox(height: 10),
+          const _Block(child: _BackupContent()),
+          const SizedBox(height: 24),
 
           // ── Bildirişlər ───────────────────────────────────────────────
-          const _SectionLabel(label: 'Bildirişlər'),
-          const SizedBox(height: 8),
-          const _SectionCard(
-            icon: Icons.notifications_none_rounded,
-            title: 'Zikr vaxtları xatırlatması',
-            body:
-                'Parametrlərdən səhər, günorta və axşam üçün ayrıca vaxt '
-                'təyin edə bilərsən. Gecə yarısı 23:00-da isə isteğe bağlı '
-                '"günü bağlamadan əvvəl" xatırlatması göndərilir. '
-                'Bütün bildirişlər cihaz daxilindədir — internet lazım deyil.',
-          ),
-          const SizedBox(height: 20),
+          const _Label('Bildirişlər'),
+          const SizedBox(height: 10),
+          const _Block(child: _NotifContent()),
+          const SizedBox(height: 24),
 
           // ── Məxfilik ──────────────────────────────────────────────────
-          const _SectionLabel(label: 'Məxfilik'),
-          const SizedBox(height: 8),
-          const _PrivacyCard(),
-          const SizedBox(height: 28),
+          const _Label('Məxfilik'),
+          const SizedBox(height: 10),
+          const _PrivacyList(),
+          const SizedBox(height: 32),
 
           // ── Footer ────────────────────────────────────────────────────
           Center(
             child: Text(
               'Zikrullah · $_version',
-              style: const TextStyle(fontSize: 13, color: AppColors.textHint),
+              style: const TextStyle(fontSize: 12, color: AppColors.textHint),
             ),
           ),
         ],
@@ -199,215 +121,67 @@ class _AboutScreenState extends State<AboutScreen> {
   }
 }
 
-// ─── HERO CARD ──────────────────────────────────────────────────────────────
+// ─── APP HEADER ──────────────────────────────────────────────────────────────
 
-class _HeroCard extends StatelessWidget {
+class _AppHeader extends StatelessWidget {
   final String version;
-  const _HeroCard({required this.version});
+  const _AppHeader({required this.version});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Center(
-                  child: Text('📿', style: TextStyle(fontSize: 24)),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Zikrullah',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                  if (version.isNotEmpty)
-                    Text(
-                      'Versiya $version',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textHint,
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Gündəlik zikr, dua və götürdüyün əhdləri ardıcıl izləmək üçün '
-            'sadə, reklamsız, tamamilə şəxsi bir yoldaş.',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              height: 1.6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── SECTION LABEL ───────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  const _SectionLabel({required this.label});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(left: 2, bottom: 0),
-    child: Text(
-      label.toUpperCase(),
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textHint,
-        letterSpacing: 0.9,
-      ),
-    ),
-  );
-}
-
-// ─── SECTION CARD ────────────────────────────────────────────────────────────
-
-class _SectionCard extends StatelessWidget {
-  final IconData icon;
-  final Color? iconColor;
-  final String title;
-  final String body;
-
-  const _SectionCard({
-    required this.icon,
-    this.iconColor,
-    required this.title,
-    required this.body,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 17, color: iconColor ?? AppColors.accent),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            body,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-              height: 1.65,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── FEATURE CARD ────────────────────────────────────────────────────────────
-
-class _FeatureCard extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final String body;
-
-  const _FeatureCard({
-    required this.emoji,
-    required this.title,
-    required this.body,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: AppColors.bgElevated,
-              borderRadius: BorderRadius.circular(10),
+              color: AppColors.accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Center(
-              child: Text(emoji, style: const TextStyle(fontSize: 16)),
+            child: const Center(
+              child: Text('📿', style: TextStyle(fontSize: 26)),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                const Text(
+                  'Zikrullah',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.accent,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  body,
-                  style: const TextStyle(
+                const SizedBox(height: 3),
+                const Text(
+                  'Gündəlik əməlləri və götürdüyün əhdləri izləmək üçün şəxsi tətbiq.',
+                  style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
-                    height: 1.55,
+                    height: 1.5,
                   ),
                 ),
+                if (version.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'v$version',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textHint,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -417,43 +191,84 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
-// ─── TWO COLUMN CARD ─────────────────────────────────────────────────────────
+// ─── LABEL ───────────────────────────────────────────────────────────────────
 
-class _TwoColumnCard extends StatelessWidget {
-  final Widget left;
-  final Widget right;
-  const _TwoColumnCard({required this.left, required this.right});
+class _Label extends StatelessWidget {
+  final String text;
+  const _Label(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textHint,
+        letterSpacing: 1.0,
+      ),
+    );
+  }
+}
+
+// ─── GENERIC BLOCK ───────────────────────────────────────────────────────────
+
+class _Block extends StatelessWidget {
+  final Widget child;
+  const _Block({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ─── ƏMƏL NÖVLƏRİ: 3 SÜTUN ──────────────────────────────────────────────────
+
+class _TypeRow extends StatelessWidget {
+  final List<_TypeItem> items;
+  const _TypeRow({required this.items});
 
   @override
   Widget build(BuildContext context) {
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: left),
-          const SizedBox(width: 8),
-          Expanded(child: right),
-        ],
+        children: items
+            .expand(
+              (item) => [
+                Expanded(child: item),
+                if (item != items.last) const SizedBox(width: 8),
+              ],
+            )
+            .toList(),
       ),
     );
   }
 }
 
-class _InfoTile extends StatelessWidget {
+class _TypeItem extends StatelessWidget {
   final String emoji;
   final String title;
-  final String body;
-
-  const _InfoTile({
+  final String sub;
+  const _TypeItem({
     required this.emoji,
     required this.title,
-    required this.body,
+    required this.sub,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(14),
@@ -474,11 +289,11 @@ class _InfoTile extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            body,
+            sub,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 12,
               color: AppColors.textSecondary,
-              height: 1.55,
+              height: 1.4,
             ),
           ),
         ],
@@ -487,13 +302,221 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
-// ─── PRIVACY CARD ────────────────────────────────────────────────────────────
+// ─── ƏHD SİSTEMİ ─────────────────────────────────────────────────────────────
 
-class _PrivacyCard extends StatelessWidget {
-  const _PrivacyCard();
+class _AhdContent extends StatelessWidget {
+  const _AhdContent();
 
   @override
   Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(
+          icon: Icons.event_available_rounded,
+          text:
+              'Əməl yaradarkən müddət təyin edə bilərsən — 7, 21, 40 gün və ya özün seç.',
+        ),
+        SizedBox(height: 12),
+        _InfoRow(
+          icon: Icons.archive_rounded,
+          text: 'Hədəfə çatdıqda tətbiq həmin əməli avtomatik arxivləyir.',
+        ),
+        SizedBox(height: 16),
+        Divider(height: 1, color: AppColors.separator),
+        SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _ModeCard(
+                emoji: '🔗',
+                title: 'Ardıcıl',
+                body: 'Bir gün buraxsan sayaç sıfırlanır.',
+                example: 'məs: 40 gün Yasin',
+              ),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: _ModeCard(
+                emoji: '🗓',
+                title: 'Fasiləli',
+                body: 'Yalnız ümumi say hesablanır.',
+                example: 'məs: 40 cümə sədəqəsi',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ModeCard extends StatelessWidget {
+  final String emoji;
+  final String title;
+  final String body;
+  final String example;
+
+  const _ModeCard({
+    required this.emoji,
+    required this.title,
+    required this.body,
+    required this.example,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bgElevated,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            body,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            example,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textHint,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── STREAK ──────────────────────────────────────────────────────────────────
+
+class _StreakContent extends StatelessWidget {
+  const _StreakContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(
+          icon: Icons.local_fire_department_rounded,
+          iconColor: Color(0xFFE07B39),
+          text:
+              'Hər əməlin öz ardıcıllıq sayğacı var. Bu gün etdinsə artır, buraxdınsa sıfırlanır.',
+        ),
+        SizedBox(height: 12),
+        _InfoRow(
+          icon: Icons.grid_view_rounded,
+          text:
+              'Ana ekranda il boyu aktivliyini rəngli xəritə şəklində görürsən. Hər kvadrat bir gündür.',
+        ),
+        SizedBox(height: 12),
+        _InfoRow(
+          icon: Icons.history_rounded,
+          text:
+              'Streak sıfırlansa da keçmiş tarixçən silinmir — detallar ekranında bütün cəhdlərini görə bilərsən.',
+        ),
+      ],
+    );
+  }
+}
+
+// ─── BACKUP ──────────────────────────────────────────────────────────────────
+
+class _BackupContent extends StatelessWidget {
+  const _BackupContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(
+          icon: Icons.upload_rounded,
+          text:
+              'Parametrlər › Yedəklə / Bərpa bölməsindən bütün əməlləri fayl kimi ixrac et.',
+        ),
+        SizedBox(height: 12),
+        _InfoRow(
+          icon: Icons.download_rounded,
+          text:
+              'Cihaz dəyişdirəndə həmin faylı idxal et. Üst-üstə düşən əməlləri sən seçirsən.',
+        ),
+      ],
+    );
+  }
+}
+
+// ─── BİLDİRİŞLƏR ─────────────────────────────────────────────────────────────
+
+class _NotifContent extends StatelessWidget {
+  const _NotifContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(
+          icon: Icons.wb_sunny_outlined,
+          text: 'Səhər, günorta, axşam — hər biri üçün ayrıca vaxt seç.',
+        ),
+        SizedBox(height: 12),
+        _InfoRow(
+          icon: Icons.bedtime_outlined,
+          text:
+              'Gecə 23:00-da istəyə görə "günü bağlamadan əvvəl" xatırlatması göndərilir.',
+        ),
+        SizedBox(height: 12),
+        _InfoRow(
+          icon: Icons.wifi_off_rounded,
+          text:
+              'Bütün bildirişlər cihaz daxilindədir — internet olmadan işləyir.',
+        ),
+      ],
+    );
+  }
+}
+
+// ─── MƏXFİLİK ────────────────────────────────────────────────────────────────
+
+class _PrivacyList extends StatelessWidget {
+  const _PrivacyList();
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      (
+        Icons.phonelink_lock_rounded,
+        'Bütün məlumatlar yalnız cihazında saxlanılır',
+      ),
+      (Icons.cloud_off_rounded, 'Heç bir serverə məlumat göndərilmir'),
+      (Icons.person_off_rounded, 'Hesab lazım deyil, şəxsi məlumat toplanmır'),
+      (Icons.block_rounded, 'Reklam yoxdur, izləmə yoxdur'),
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.bgCard,
@@ -501,79 +524,82 @@ class _PrivacyCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
-        children: [
-          const _PrivacyRow(
-            icon: Icons.phonelink_lock_rounded,
-            text: 'Bütün məlumatlar yalnız cihazında saxlanılır',
-          ),
-          _Divider(),
-          const _PrivacyRow(
-            icon: Icons.cloud_off_rounded,
-            text: 'Heç bir serverə məlumat göndərilmir',
-          ),
-          _Divider(),
-          const _PrivacyRow(
-            icon: Icons.person_off_rounded,
-            text: 'Şəxsi məlumat toplanmır, hesab lazım deyil',
-          ),
-          _Divider(),
-          const _PrivacyRow(
-            icon: Icons.wifi_off_rounded,
-            text: 'Bildirişlər internet olmadan işləyir',
-          ),
-          _Divider(),
-          const _PrivacyRow(
-            icon: Icons.block_rounded,
-            text: 'Reklam yoxdur, izləmə yoxdur',
-            isLast: true,
-          ),
-        ],
+        children: items.indexed.map((entry) {
+          final (i, item) = entry;
+          final (icon, text) = item;
+          return Column(
+            children: [
+              if (i > 0)
+                const Divider(
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: AppColors.separator,
+                ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, size: 17, color: AppColors.success),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        text,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
 }
 
-class _PrivacyRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final bool isLast;
+// ─── INFO ROW ────────────────────────────────────────────────────────────────
 
-  const _PrivacyRow({
-    required this.icon,
-    required this.text,
-    this.isLast = false,
-  });
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final Color? iconColor;
+  final String text;
+
+  const _InfoRow({required this.icon, this.iconColor, required this.text});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      child: Row(
-        children: [
-          Icon(icon, size: 17, color: AppColors.success),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(
+            icon,
+            size: 16,
+            color: iconColor ?? AppColors.accentLight,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.55,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
-}
-
-class _Divider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => const Divider(
-    height: 1,
-    indent: 16,
-    endIndent: 16,
-    color: AppColors.separator,
-  );
 }

@@ -20,7 +20,7 @@ class DatabaseHelper {
       path = _overridePath!;
     } else {
       final dbPath = await getDatabasesPath();
-      path = join(dbPath, 'amal_app.db');
+      path = join(dbPath, 'zikrullah.db');
     }
 
     return await openDatabase(

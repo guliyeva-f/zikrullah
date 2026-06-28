@@ -30,8 +30,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (h >= 4 && h < 12) return 'Yeni günə Bismillah ☀️';
     if (h >= 12 && h < 15) return 'Günün bərəkətli keçsin ⛅';
     if (h >= 15 && h < 18) return 'Əsr çağı — zikrə davam 📿';
-    if (h >= 18 && h < 21) return 'Axşamın xeyirlə dolsun 🌙';
-    return 'Gecən xeyirli keçsin ✨';
+    if (h >= 18 && h < 21) return 'Axşamın xeyirlə dolsun ✨';
+    return 'Gecən xeyirli keçsin 🌙';
   }
 
   String _timeGreetingOrDone(AmalState state) {
@@ -91,7 +91,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                '"$titles" üçün ardıcıllıq pozuldu — proqram bugündən yenidən başladı 🔄',
+                '"$titles" üçün ardıcıllıq sıfırlandı — bu gündən yenidən sayılır 🔄',
                 style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: AppColors.textSecondary,
@@ -209,7 +209,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                   horizontal: 10,
                                                 ),
                                                 child: Text(
-                                                  'bu gün əda olundu ✓',
+                                                  'Bu gün əda olundu ✓',
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     color: AppColors.textHint,
@@ -685,7 +685,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.accent,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Text(
                   'İlk əməlini əlavə et',
@@ -738,7 +738,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'İllik yolun, keçid et ',
+                  'İllik yolun. Bax ',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -985,10 +985,9 @@ class _AmalCardState extends State<_AmalCard>
 
         return Center(
           child: GestureDetector(
-            onTap: _done
-                ? null
-                : isSmall
+            onTap: isSmall
                 ? () {
+                    if (_done) return;
                     widget.onCounterTap();
                     if (widget.showCounterHint && cnt == 0 && !_hintVisible) {
                       setState(() => _hintVisible = true);
@@ -998,6 +997,8 @@ class _AmalCardState extends State<_AmalCard>
                       });
                     }
                   }
+                : _done
+                ? null
                 : widget.onOpenScreen,
             onLongPress: isSmall && cnt > 0
                 ? () {
@@ -1062,6 +1063,8 @@ class _AmalCardState extends State<_AmalCard>
           '${widget.amal.durationDays} günlük əhdinə vəfalı oldun.\nAllah qəbul etsin 🤲';
     } else if (displayCount == 0) {
       streakText = null;
+    } else if (isLoose) {
+      streakText = '$displayCount / ${widget.amal.durationDays} gün';
     } else if (displayCount == 1) {
       streakText = 'ilk addım 🌱';
     } else if (displayCount <= 3) {
@@ -1072,7 +1075,7 @@ class _AmalCardState extends State<_AmalCard>
     }
 
     final bool isMilestone =
-        !isProgramComplete && milestoneText(displayCount) != null;
+        !isProgramComplete && !isLoose && milestoneText(displayCount) != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1111,7 +1114,7 @@ class _AmalCardState extends State<_AmalCard>
             child: const Padding(
               padding: EdgeInsets.only(top: 3),
               child: Text(
-                'azaltmaq üçün uzun bas',
+                'Azaltmaq üçün uzun bas',
                 style: TextStyle(
                   fontSize: 13,
                   color: AppColors.textHint,

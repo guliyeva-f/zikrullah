@@ -235,6 +235,12 @@ class AmalRepository {
 
     await db.transaction((txn) async {
       await txn.update(
+        'amal_cycles',
+        {'ended_at': newCycleStart},
+        where: 'amal_id = ? AND ended_at IS NULL',
+        whereArgs: [id],
+      );
+      await txn.update(
         'amals',
         {
           'is_active': 1,

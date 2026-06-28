@@ -42,7 +42,7 @@ class ImportExportService {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'application/octet-stream')],
-          subject: 'Əməl yedəyi',
+          subject: 'Zikrullah yedəyi',
         ),
       );
 
@@ -70,7 +70,7 @@ class ImportExportService {
       'dek',
     ];
     final month = az[now.month - 1];
-    return 'amal_${now.day}$month${now.year}.json';
+    return 'zikrullah_${now.day}$month${now.year}.json';
   }
 
   Future<File?> _saveToDownloads(String fileName, String content) async {

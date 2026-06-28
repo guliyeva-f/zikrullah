@@ -7,6 +7,7 @@ import '../../../amal/domain/amal.dart';
 import '../../../amal/presentation/providers/amal_provider.dart';
 import '../providers/settings_provider.dart';
 import 'about_screen.dart';
+import '../../../../core/notifications/notification_permission_helper.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -183,7 +184,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                           _ToggleRow(
                             icon: Icons.bedtime_outlined,
                             title: 'Son xatırlatma',
-                            subtitle: 'Günü bağlamadan əvvəl · sabit 23:00',
+                            subtitle: 'Hər gecə saat 23:00-da',
                             value: state.nightNotifEnabled,
                             onChanged: (v) => ref
                                 .read(settingsProvider.notifier)
@@ -202,14 +203,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       _ActionRow(
                         icon: Icons.upload_outlined,
                         label: 'Məlumatları ixrac et',
-                        subtitle: 'Əməlləri JSON kimi paylaş və yedəklə',
+                        subtitle: 'Əməlləri fayl kimi paylaş və yedəklə',
                         onTap: () => _export(context),
                       ),
                       const _Separator(),
                       _ActionRow(
                         icon: Icons.download_outlined,
                         label: 'Məlumatları idxal et',
-                        subtitle: 'Əvvəlki JSON fayldan bərpa et',
+                        subtitle: 'Əvvəlki yedəkdən bərpa et',
                         onTap: () => _import(context, ref),
                       ),
                     ],
@@ -255,7 +256,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       } else {
         _showSnack(
           context,
-          'Bildiriş icazəsi rədd edilib. Sistem ayarlarından bildirişləri əl ilə aç.',
+          'Bildiriş icazəsi verilmədi. Parametrlərdən əl ilə açmaq lazımdır.',
           isError: true,
           actionLabel: 'Aç',
           onAction: () async {
@@ -334,6 +335,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
 
         if (result == ImportResult.success || result == ImportResult.partial) {
           await ref.read(amalProvider.notifier).refresh();
+          if (!context.mounted) return;
+          await requestNotifIfNeeded(context, ref);
         }
     }
   }

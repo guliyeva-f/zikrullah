@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../data/amal_repository.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
+import '../../../../core/notifications/notification_permission_helper.dart';
 
 class AmalFormScreen extends ConsumerStatefulWidget {
   final Amal? amal;
@@ -152,7 +153,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         content: const Text(
-          'Tipi dəyişsən, əvvəlki yazdığın mətn/hədəf həmişəlik silinəcək. Davam etmək istəyirsən?',
+          'Tipi dəyişsən, bu əməlin məzmunu/hədəfi silinəcək. Davam etmək istəyirsən?',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
@@ -236,6 +237,8 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               allowBreak: allowBreak,
             ),
           );
+      if (!mounted) return;
+      await requestNotifIfNeeded(context, ref);
     }
 
     if (mounted) Navigator.pop(context);
@@ -493,7 +496,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       },
       style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
       decoration: _dec(
-        hint: 'say yaz.. məs: 100, 500',
+        hint: 'Say yaz.. məs: 100, 500',
         error: _countError,
       ).copyWith(counterText: ''),
     ),
@@ -562,7 +565,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       },
       style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
       decoration: _dec(
-        hint: 'özün yaz... məs: 10 (maks. 365)',
+        hint: 'Özün yaz – məs: 10 (max. 365 gün)',
         error: _customDurError,
       ).copyWith(counterText: ''),
     ),
