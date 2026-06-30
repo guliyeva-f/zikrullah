@@ -5,8 +5,12 @@ import 'core/constants/app_colors.dart';
 import 'core/notifications/notification_service.dart';
 import 'features/amal/presentation/screens/onboarding_wrapper.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

@@ -92,14 +92,15 @@ final notifDeclinedProvider = FutureProvider<bool>((ref) async {
   return !systemGranted || !prefEnabled;
 });
 
-// ─── COUNTER HİNT ────────────────────────────────────────────────────────────
-
-final counterHintProvider = FutureProvider<bool>((ref) async {
+final counterHintProvider = FutureProvider.family<bool, int>((
+  ref,
+  amalId,
+) async {
   final prefs = await SharedPreferences.getInstance();
-  return prefs.getBool('counter_hint_shown') ?? false;
+  return prefs.getBool('counter_hint_$amalId') ?? false;
 });
 
-Future<void> markCounterHintShown() async {
+Future<void> markCounterHintShown(int amalId) async {
   final prefs = await SharedPreferences.getInstance();
-  await prefs.setBool('counter_hint_shown', true);
+  await prefs.setBool('counter_hint_$amalId', true);
 }

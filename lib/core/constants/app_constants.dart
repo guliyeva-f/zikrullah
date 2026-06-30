@@ -1,6 +1,5 @@
 class AppConstants {
   AppConstants._();
-
   static const months = [
     'Yanvar',
     'Fevral',
@@ -15,7 +14,6 @@ class AppConstants {
     'Noyabr',
     'Dekabr',
   ];
-
   static const monthsShort = [
     'Yan',
     'Fev',
@@ -30,7 +28,6 @@ class AppConstants {
     'Noy',
     'Dek',
   ];
-
   static const weekdays = [
     '',
     'Bazar ertəsi',
@@ -41,6 +38,5 @@ class AppConstants {
     'Şənbə',
     'Bazar',
   ];
-
   static const weekdaysShort = ['BE', 'ÇA', 'Ç', 'CA', 'C', 'Ş', 'B'];
 }

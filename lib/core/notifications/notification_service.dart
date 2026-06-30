@@ -20,15 +20,12 @@ class NotificationService {
   NotificationService._internal();
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
-
   final _plugin = FlutterLocalNotificationsPlugin();
-
   static const _keyEnabled = 'notif_enabled';
   static const _keyMorning = 'notif_morning';
   static const _keyNoon = 'notif_noon';
   static const _keyEvening = 'notif_evening';
   static const _keyNight = 'notif_night';
-
   static const _channelId = 'zikrullah_channel';
   static const _channelName = 'Zikrullah Xatırlatmaları';
   static const _channelDesc = 'Gündəlik zikrullah xatırlatmaları';
@@ -42,21 +39,16 @@ class NotificationService {
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
-
     final tzInfo = await FlutterTimezone.getLocalTimezone();
-
     try {
       tz.setLocalLocation(tz.getLocation(tzInfo.toString()));
     } catch (e) {
       tz.setLocalLocation(tz.getLocation('Asia/Baku'));
     }
-
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
-
     const initSettings = InitializationSettings(android: androidSettings);
-
     await _plugin.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
@@ -67,7 +59,6 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
-
     await android?.createNotificationChannel(
       const AndroidNotificationChannel(
         _channelId,
@@ -151,7 +142,6 @@ class NotificationService {
   Future<TimeOfDay> getMorningTime() => _getTime(_keyMorning, 9);
   Future<TimeOfDay> getNoonTime() => _getTime(_keyNoon, 13);
   Future<TimeOfDay> getEveningTime() => _getTime(_keyEvening, 20);
-
   Future<void> setMorningTime(TimeOfDay t) async {
     await _setTime(_keyMorning, t);
     await refreshTodayNotifications();

@@ -7,6 +7,7 @@ import '../../../calendar/presentation/screens/calendar_screen.dart';
 import '../../domain/amal.dart';
 import '../../domain/amal_record.dart';
 import '../providers/amal_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/heatmap_widget.dart';
 import 'amal_detail_screen.dart';
 import 'amal_form_screen.dart';
@@ -62,7 +63,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final asyncAmals = ref.watch(amalProvider);
     final asyncHeatmap = ref.watch(heatmapProvider);
-    final hintShown = ref.watch(counterHintProvider).value ?? true;
 
     ref.listen<AsyncValue<AmalState>>(amalProvider, (prev, next) {
       next.whenData((state) {
@@ -132,7 +132,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 TextButton(
                   onPressed: () => ref.invalidate(amalProvider),
                   child: const Text(
-                    'Yenidən yüklə',
+                    'Yenidən cəhd et',
                     style: TextStyle(color: AppColors.accent),
                   ),
                 ),
@@ -209,9 +209,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                   horizontal: 10,
                                                 ),
                                                 child: Text(
-                                                  'Bu gün əda olundu ✓',
+                                                  'Bu gün tamamlandı ✓',
                                                   style: TextStyle(
-                                                    fontSize: 12,
+                                                    fontSize: 13,
                                                     color: AppColors.textHint,
                                                   ),
                                                 ),
@@ -239,10 +239,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           record: record,
                                           streak: streak,
                                           completedCount: completedCount,
-                                          showCounterHint:
-                                              !hintShown &&
-                                              amal.type == AmalType.counter &&
-                                              (amal.countTarget ?? 0) <= 10,
+
                                           onCompleteTap: () => ref
                                               .read(amalProvider.notifier)
                                               .completeCheckbox(amal.id),
@@ -342,9 +339,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           ),
                                           SizedBox(width: 6),
                                           Text(
-                                            'Yeni əməl əlavə et',
+                                            'Əməl',
                                             style: TextStyle(
-                                              fontSize: 13,
+                                              fontSize: 14,
                                               color: AppColors.accent,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -390,7 +387,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Text(
                       _timeGreetingOrDone(state),
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: AppColors.accent,
                         letterSpacing: 0.1,
@@ -400,7 +397,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Text(
                       _progressTitle(state),
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
@@ -644,10 +641,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               'Bilin ki, qəlblər yalnız Allahı zikr etməklə\nrahatlıq tapar',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 color: AppColors.textSecondary,
                 height: 1.7,
-                fontStyle: FontStyle.italic,
               ),
             ),
             const SizedBox(height: 6),
@@ -659,8 +655,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const Text(
                   'Ər-Rəd surəsi, 28',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     color: AppColors.textHint,
+                    fontStyle: FontStyle.italic,
                     letterSpacing: 0.4,
                   ),
                 ),
@@ -738,9 +735,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'İllik yolun. Bax ',
+                  'İllik yolun. Təqvimə bax ',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                   ),
@@ -799,7 +796,6 @@ class _AmalCard extends StatefulWidget {
   final AmalRecord? record;
   final int streak;
   final int completedCount;
-  final bool showCounterHint;
   final VoidCallback onCompleteTap;
   final VoidCallback onCounterTap;
   final VoidCallback onCounterDecrement;
@@ -812,7 +808,6 @@ class _AmalCard extends StatefulWidget {
     required this.record,
     required this.streak,
     required this.completedCount,
-    required this.showCounterHint,
     required this.onCompleteTap,
     required this.onCounterTap,
     required this.onCounterDecrement,
@@ -828,6 +823,7 @@ class _AmalCardState extends State<_AmalCard>
     with SingleTickerProviderStateMixin {
   bool _hintVisible = false;
   bool _leaving = false;
+  bool _hintAlreadyShown = false;
 
   late final AnimationController _leaveCtrl;
   late final Animation<double> _leaveOpacity;
@@ -858,6 +854,21 @@ class _AmalCardState extends State<_AmalCard>
 
   bool get _done => widget.record?.isCompleted ?? false;
   bool get _hasChevron => widget.amal.type == AmalType.text;
+
+  Future<void> _checkAndShowHint() async {
+    if (_hintAlreadyShown) return;
+    final prefs = await SharedPreferences.getInstance();
+    final shown = prefs.getBool('counter_hint_${widget.amal.id}') ?? false;
+    if (!shown && mounted) {
+      setState(() {
+        _hintVisible = true;
+        _hintAlreadyShown = true;
+      });
+      await markCounterHintShown(widget.amal.id);
+      await Future.delayed(const Duration(seconds: 3));
+      if (mounted) setState(() => _hintVisible = false);
+    }
+  }
 
   Future<void> _handleComplete() async {
     if (_done) {
@@ -989,13 +1000,7 @@ class _AmalCardState extends State<_AmalCard>
                 ? () {
                     if (_done) return;
                     widget.onCounterTap();
-                    if (widget.showCounterHint && cnt == 0 && !_hintVisible) {
-                      setState(() => _hintVisible = true);
-                      markCounterHintShown();
-                      Future.delayed(const Duration(seconds: 3), () {
-                        if (mounted) setState(() => _hintVisible = false);
-                      });
-                    }
+                    _checkAndShowHint();
                   }
                 : _done
                 ? null
@@ -1021,14 +1026,14 @@ class _AmalCardState extends State<_AmalCard>
                         const Icon(
                           Icons.add,
                           color: AppColors.accent,
-                          size: 15,
+                          size: 14,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '$cnt/$target',
                           style: const TextStyle(
                             fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.accent,
                           ),
                         ),
@@ -1085,7 +1090,7 @@ class _AmalCardState extends State<_AmalCard>
         Text(
           widget.amal.title,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: FontWeight.w600,
             color: (_done || _leaving)
                 ? AppColors.textSecondary
@@ -1097,7 +1102,7 @@ class _AmalCardState extends State<_AmalCard>
           Text(
             streakText,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               color: isProgramComplete || isMilestone
                   ? AppColors.accent
                   : AppColors.accentStreak,

@@ -163,8 +163,8 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Bu əməli nə üçün edirsən? ✏️',
-              style: TextStyle(fontSize: 13, color: AppColors.textHint),
+              'Bu əməli nə üçün edirsən?',
+              style: TextStyle(fontSize: 14, color: AppColors.textHint),
             ),
             const SizedBox(height: 14),
             Container(
@@ -263,8 +263,8 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
             title: Text(
               _amal.title,
               style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -366,13 +366,13 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         child: hasIntention
             ? Row(
                 children: [
-                  const Text('🤍', style: TextStyle(fontSize: 13)),
+                  const Text('🤍', style: TextStyle(fontSize: 14)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _amal.intention!,
                       style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 14,
                         color: AppColors.textSecondary,
                         fontStyle: FontStyle.italic,
                         height: 1.5,
@@ -393,7 +393,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                   SizedBox(width: 8),
                   Text(
                     'Niyyətin yoxdur — əlavə et',
-                    style: TextStyle(fontSize: 13, color: AppColors.textHint),
+                    style: TextStyle(fontSize: 14, color: AppColors.textHint),
                   ),
                 ],
               ),
@@ -415,12 +415,12 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         _cycleCompletedCount == 0
             ? 'Müddət: $target gün'
             : '$remaining gün qaldı 🌙 — cəmi $target gün',
-        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
       );
     } else if (target == null && _bestStreak > streak) {
       subLine = Text(
         'Rekord: $_bestStreak gün',
-        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
       );
     }
 
@@ -592,7 +592,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                     child: Text(
                       '${day.day}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: isFuture
                             ? AppColors.textHint.withValues(alpha: 0.35)
@@ -626,7 +626,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               : AppConstants.months[month - 1],
           style: const TextStyle(
             fontSize: 13,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             color: AppColors.textSecondary,
           ),
         ),
@@ -653,9 +653,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Keçmiş cəhdlər',
+            'Keçmiş cəhdlər:',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: AppColors.textHint,
             ),
@@ -666,7 +666,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
                 _cycleLine(c),
-                style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+                style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
             ),
         ],

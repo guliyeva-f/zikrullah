@@ -143,43 +143,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     return false;
   }
 
-  Future<bool> _confirmTypeChange() async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgBase,
-        title: const Text(
-          'Diqqət',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-        content: const Text(
-          'Tipi dəyişsən, bu əməlin məzmunu/hədəfi silinəcək. Davam etmək istəyirsən?',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Ləğv et',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Davam et',
-              style: TextStyle(
-                color: AppColors.error,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
-  }
-
   // ─── SAXLA ────────────────────────────────────────────────────────────────
 
   Future<void> _save() async {
@@ -187,8 +150,18 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     if (!_isValid) return;
 
     if (_isEditing && _willLoseData) {
-      final confirmed = await _confirmTypeChange();
-      if (!confirmed) return;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tip dəyişmək olmaz — yeni əməl yarat, köhnəni sil',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Color(0xFF6B5F54),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
     }
 
     final title = _titleCtrl.text.trim();
@@ -309,7 +282,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
             _titleField(),
             const SizedBox(height: 24),
 
-            _label('Necə icra edilir?'),
+            _label('Əməlin növü'),
             const SizedBox(height: 10),
             _typeSelector(),
             const SizedBox(height: 24),
@@ -328,7 +301,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               const SizedBox(height: 24),
             ],
 
-            _label('Neçə günlük söz verirsən?'),
+            _label('Neçə gün əhd edirsən?'),
             const SizedBox(height: 10),
             _durationSelector(),
             if (_durationPreset == -1) ...[
@@ -363,7 +336,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
 
   InputDecoration _dec({String? hint, String? error}) => InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
+    hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
     errorText: error,
     errorStyle: const TextStyle(fontSize: 13),
     filled: true,
@@ -393,7 +366,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
 
   Widget _titleField() => TextField(
     controller: _titleCtrl,
-    maxLength: 60,
+    maxLength: 40,
     maxLengthEnforcement: MaxLengthEnforcement.enforced,
     textCapitalization: TextCapitalization.sentences,
     onChanged: (_) {
@@ -410,12 +383,12 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
             valueListenable: _titleCtrl,
             builder: (_, value, _) {
               final len = value.text.length;
-              if (len <= 50) return const SizedBox.shrink();
+              if (len <= 35) return const SizedBox.shrink();
               return Text(
-                '$len/60',
+                '$len/40',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: len >= 60 ? AppColors.error : AppColors.textHint,
+                  fontSize: 10,
+                  color: len >= 40 ? AppColors.error : AppColors.textSecondary,
                 ),
               );
             },
@@ -467,7 +440,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
                     Text(
                       types[i].$3,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: _type == types[i].$1
                             ? AppColors.accent
@@ -508,8 +481,8 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     maxLines: null,
     minLines: 8,
     style: const TextStyle(
-      fontFamily: 'Scheherazade New',
-      fontFamilyFallback: ['Roboto'],
+      fontFamily: 'Roboto',
+      fontFamilyFallback: ['Scheherazade New'],
       fontSize: 16,
       height: 1.9,
       color: AppColors.textPrimary,
@@ -637,7 +610,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
                       ? '40 gün Yasin kimi əhdlər üçün. Bir gün buraxsan zəncir qırılır, yenidən 1-dən başlayırsan.'
                       : '40 cümə sədəqəsi kimi əhdlər üçün. Fasilə verə bilərsən — yalnız neçə dəfə etdiyin sayılır.',
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     color: AppColors.textHint,
                     height: 1.4,
                   ),

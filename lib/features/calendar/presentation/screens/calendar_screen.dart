@@ -62,6 +62,45 @@ final _amalCountProvider = FutureProvider.family<Map<String, int>, String>((
   return AmalRepository().getAmalCountPerDay(from: from, to: to);
 });
 
+// ── YENİ: ay üçün tək sorğu — gün rəngləri üçün ──────────────────────────────
+final _monthRecordsProvider = FutureProvider.family<Map<String, bool>, String>((
+  ref,
+  monthKey,
+) async {
+  final parts = monthKey.split('-');
+  final year = int.parse(parts[0]);
+  final month = int.parse(parts[1]);
+  final repo = AmalRepository();
+  final allAmals = await repo.getAllAmals();
+  final daysInMonth = DateUtils.getDaysInMonth(year, month);
+
+  final Map<String, Set<int>> completedByDate = {};
+  for (final amal in allAmals) {
+    final monthRecords = await repo.getAmalCalendarMonth(amal.id, year, month);
+    monthRecords.forEach((dateStr, isCompleted) {
+      if (isCompleted) {
+        completedByDate.putIfAbsent(dateStr, () => {}).add(amal.id);
+      }
+    });
+  }
+
+  final result = <String, bool>{};
+  for (int day = 1; day <= daysInMonth; day++) {
+    final dateStr =
+        '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+    final activeAmals = allAmals.where((a) {
+      final created = a.createdAt.substring(0, 10);
+      final archived = a.archivedAt?.substring(0, 10);
+      return created.compareTo(dateStr) <= 0 &&
+          (archived == null || archived.compareTo(dateStr) > 0);
+    }).toList();
+    if (activeAmals.isEmpty) continue;
+    final completedCount = completedByDate[dateStr]?.length ?? 0;
+    result[dateStr] = completedCount >= activeAmals.length;
+  }
+  return result;
+});
+
 class _DayData {
   final List<Amal> amals;
   final Map<int, AmalRecord> recordMap;
@@ -100,6 +139,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(_calendarDayProvider);
       ref.invalidate(_amalCountProvider);
+      ref.invalidate(_monthRecordsProvider);
     });
   }
 
@@ -115,6 +155,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     ref.invalidate(_calendarDayProvider);
+    ref.invalidate(_monthRecordsProvider);
     setState(() {
       _selectedDate = today;
       _displayMonth = DateTime(today.year, today.month, 1);
@@ -156,6 +197,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget build(BuildContext context) {
     final dateStr = _fmt(_selectedDate);
     final dayAsync = ref.watch(_calendarDayProvider(dateStr));
+    final monthAsync = ref.watch(_monthRecordsProvider(_monthKey));
     final earliestAsync = ref.watch(_earliestAmalDateProvider);
     final amalCountAsync = ref.watch(_amalCountProvider(_monthKey));
     final today = DateTime.now();
@@ -198,8 +240,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               child: const Text(
                 'bu gün',
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.accent,
                 ),
               ),
@@ -225,7 +267,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       '${AppConstants.months[_displayMonth.month - 1]} ${_displayMonth.year}',
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),
@@ -266,7 +308,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           // ── Təqvim grid ──────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: _buildGrid(todayNorm, amalCount),
+            child: _buildGrid(todayNorm, amalCount, monthAsync.value ?? {}),
           ),
 
           const SizedBox(height: 14),
@@ -328,7 +370,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildGrid(DateTime todayNorm, Map<String, int> amalCount) {
+  Widget _buildGrid(
+    DateTime todayNorm,
+    Map<String, int> amalCount,
+    Map<String, bool> monthDone,
+  ) {
     final firstDay = _displayMonth;
     final daysInMonth = DateTime(firstDay.year, firstDay.month + 1, 0).day;
     final startOffset = firstDay.weekday - 1;
@@ -350,19 +396,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             final dateStr = _fmt(date);
             final ratio = widget.heatmapData[dateStr];
             final hasAmals = amalCount.containsKey(dateStr);
+            final isDoneFromMonth = monthDone[dateStr] == true;
 
-            final isDone = !isFuture && ratio != null && ratio >= 1.0;
+            final isDone = !isFuture && isDoneFromMonth;
             final isMissed =
                 !isFuture &&
                 !isToday &&
                 hasAmals &&
-                (ratio == null || ratio == 0.0);
+                (ratio == null || ratio == 0.0) &&
+                !isDoneFromMonth;
             final isPartial =
                 !isFuture &&
                 !isToday &&
                 ratio != null &&
                 ratio > 0.0 &&
-                ratio < 1.0;
+                ratio < 1.0 &&
+                !isDoneFromMonth;
 
             Color? bgColor;
             Color textColor = AppColors.textPrimary;
@@ -394,7 +443,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 onTap: isFuture
                     ? null
                     : () {
-                        ref.invalidate(_calendarDayProvider);
                         setState(() => _selectedDate = date);
                       },
                 child: Container(
@@ -409,7 +457,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     child: Text(
                       '$dayNum',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: isSelected || isToday || isDone
                             ? FontWeight.w700
                             : FontWeight.w500,
@@ -465,10 +513,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             child: Text(
               isToday
                   ? 'gözlənilir'
-                  : (isPast ? 'yerinə yetirilmədi' : 'gözlənilir'),
+                  : (isPast ? 'tamamlanmadı' : 'gözlənilir'),
               style: const TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textHint,
                 letterSpacing: 0.5,
               ),
@@ -491,10 +539,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 10),
                         child: Text(
-                          'yerinə yetirildi',
+                          'tamamlandı',
                           style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textHint,
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -502,11 +550,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     ],
                   )
                 : const Text(
-                    'yerinə yetirildi',
+                    'tamamlandı',
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textHint,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -619,7 +667,7 @@ class _Tile extends StatelessWidget {
             child: Text(
               amal.title,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 color: isDone ? AppColors.textSecondary : AppColors.textPrimary,
               ),
             ),

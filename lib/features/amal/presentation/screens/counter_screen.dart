@@ -128,7 +128,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                     widget.amal.title,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
                     ),
@@ -181,7 +181,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                                       'hədəfdən ${count - target} artıq etdin ✨',
                                       key: const ValueKey('over'),
                                       style: const TextStyle(
-                                        fontSize: 13,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.accentLight,
                                       ),
@@ -192,7 +192,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                                       key: ValueKey('done'),
                                       style: TextStyle(
                                         fontFamily: 'Scheherazade New',
-                                        fontSize: 22,
+                                        fontSize: 24,
                                         color: AppColors.success,
                                         height: 1.4,
                                       ),
@@ -201,7 +201,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                                       '/ $target dəfə',
                                       key: const ValueKey('progress'),
                                       style: const TextStyle(
-                                        fontSize: 13,
+                                        fontSize: 16,
                                         color: AppColors.textHint,
                                       ),
                                     ),
@@ -223,7 +223,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                     child: Text(
                       '👆 hər tap bir zikr',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 14,
                         color: AppColors.textHint,
                         letterSpacing: 0.2,
                       ),
@@ -241,7 +241,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                       child: Text(
                         'uzun bas — geri al',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 14,
                           color: AppColors.textHint.withValues(alpha: 0.6),
                           letterSpacing: 0.1,
                         ),

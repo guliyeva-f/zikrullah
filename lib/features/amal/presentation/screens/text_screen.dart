@@ -19,6 +19,7 @@ class TextScreen extends ConsumerStatefulWidget {
 class _TextScreenState extends ConsumerState<TextScreen> {
   final _scrollController = ScrollController();
   double _scrollProgress = 0.0;
+  bool _autoCompleted = false;
 
   @override
   void initState() {
@@ -29,9 +30,18 @@ class _TextScreenState extends ConsumerState<TextScreen> {
   void _onScroll() {
     final pos = _scrollController.position;
     if (pos.maxScrollExtent <= 0) return;
-    setState(() {
-      _scrollProgress = (pos.pixels / pos.maxScrollExtent).clamp(0.0, 1.0);
-    });
+    final newProgress = (pos.pixels / pos.maxScrollExtent).clamp(0.0, 1.0);
+    if (_scrollProgress != newProgress) {
+      setState(() => _scrollProgress = newProgress);
+    }
+    final isCompleted =
+        ref.read(amalProvider).value?.records[widget.amal.id]?.isCompleted ??
+        widget.record?.isCompleted ??
+        false;
+    if (newProgress >= 1 && !isCompleted && !_autoCompleted) {
+      _autoCompleted = true;
+      _markCompleted();
+    }
   }
 
   @override
@@ -41,9 +51,15 @@ class _TextScreenState extends ConsumerState<TextScreen> {
     super.dispose();
   }
 
-  Future<void> _complete() async {
+  Future<void> _markCompleted() async {
     await ref.read(amalProvider.notifier).completeCheckbox(widget.amal.id);
-    if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _completeAndClose() async {
+    await _markCompleted();
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   List<TextSpan> _buildMixedSpans(String text) {
@@ -59,7 +75,9 @@ class _TextScreenState extends ConsumerState<TextScreen> {
           TextSpan(
             text: text.substring(lastEnd, match.start),
             style: const TextStyle(
-              fontSize: 16,
+              fontFamily: 'Roboto',
+              fontWeight: FontWeight.w400,
+              fontSize: 18,
               height: 2.0,
               color: AppColors.textPrimary,
             ),
@@ -71,8 +89,9 @@ class _TextScreenState extends ConsumerState<TextScreen> {
           text: match.group(0),
           style: const TextStyle(
             fontFamily: 'Scheherazade New',
-            fontSize: 22,
-            height: 2.0,
+            fontWeight: FontWeight.w400,
+            fontSize: 24,
+            height: 2.5,
             color: AppColors.textPrimary,
           ),
         ),
@@ -85,7 +104,9 @@ class _TextScreenState extends ConsumerState<TextScreen> {
         TextSpan(
           text: text.substring(lastEnd),
           style: const TextStyle(
-            fontSize: 16,
+            fontFamily: 'Roboto',
+            fontWeight: FontWeight.w400,
+            fontSize: 18,
             height: 2.0,
             color: AppColors.textPrimary,
           ),
@@ -98,7 +119,9 @@ class _TextScreenState extends ConsumerState<TextScreen> {
             TextSpan(
               text: text,
               style: const TextStyle(
-                fontSize: 16,
+                fontFamily: 'Roboto',
+                fontWeight: FontWeight.w400,
+                fontSize: 18,
                 height: 2.0,
                 color: AppColors.textPrimary,
               ),
@@ -158,14 +181,14 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                   else
                     _EmptyContent(amal: widget.amal),
 
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 64),
 
                   // ── Tamamla düyməsi ───────────────────────────────────────
                   if (hasContent)
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: isCompleted ? null : _complete,
+                        onPressed: isCompleted ? null : _completeAndClose,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
                           disabledBackgroundColor: AppColors.bgElevated,
@@ -180,7 +203,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                         child: Text(
                           isCompleted ? 'Oxundu ✓' : 'Bitirdim',
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -217,7 +240,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
             widget.amal.title,
             style: const TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
             overflow: TextOverflow.ellipsis,
@@ -226,7 +249,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
             const Text(
               'oxundu ✓',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 color: AppColors.success,
                 fontWeight: FontWeight.w500,
               ),
@@ -254,7 +277,7 @@ class _IntentionBox extends StatelessWidget {
             intention,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               fontStyle: FontStyle.italic,
               color: AppColors.textHint,
               height: 1.6,
@@ -283,7 +306,7 @@ class _EmptyContent extends StatelessWidget {
           const Text(
             'Bu əməl üçün hələ mətn əlavə edilməyib',
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
             ),
@@ -302,8 +325,8 @@ class _EmptyContent extends StatelessWidget {
             },
             icon: const Icon(Icons.edit_outlined, size: 16),
             label: const Text(
-              'Məzmun əlavə et',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              'Mətni əlavə et',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.accent,

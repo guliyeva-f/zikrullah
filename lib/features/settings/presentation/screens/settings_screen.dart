@@ -183,7 +183,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                           const _SectionLabel(label: 'Gecə bildirişi'),
                           _ToggleRow(
                             icon: Icons.bedtime_outlined,
-                            title: 'Son xatırlatma',
+                            title: 'Gecə xatırlatması',
                             subtitle: 'Hər gecə saat 23:00-da',
                             value: state.nightNotifEnabled,
                             onChanged: (v) => ref
@@ -256,7 +256,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       } else {
         _showSnack(
           context,
-          'Bildiriş icazəsi verilmədi. Parametrlərdən əl ilə açmaq lazımdır.',
+          'İcazə rədd edildi. Telefon parametrlərindən aç.',
           isError: true,
           actionLabel: 'Aç',
           onAction: () async {
@@ -274,10 +274,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   // ─── EXPORT ──────────────────────────────────────────────────────────────
 
   Future<void> _export(BuildContext context) async {
-    final filePath = await ImportExportService.instance.exportData();
+    final result = await ImportExportService.instance.exportData();
     if (!context.mounted) return;
-    if (filePath != null) {
-      _showSnack(context, 'Məlumatlar ixrac edildi ✓');
+    if (result != null) {
+      final fileName = result.path.split('/').last;
+      _showSnack(context, 'İxrac edildi: Downloads/$fileName ✓');
     } else {
       _showSnack(context, 'İxrac zamanı xəta baş verdi', isError: true);
     }
@@ -458,7 +459,7 @@ class _ConflictDialogState extends State<_ConflictDialog> {
             child: Text(
               _summaryLine(widget.preview),
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 color: AppColors.textSecondary,
               ),
             ),

@@ -5,15 +5,12 @@ class DatabaseHelper {
   DatabaseHelper._internal();
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
-
   static Database? _db;
   static String? _overridePath;
-
   Future<Database> get database async {
     _db ??= await _initDb();
     return _db!;
   }
-
   Future<Database> _initDb() async {
     final String path;
     if (_overridePath != null) {
@@ -22,7 +19,6 @@ class DatabaseHelper {
       final dbPath = await getDatabasesPath();
       path = join(dbPath, 'zikrullah.db');
     }
-
     return await openDatabase(
       path,
       version: 5,
@@ -126,7 +122,6 @@ class DatabaseHelper {
   static void useInMemoryForTesting() {
     _overridePath = inMemoryDatabasePath;
   }
-
   Future<void> resetForTesting() async {
     if (_db != null && _db!.isOpen) {
       await _db!.close();

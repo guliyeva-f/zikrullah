@@ -62,15 +62,12 @@ class NotificationMessages {
   }) async {
     final count = incompleteTitles.length;
     final pool = <String>[...general, ...wisdom];
-
     if (count == 1) {
       pool.addAll(titleTemplates(incompleteTitles.first));
     } else if (count > 1) {
       pool.addAll(countTemplates(count));
     }
-
     if (slotKey == 'night') pool.addAll(nightUrgent);
-
     return _pickAvoidingRepeat(pool, slotKey);
   }
 
@@ -81,11 +78,9 @@ class NotificationMessages {
     final prefs = await SharedPreferences.getInstance();
     final key = 'notif_last_msg_$slotKey';
     final last = prefs.getString(key);
-
     final candidates = pool.length > 1
         ? pool.where((m) => m != last).toList()
         : pool;
-
     final chosen = candidates[Random().nextInt(candidates.length)];
     await prefs.setString(key, chosen);
     return chosen;

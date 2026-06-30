@@ -158,10 +158,10 @@ class ManageScreen extends ConsumerWidget {
                 const Row(
                   children: [
                     Text(
-                      'Bitmiş əhdlər',
+                      ' Bitmiş əhdlər',
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -214,18 +214,18 @@ class ManageScreen extends ConsumerWidget {
         backgroundColor: AppColors.bgCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
-          'Silinsin?',
+          'Silmək istəyirsən?',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
-            fontSize: 17,
+            fontSize: 18,
           ),
         ),
         content: Text(
           '"${amal.title}" əməlinə aid bütün tarixçə silinəcək.',
           style: const TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 14,
+            fontSize: 15,
             height: 1.5,
           ),
         ),
@@ -353,9 +353,9 @@ class _AmalManageCard extends StatelessWidget {
                         Text(
                           _typeLabel,
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 12,
                             color: _badgeColor,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -371,12 +371,10 @@ class _AmalManageCard extends StatelessWidget {
                   Text(
                     amal.title,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
                   ),
                 ],
               ),
@@ -459,17 +457,6 @@ class _ArchivedAmalCard extends StatelessWidget {
 
   bool get _fullyCompleted => completedDays >= (amal.durationDays ?? 0);
 
-  String get _typeIcon {
-    switch (amal.type) {
-      case AmalType.checkbox:
-        return '✓';
-      case AmalType.counter:
-        return '📿';
-      case AmalType.text:
-        return '📖';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -491,13 +478,11 @@ class _ArchivedAmalCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(_typeIcon, style: const TextStyle(fontSize: 13)),
-                      const SizedBox(width: 6),
                       Text(
                         _fullyCompleted ? '✅ Tamamlandı' : '⏳ Yarımçıq qaldı',
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                           color: _fullyCompleted
                               ? const Color(0xFF5A8A5E)
                               : AppColors.textHint,
@@ -509,7 +494,7 @@ class _ArchivedAmalCard extends StatelessWidget {
                   Text(
                     amal.title,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textSecondary,
                     ),
@@ -520,7 +505,7 @@ class _ArchivedAmalCard extends StatelessWidget {
                   Text(
                     '$completedDays/${amal.durationDays ?? completedDays} gün',
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
                       color: AppColors.textHint,
                     ),
                   ),

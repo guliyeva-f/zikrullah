@@ -39,7 +39,7 @@ class _AboutScreenState extends State<AboutScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Tətbiq haqqında',
+          'Haqqında',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -167,7 +167,7 @@ class _AppHeader extends StatelessWidget {
                 const Text(
                   'Gündəlik əməlləri və götürdüyün əhdləri izləmək üçün şəxsi tətbiq.',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     color: AppColors.textSecondary,
                     height: 1.5,
                   ),
@@ -202,8 +202,8 @@ class _Label extends StatelessWidget {
     return Text(
       text.toUpperCase(),
       style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
         color: AppColors.textHint,
         letterSpacing: 1.0,
       ),
@@ -282,8 +282,8 @@ class _TypeItem extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
@@ -291,7 +291,7 @@ class _TypeItem extends StatelessWidget {
           Text(
             sub,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               color: AppColors.textSecondary,
               height: 1.4,
             ),
@@ -381,8 +381,8 @@ class _ModeCard extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
@@ -390,16 +390,17 @@ class _ModeCard extends StatelessWidget {
           Text(
             body,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               color: AppColors.textSecondary,
-              height: 1.4,
+              height: 1.2,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             example,
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 14,
               color: AppColors.textHint,
               fontStyle: FontStyle.italic,
             ),
@@ -549,7 +550,7 @@ class _PrivacyList extends StatelessWidget {
                       child: Text(
                         text,
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textPrimary,
                         ),
@@ -593,9 +594,10 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             text,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 15,
               color: AppColors.textSecondary,
-              height: 1.55,
+              height: 1.2,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),

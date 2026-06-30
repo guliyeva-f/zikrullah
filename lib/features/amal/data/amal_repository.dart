@@ -152,8 +152,10 @@ class AmalRepository {
       final amal = Amal.fromMap(m);
       final cycleStartStr = amal.effectiveCycleStart.substring(0, 10);
 
-      if (cycleStartStr == today) continue;
-      if (cycleStartStr.compareTo(yesterday) >= 0) continue;
+      final daysSinceCycleStart = DateTime.now()
+          .difference(DateTime.parse(cycleStartStr))
+          .inDays;
+      if (daysSinceCycleStart < 2) continue;
 
       final yesterdayRecord = await db.query(
         'amal_records',

@@ -22,7 +22,7 @@ class ImportExportService {
 
   // ─── EXPORT ──────────────────────────────────────────────────────────────
 
-  Future<String?> exportData() async {
+  Future<({String path, bool saved})?> exportData() async {
     try {
       final amals = await _repo.getAllAmals();
       final records = await _repo.getAllRecords();
@@ -35,7 +35,6 @@ class ImportExportService {
       });
 
       final fileName = _buildFileName();
-
       final file = await _saveToDownloads(fileName, jsonStr);
       if (file == null) return null;
 
@@ -46,7 +45,7 @@ class ImportExportService {
         ),
       );
 
-      return file.path;
+      return (path: file.path, saved: true);
     } catch (e) {
       debugPrint('Export xətası: $e');
       return null;
@@ -78,7 +77,10 @@ class ImportExportService {
       Directory? dir;
 
       if (Platform.isAndroid) {
-        dir = await getExternalStorageDirectory();
+        dir = Directory('/storage/emulated/0/Download');
+        if (!await dir.exists()) {
+          dir = await getExternalStorageDirectory();
+        }
       } else {
         dir = await getApplicationDocumentsDirectory();
       }
@@ -93,7 +95,6 @@ class ImportExportService {
       return null;
     }
   }
-
   // ─── IMPORT PREVIEW ──────────────────────────────────────────────────────
 
   Future<PreviewResult> previewImport() async {

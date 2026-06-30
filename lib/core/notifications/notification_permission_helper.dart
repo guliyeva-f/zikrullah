@@ -8,7 +8,6 @@ Future<void> requestNotifIfNeeded(BuildContext context, WidgetRef ref) async {
   final service = NotificationService();
   final isFirst = await service.isFirstLaunch();
   if (!isFirst) return;
-
   final hasPermission = await service.hasNotificationPermission();
   if (hasPermission) {
     await service.markNotifAsked(granted: true);
@@ -19,7 +18,6 @@ Future<void> requestNotifIfNeeded(BuildContext context, WidgetRef ref) async {
   }
 
   if (!context.mounted) return;
-
   final shouldRequest = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
@@ -73,7 +71,6 @@ Future<void> requestNotifIfNeeded(BuildContext context, WidgetRef ref) async {
   } else {
     await service.markNotifAsked(granted: false);
   }
-
   ref.invalidate(settingsProvider);
   ref.invalidate(notifDeclinedProvider);
 }
