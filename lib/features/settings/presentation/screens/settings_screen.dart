@@ -8,30 +8,24 @@ import '../../../amal/presentation/providers/amal_provider.dart';
 import '../providers/settings_provider.dart';
 import 'about_screen.dart';
 import '../../../../core/notifications/notification_permission_helper.dart';
-
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
-
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
-
 class _SettingsScreenState extends ConsumerState<SettingsScreen>
     with WidgetsBindingObserver {
   bool _waitingForSettings = false;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
   }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _waitingForSettings) {
@@ -39,7 +33,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       _checkPermissionAfterReturn();
     }
   }
-
   Future<void> _checkPermissionAfterReturn() async {
     final hasPermission = await NotificationService()
         .hasNotificationPermission();
@@ -49,11 +42,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       ref.invalidate(notifDeclinedProvider);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final asyncState = ref.watch(settingsProvider);
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
@@ -126,7 +117,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                     onChanged: (v) => _handleNotifToggle(v, context),
                   ),
                   const SizedBox(height: 20),
-
                   AnimatedOpacity(
                     opacity: state.notificationsEnabled ? 1.0 : 0.38,
                     duration: const Duration(milliseconds: 220),
@@ -179,7 +169,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                             ],
                           ),
                           const SizedBox(height: 20),
-
                           const _SectionLabel(label: 'Gecə bildirişi'),
                           _ToggleRow(
                             icon: Icons.bedtime_outlined,
@@ -195,7 +184,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       ),
                     ),
                   ),
-
                   // ── Yedəklə / Bərpa ─────────────────────────────────
                   const _SectionLabel(label: 'Yedəklə / Bərpa'),
                   _GroupCard(
@@ -218,7 +206,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 ],
               ),
             ),
-
             // ── Haqqında — ekranın altına sabit ────────────────────────
             SafeArea(
               child: Padding(
@@ -243,9 +230,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       ),
     );
   }
-
   // ─── NOTIFICATION TOGGLE ─────────────────────────────────────────────────
-
   Future<void> _handleNotifToggle(bool v, BuildContext context) async {
     if (v) {
       final granted = await NotificationService().requestPermission();
@@ -270,9 +255,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       ref.invalidate(notifDeclinedProvider);
     }
   }
-
   // ─── EXPORT ──────────────────────────────────────────────────────────────
-
   Future<void> _export(BuildContext context) async {
     final result = await ImportExportService.instance.exportData();
     if (!context.mounted) return;
@@ -283,13 +266,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       _showSnack(context, 'İxrac zamanı xəta baş verdi', isError: true);
     }
   }
-
   // ─── IMPORT ──────────────────────────────────────────────────────────────
-
   Future<void> _import(BuildContext context, WidgetRef ref) async {
     final previewResult = await ImportExportService.instance.previewImport();
     if (!context.mounted) return;
-
     switch (previewResult) {
       case PreviewCancelled():
         return;
@@ -308,7 +288,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           }
           return;
         }
-
         if (preview.conflicts.isNotEmpty) {
           final confirmed = await showDialog<bool>(
             context: context,
@@ -318,10 +297,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           if (!context.mounted) return;
           if (confirmed != true) return;
         }
-
         final result = await ImportExportService.instance.applyImport(preview);
         if (!context.mounted) return;
-
         final isError =
             result == ImportResult.error || result == ImportResult.invalid;
         final msg = switch (result) {
@@ -331,9 +308,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ImportResult.invalid => 'Fayl düzgün format deyil',
           ImportResult.error => 'İdxal zamanı xəta baş verdi',
         };
-
         if (msg != null) _showSnack(context, msg, isError: isError);
-
         if (result == ImportResult.success || result == ImportResult.partial) {
           await ref.read(amalProvider.notifier).refresh();
           if (!context.mounted) return;
@@ -341,9 +316,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         }
     }
   }
-
   // ─── SUCCESS MESSAGE ─────────────────────────────────────────────────────
-
   String _successMessage(ImportPreview preview) {
     final parts = <String>[];
     if (preview.newAmals.isNotEmpty) {
@@ -360,9 +333,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ? 'Məlumatlar idxal edildi ✓'
         : '${parts.join(' · ')} ✓';
   }
-
   // ─── SNACKBAR ────────────────────────────────────────────────────────────
-
   void _showSnack(
     BuildContext context,
     String msg, {
@@ -385,9 +356,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       ),
     );
   }
-
   // ─── TIME PICKER ─────────────────────────────────────────────────────────
-
   Future<void> _pickTime(
     BuildContext context, {
     required TimeOfDay current,
@@ -419,22 +388,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     if (picked != null) onPicked(picked);
   }
 }
-
 // ─── CONFLICT DIALOG ─────────────────────────────────────────────────────────
-
 class _ConflictDialog extends StatefulWidget {
   final ImportPreview preview;
   const _ConflictDialog({required this.preview});
-
   @override
   State<_ConflictDialog> createState() => _ConflictDialogState();
 }
-
 class _ConflictDialogState extends State<_ConflictDialog> {
   @override
   Widget build(BuildContext context) {
     final conflicts = widget.preview.conflicts;
-
     return Dialog(
       backgroundColor: AppColors.bgCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -528,7 +492,6 @@ class _ConflictDialogState extends State<_ConflictDialog> {
       ),
     );
   }
-
   String _summaryLine(ImportPreview p) {
     final parts = <String>[];
     if (p.newAmals.isNotEmpty) parts.add('${p.newAmals.length} yeni');
@@ -536,14 +499,12 @@ class _ConflictDialogState extends State<_ConflictDialog> {
     if (p.identicalCount > 0) parts.add('${p.identicalCount} eyni (atlanacaq)');
     return '${parts.join(' · ')} — hansını saxlamaq istədiyini seç';
   }
-
   Widget _buildConflictCard(AmalConflict conflict) {
     final typeLabel = switch (conflict.existing.type) {
       AmalType.checkbox => '✓ Gündəlik',
       AmalType.counter => '📿 Zikr',
       AmalType.text => '📖 Qiraət',
     };
-
     return Container(
       decoration: BoxDecoration(
         color: AppColors.bgBase,
@@ -622,9 +583,7 @@ class _ConflictDialogState extends State<_ConflictDialog> {
     );
   }
 }
-
 // ─── SIDE PANEL ──────────────────────────────────────────────────────────────
-
 class _SidePanel extends StatelessWidget {
   final String label;
   final Amal amal;
@@ -632,7 +591,6 @@ class _SidePanel extends StatelessWidget {
   final int? completedDays;
   final bool isSelected;
   final VoidCallback onTap;
-
   const _SidePanel({
     required this.label,
     required this.amal,
@@ -641,7 +599,6 @@ class _SidePanel extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
   });
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -715,7 +672,6 @@ class _SidePanel extends StatelessWidget {
       ),
     );
   }
-
   Widget _statRow(String emoji, String text) => Padding(
     padding: const EdgeInsets.only(bottom: 1),
     child: Row(
@@ -733,7 +689,6 @@ class _SidePanel extends StatelessWidget {
       ],
     ),
   );
-
   Widget _fieldRow(String key, String value) => Padding(
     padding: const EdgeInsets.only(top: 2),
     child: RichText(
@@ -761,13 +716,10 @@ class _SidePanel extends StatelessWidget {
     ),
   );
 }
-
 // ─── SHARED WIDGETS ──────────────────────────────────────────────────────────
-
 class _SectionLabel extends StatelessWidget {
   final String label;
   const _SectionLabel({required this.label});
-
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 8, left: 2),
@@ -782,11 +734,9 @@ class _SectionLabel extends StatelessWidget {
     ),
   );
 }
-
 class _GroupCard extends StatelessWidget {
   final List<Widget> children;
   const _GroupCard({required this.children});
-
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
@@ -797,10 +747,8 @@ class _GroupCard extends StatelessWidget {
     child: Column(children: children),
   );
 }
-
 class _Separator extends StatelessWidget {
   const _Separator();
-
   @override
   Widget build(BuildContext context) => const Divider(
     height: 1,
@@ -809,23 +757,19 @@ class _Separator extends StatelessWidget {
     color: AppColors.separator,
   );
 }
-
 class _TimeRow extends StatelessWidget {
   final String emoji;
   final String label;
   final TimeOfDay time;
   final VoidCallback onTap;
-
   const _TimeRow({
     required this.emoji,
     required this.label,
     required this.time,
     required this.onTap,
   });
-
   String _fmt(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
@@ -865,14 +809,12 @@ class _TimeRow extends StatelessWidget {
     ),
   );
 }
-
 class _ToggleRow extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
-
   const _ToggleRow({
     required this.icon,
     required this.title,
@@ -880,7 +822,6 @@ class _ToggleRow extends StatelessWidget {
     required this.value,
     required this.onChanged,
   });
-
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
@@ -925,20 +866,17 @@ class _ToggleRow extends StatelessWidget {
     ),
   );
 }
-
 class _ActionRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String subtitle;
   final VoidCallback onTap;
-
   const _ActionRow({
     required this.icon,
     required this.label,
     required this.subtitle,
     required this.onTap,
   });
-
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,

@@ -7,22 +7,18 @@ import '../providers/amal_provider.dart';
 import 'amal_form_screen.dart';
 import 'amal_detail_screen.dart';
 import '../../data/amal_repository.dart';
-
 final _archivedAmalsProvider =
     FutureProvider.autoDispose<List<({Amal amal, int completedDays})>>((
       ref,
     ) async {
       return AmalRepository().getArchivedAmalsWithStats();
     });
-
 class ManageScreen extends ConsumerWidget {
   const ManageScreen({super.key});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncState = ref.watch(amalProvider);
     final asyncArchived = ref.watch(_archivedAmalsProvider);
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
@@ -87,7 +83,6 @@ class ManageScreen extends ConsumerWidget {
         ),
         data: (state) {
           final archivedList = asyncArchived.value ?? [];
-
           if (state.amals.isEmpty && archivedList.isEmpty) {
             return const Center(
               child: Column(
@@ -117,7 +112,6 @@ class ManageScreen extends ConsumerWidget {
               ),
             );
           }
-
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
@@ -152,7 +146,6 @@ class ManageScreen extends ConsumerWidget {
                       ),
                   ],
                 ),
-
               if (archivedList.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 const Row(
@@ -198,14 +191,12 @@ class ManageScreen extends ConsumerWidget {
       ),
     );
   }
-
   void _openForm(BuildContext context, WidgetRef ref, Amal? amal) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => AmalFormScreen(amal: amal)),
     ).then((_) => ref.read(amalProvider.notifier).refresh());
   }
-
   void _confirmDelete(BuildContext context, WidgetRef ref, Amal amal) {
     HapticFeedback.mediumImpact();
     showDialog(
@@ -256,16 +247,13 @@ class ManageScreen extends ConsumerWidget {
     );
   }
 }
-
 // ─── CARD ─────────────────────────────────────────────────────────────────────
-
 class _AmalManageCard extends StatelessWidget {
   final Amal amal;
   final int index;
   final VoidCallback onInfo;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-
   const _AmalManageCard({
     super.key,
     required this.amal,
@@ -274,7 +262,6 @@ class _AmalManageCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
   });
-
   String get _typeIcon {
     switch (amal.type) {
       case AmalType.checkbox:
@@ -285,7 +272,6 @@ class _AmalManageCard extends StatelessWidget {
         return '📖';
     }
   }
-
   String get _typeLabel {
     switch (amal.type) {
       case AmalType.checkbox:
@@ -296,7 +282,6 @@ class _AmalManageCard extends StatelessWidget {
         return 'Qiraət';
     }
   }
-
   Color get _badgeColor {
     switch (amal.type) {
       case AmalType.checkbox:
@@ -307,7 +292,6 @@ class _AmalManageCard extends StatelessWidget {
         return const Color(0xFF6B7FA3);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -330,7 +314,6 @@ class _AmalManageCard extends StatelessWidget {
               ),
             ),
           ),
-
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -380,7 +363,6 @@ class _AmalManageCard extends StatelessWidget {
               ),
             ),
           ),
-
           // ── Action zone ───────────────────────────────────────────────────
           Container(
             height: 52,
@@ -411,18 +393,15 @@ class _AmalManageCard extends StatelessWidget {
     );
   }
 }
-
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-
   const _ActionButton({
     required this.icon,
     required this.color,
     required this.onTap,
   });
-
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -436,16 +415,13 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
-
 // ─── ARXİVLƏNMİŞ KART ─────────────────────────────────────────────────────────
-
 class _ArchivedAmalCard extends StatelessWidget {
   final Amal amal;
   final int completedDays;
   final VoidCallback onInfo;
   final VoidCallback onRestart;
   final VoidCallback onDelete;
-
   const _ArchivedAmalCard({
     super.key,
     required this.amal,
@@ -454,9 +430,7 @@ class _ArchivedAmalCard extends StatelessWidget {
     required this.onRestart,
     required this.onDelete,
   });
-
   bool get _fullyCompleted => completedDays >= (amal.durationDays ?? 0);
-
   @override
   Widget build(BuildContext context) {
     return Container(

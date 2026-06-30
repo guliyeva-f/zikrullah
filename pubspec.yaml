@@ -51,7 +51,6 @@ flutter:
           weight: 600
         - asset: assets/fonts/Scheherazade/ScheherazadeNew-Bold.ttf
           weight: 700
-
 flutter_launcher_icons:
   android: true
   ios: false

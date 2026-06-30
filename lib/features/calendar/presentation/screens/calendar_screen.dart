@@ -5,9 +5,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../amal/data/amal_repository.dart';
 import '../../../amal/domain/amal.dart';
 import '../../../amal/domain/amal_record.dart';
-
 // ─── RƏNGLƏR ──────────────────────────────────────────────────────────────────
-
 class _Cal {
   static const doneBg = Color(0xFF8B6F47);
   static const doneText = Colors.white;
@@ -19,9 +17,7 @@ class _Cal {
   static const futureTxt = Color(0xFFCEC5BB);
   static const partialBg = Color(0xFFE8D5BC);
 }
-
 // ─── PROVIDER ─────────────────────────────────────────────────────────────────
-
 final _calendarDayProvider = FutureProvider.family<_DayData, String>((
   ref,
   dateStr,
@@ -40,7 +36,6 @@ final _calendarDayProvider = FutureProvider.family<_DayData, String>((
   final recordMap = {for (final r in records) r.amalId: r};
   return _DayData(amals: amals, recordMap: recordMap);
 });
-
 final _earliestAmalDateProvider = FutureProvider<DateTime?>((ref) async {
   final repo = AmalRepository();
   final amals = await repo.getAllAmals();
@@ -49,7 +44,6 @@ final _earliestAmalDateProvider = FutureProvider<DateTime?>((ref) async {
   final parts = dates.first.split('-');
   return DateTime(int.parse(parts[0]), int.parse(parts[1]), 1);
 });
-
 final _amalCountProvider = FutureProvider.family<Map<String, int>, String>((
   ref,
   monthKey,
@@ -61,7 +55,6 @@ final _amalCountProvider = FutureProvider.family<Map<String, int>, String>((
   final to = DateTime(year, month + 1, 0);
   return AmalRepository().getAmalCountPerDay(from: from, to: to);
 });
-
 // ── YENİ: ay üçün tək sorğu — gün rəngləri üçün ──────────────────────────────
 final _monthRecordsProvider = FutureProvider.family<Map<String, bool>, String>((
   ref,
@@ -73,7 +66,6 @@ final _monthRecordsProvider = FutureProvider.family<Map<String, bool>, String>((
   final repo = AmalRepository();
   final allAmals = await repo.getAllAmals();
   final daysInMonth = DateUtils.getDaysInMonth(year, month);
-
   final Map<String, Set<int>> completedByDate = {};
   for (final amal in allAmals) {
     final monthRecords = await repo.getAmalCalendarMonth(amal.id, year, month);
@@ -83,7 +75,6 @@ final _monthRecordsProvider = FutureProvider.family<Map<String, bool>, String>((
       }
     });
   }
-
   final result = <String, bool>{};
   for (int day = 1; day <= daysInMonth; day++) {
     final dateStr =
@@ -100,33 +91,26 @@ final _monthRecordsProvider = FutureProvider.family<Map<String, bool>, String>((
   }
   return result;
 });
-
 class _DayData {
   final List<Amal> amals;
   final Map<int, AmalRecord> recordMap;
   const _DayData({required this.amals, required this.recordMap});
 }
-
 // ─── SCREEN ───────────────────────────────────────────────────────────────────
-
 class CalendarScreen extends ConsumerStatefulWidget {
   final DateTime initialDate;
   final Map<String, double> heatmapData;
-
   const CalendarScreen({
     super.key,
     required this.initialDate,
     this.heatmapData = const {},
   });
-
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
 }
-
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   late DateTime _selectedDate;
   late DateTime _displayMonth;
-
   @override
   void initState() {
     super.initState();
@@ -142,15 +126,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       ref.invalidate(_monthRecordsProvider);
     });
   }
-
   String _fmt(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
-
   String get _monthKey =>
       '${_displayMonth.year}-${_displayMonth.month.toString().padLeft(2, '0')}';
-
   void _goToToday() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -161,38 +142,32 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       _displayMonth = DateTime(today.year, today.month, 1);
     });
   }
-
   void _prevMonth(DateTime? earliest) {
     final prev = DateTime(_displayMonth.year, _displayMonth.month - 1, 1);
     if (earliest != null && prev.isBefore(earliest)) return;
     setState(() => _displayMonth = prev);
   }
-
   void _nextMonth() {
     final now = DateTime.now();
     final next = DateTime(_displayMonth.year, _displayMonth.month + 1, 1);
     if (next.isAfter(DateTime(now.year, now.month, 1))) return;
     setState(() => _displayMonth = next);
   }
-
   bool _canGoNext() {
     final now = DateTime.now();
     final next = DateTime(_displayMonth.year, _displayMonth.month + 1, 1);
     return !next.isAfter(DateTime(now.year, now.month, 1));
   }
-
   bool _canGoPrev(DateTime? earliest) {
     if (earliest == null) return false;
     final prev = DateTime(_displayMonth.year, _displayMonth.month - 1, 1);
     return !prev.isBefore(earliest);
   }
-
   bool get _isOnToday {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     return _selectedDate == today;
   }
-
   @override
   Widget build(BuildContext context) {
     final dateStr = _fmt(_selectedDate);
@@ -202,7 +177,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final amalCountAsync = ref.watch(_amalCountProvider(_monthKey));
     final today = DateTime.now();
     final todayNorm = DateTime(today.year, today.month, today.day);
-
     final earliest = earliestAsync.when(
       data: (d) => d,
       loading: () => null,
@@ -213,7 +187,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       loading: () => <String, int>{},
       error: (_, _) => <String, int>{},
     );
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
@@ -281,7 +254,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ],
             ),
           ),
-
           // ── Həftə başlıqları ─────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -304,15 +276,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   .toList(),
             ),
           ),
-
           // ── Təqvim grid ──────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: _buildGrid(todayNorm, amalCount, monthAsync.value ?? {}),
           ),
-
           const SizedBox(height: 14),
-
           // ── Legend ───────────────────────────────────────────────────────
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
@@ -329,10 +298,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 14),
           const Divider(color: AppColors.separator, height: 1),
-
           // ── Gün siyahısı ─────────────────────────────────────────────────
           Expanded(
             child: dayAsync.when(
@@ -369,7 +336,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       ),
     );
   }
-
   Widget _buildGrid(
     DateTime todayNorm,
     Map<String, int> amalCount,
@@ -379,7 +345,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final daysInMonth = DateTime(firstDay.year, firstDay.month + 1, 0).day;
     final startOffset = firstDay.weekday - 1;
     final rows = ((startOffset + daysInMonth) / 7).ceil();
-
     return Column(
       children: List.generate(rows, (row) {
         return Row(
@@ -388,7 +353,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             if (dayNum < 1 || dayNum > daysInMonth) {
               return const Expanded(child: SizedBox(height: 44));
             }
-
             final date = DateTime(firstDay.year, firstDay.month, dayNum);
             final isFuture = date.isAfter(todayNorm);
             final isToday = date == todayNorm;
@@ -397,7 +361,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             final ratio = widget.heatmapData[dateStr];
             final hasAmals = amalCount.containsKey(dateStr);
             final isDoneFromMonth = monthDone[dateStr] == true;
-
             final isDone = !isFuture && isDoneFromMonth;
             final isMissed =
                 !isFuture &&
@@ -412,11 +375,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ratio > 0.0 &&
                 ratio < 1.0 &&
                 !isDoneFromMonth;
-
             Color? bgColor;
             Color textColor = AppColors.textPrimary;
             Border? border;
-
             if (isSelected && !isDone) {
               bgColor = _Cal.selectedBg;
               textColor = _Cal.selectedText;
@@ -437,7 +398,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             } else if (isFuture) {
               textColor = _Cal.futureTxt;
             }
-
             return Expanded(
               child: GestureDetector(
                 onTap: isFuture
@@ -473,11 +433,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       }),
     );
   }
-
   Widget _buildDayList(_DayData data, DateTime todayNorm) {
     final isToday = _selectedDate == todayNorm;
     final isPast = _selectedDate.isBefore(todayNorm);
-
     if (data.amals.isEmpty) {
       return const Center(
         child: Column(
@@ -496,14 +454,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ),
       );
     }
-
     final done = data.amals
         .where((a) => data.recordMap[a.id]?.isCompleted == true)
         .toList();
     final notDone = data.amals
         .where((a) => data.recordMap[a.id]?.isCompleted != true)
         .toList();
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       children: [
@@ -565,20 +521,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 }
-
 // ─── NAV BUTTON ──────────────────────────────────────────────────────────────
-
 class _NavButton extends StatelessWidget {
   final IconData icon;
   final bool enabled;
   final VoidCallback onTap;
-
   const _NavButton({
     required this.icon,
     required this.enabled,
     required this.onTap,
   });
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -596,15 +548,11 @@ class _NavButton extends StatelessWidget {
     );
   }
 }
-
 // ─── LEGEND ITEM ─────────────────────────────────────────────────────────────
-
 class _LegendItem extends StatelessWidget {
   final Color color;
   final String label;
-
   const _LegendItem({required this.color, required this.label});
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -627,25 +575,20 @@ class _LegendItem extends StatelessWidget {
     );
   }
 }
-
 // ─── TILE ─────────────────────────────────────────────────────────────────────
-
 class _Tile extends StatelessWidget {
   final Amal amal;
   final bool isDone;
   final bool isToday;
-
   const _Tile({
     required this.amal,
     required this.isDone,
     required this.isToday,
   });
-
   @override
   Widget build(BuildContext context) {
     final IconData icon;
     final Color iconColor;
-
     if (isDone) {
       icon = Icons.check_circle_outline_rounded;
       iconColor = AppColors.accent;
@@ -656,7 +599,6 @@ class _Tile extends StatelessWidget {
       icon = Icons.remove_circle_outline_rounded;
       iconColor = _Cal.missedText.withValues(alpha: 0.7);
     }
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(

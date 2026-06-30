@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/constants/app_colors.dart';
-
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
-
   @override
   State<AboutScreen> createState() => _AboutScreenState();
 }
-
 class _AboutScreenState extends State<AboutScreen> {
   String _version = '';
-
   @override
   void initState() {
     super.initState();
@@ -21,7 +17,6 @@ class _AboutScreenState extends State<AboutScreen> {
       }
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,7 +48,6 @@ class _AboutScreenState extends State<AboutScreen> {
           // ── App identity ───────────────────────────────────────────────
           _AppHeader(version: _version),
           const SizedBox(height: 24),
-
           // ── Əməl növləri ──────────────────────────────────────────────
           const _Label('Əməl növləri'),
           const SizedBox(height: 10),
@@ -77,37 +71,31 @@ class _AboutScreenState extends State<AboutScreen> {
             ],
           ),
           const SizedBox(height: 24),
-
           // ── Əhd sistemi ───────────────────────────────────────────────
           const _Label('Əhd sistemi'),
           const SizedBox(height: 10),
           const _Block(child: _AhdContent()),
           const SizedBox(height: 24),
-
           // ── Ardıcıllıq ────────────────────────────────────────────────
           const _Label('Ardıcıllıq'),
           const SizedBox(height: 10),
           const _Block(child: _StreakContent()),
           const SizedBox(height: 24),
-
           // ── Yedəkləmə ─────────────────────────────────────────────────
           const _Label('Yedəkləmə'),
           const SizedBox(height: 10),
           const _Block(child: _BackupContent()),
           const SizedBox(height: 24),
-
           // ── Bildirişlər ───────────────────────────────────────────────
           const _Label('Bildirişlər'),
           const SizedBox(height: 10),
           const _Block(child: _NotifContent()),
           const SizedBox(height: 24),
-
           // ── Məxfilik ──────────────────────────────────────────────────
           const _Label('Məxfilik'),
           const SizedBox(height: 10),
           const _PrivacyList(),
           const SizedBox(height: 32),
-
           // ── Footer ────────────────────────────────────────────────────
           Center(
             child: Text(
@@ -120,13 +108,10 @@ class _AboutScreenState extends State<AboutScreen> {
     );
   }
 }
-
 // ─── APP HEADER ──────────────────────────────────────────────────────────────
-
 class _AppHeader extends StatelessWidget {
   final String version;
   const _AppHeader({required this.version});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -190,13 +175,10 @@ class _AppHeader extends StatelessWidget {
     );
   }
 }
-
 // ─── LABEL ───────────────────────────────────────────────────────────────────
-
 class _Label extends StatelessWidget {
   final String text;
   const _Label(this.text);
-
   @override
   Widget build(BuildContext context) {
     return Text(
@@ -210,13 +192,10 @@ class _Label extends StatelessWidget {
     );
   }
 }
-
 // ─── GENERIC BLOCK ───────────────────────────────────────────────────────────
-
 class _Block extends StatelessWidget {
   final Widget child;
   const _Block({required this.child});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -230,13 +209,10 @@ class _Block extends StatelessWidget {
     );
   }
 }
-
 // ─── ƏMƏL NÖVLƏRİ: 3 SÜTUN ──────────────────────────────────────────────────
-
 class _TypeRow extends StatelessWidget {
   final List<_TypeItem> items;
   const _TypeRow({required this.items});
-
   @override
   Widget build(BuildContext context) {
     return IntrinsicHeight(
@@ -254,7 +230,6 @@ class _TypeRow extends StatelessWidget {
     );
   }
 }
-
 class _TypeItem extends StatelessWidget {
   final String emoji;
   final String title;
@@ -264,7 +239,6 @@ class _TypeItem extends StatelessWidget {
     required this.title,
     required this.sub,
   });
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -301,12 +275,9 @@ class _TypeItem extends StatelessWidget {
     );
   }
 }
-
 // ─── ƏHD SİSTEMİ ─────────────────────────────────────────────────────────────
-
 class _AhdContent extends StatelessWidget {
   const _AhdContent();
-
   @override
   Widget build(BuildContext context) {
     return const Column(
@@ -351,20 +322,17 @@ class _AhdContent extends StatelessWidget {
     );
   }
 }
-
 class _ModeCard extends StatelessWidget {
   final String emoji;
   final String title;
   final String body;
   final String example;
-
   const _ModeCard({
     required this.emoji,
     required this.title,
     required this.body,
     required this.example,
   });
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -410,12 +378,9 @@ class _ModeCard extends StatelessWidget {
     );
   }
 }
-
 // ─── STREAK ──────────────────────────────────────────────────────────────────
-
 class _StreakContent extends StatelessWidget {
   const _StreakContent();
-
   @override
   Widget build(BuildContext context) {
     return const Column(
@@ -443,12 +408,9 @@ class _StreakContent extends StatelessWidget {
     );
   }
 }
-
 // ─── BACKUP ──────────────────────────────────────────────────────────────────
-
 class _BackupContent extends StatelessWidget {
   const _BackupContent();
-
   @override
   Widget build(BuildContext context) {
     return const Column(
@@ -469,12 +431,9 @@ class _BackupContent extends StatelessWidget {
     );
   }
 }
-
 // ─── BİLDİRİŞLƏR ─────────────────────────────────────────────────────────────
-
 class _NotifContent extends StatelessWidget {
   const _NotifContent();
-
   @override
   Widget build(BuildContext context) {
     return const Column(
@@ -500,12 +459,9 @@ class _NotifContent extends StatelessWidget {
     );
   }
 }
-
 // ─── MƏXFİLİK ────────────────────────────────────────────────────────────────
-
 class _PrivacyList extends StatelessWidget {
   const _PrivacyList();
-
   @override
   Widget build(BuildContext context) {
     const items = [
@@ -517,7 +473,6 @@ class _PrivacyList extends StatelessWidget {
       (Icons.person_off_rounded, 'Hesab lazım deyil, şəxsi məlumat toplanmır'),
       (Icons.block_rounded, 'Reklam yoxdur, izləmə yoxdur'),
     ];
-
     return Container(
       decoration: BoxDecoration(
         color: AppColors.bgCard,
@@ -566,16 +521,12 @@ class _PrivacyList extends StatelessWidget {
     );
   }
 }
-
 // ─── INFO ROW ────────────────────────────────────────────────────────────────
-
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final Color? iconColor;
   final String text;
-
   const _InfoRow({required this.icon, this.iconColor, required this.text});
-
   @override
   Widget build(BuildContext context) {
     return Row(

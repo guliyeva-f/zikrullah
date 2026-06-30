@@ -1,5 +1,4 @@
 enum AmalType { checkbox, counter, text }
-
 class Amal {
   final int id;
   final String title;
@@ -14,7 +13,6 @@ class Amal {
   final String? archivedAt;
   final String? cycleStartedAt;
   final bool allowBreak;
-
   const Amal({
     required this.id,
     required this.title,
@@ -30,19 +28,14 @@ class Amal {
     this.cycleStartedAt,
     this.allowBreak = false,
   });
-
   // ─── COMPUTED ─────────────────────────────────────────────────────────────
-
   String get effectiveCycleStart => cycleStartedAt ?? createdAt;
-
   int remainingDaysFor(int completedCount) {
     if (durationDays == null) return 0;
     final r = durationDays! - completedCount;
     return r < 0 ? 0 : r;
   }
-
   // ─── SERIALIZATION ────────────────────────────────────────────────────────
-
   factory Amal.fromMap(Map<String, dynamic> map) => Amal(
     id: map['id'] as int,
     title: map['title'] as String,
@@ -58,9 +51,7 @@ class Amal {
     cycleStartedAt: map['cycle_started_at'] as String?,
     allowBreak: ((map['allow_break'] as int?) ?? 0) == 1,
   );
-
   static const _unset = Object();
-
   Amal copyWith({
     int? id,
     String? title,
@@ -100,7 +91,6 @@ class Amal {
         : cycleStartedAt as String?,
     allowBreak: allowBreak ?? this.allowBreak,
   );
-
   Map<String, dynamic> toMap() => {
     'title': title,
     'type': type.name,
@@ -115,7 +105,6 @@ class Amal {
     'cycle_started_at': cycleStartedAt,
     'allow_break': allowBreak ? 1 : 0,
   };
-
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
@@ -131,6 +120,5 @@ class Amal {
     'cycle_started_at': cycleStartedAt,
     'allow_break': allowBreak ? 1 : 0,
   };
-
   factory Amal.fromJson(Map<String, dynamic> json) => Amal.fromMap(json);
 }

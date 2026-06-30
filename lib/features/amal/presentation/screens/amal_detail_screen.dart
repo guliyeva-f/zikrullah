@@ -7,15 +7,12 @@ import '../../data/amal_repository.dart';
 import '../providers/amal_provider.dart';
 import 'amal_form_screen.dart';
 import '../../domain/amal_cycle.dart';
-
 class AmalDetailScreen extends ConsumerStatefulWidget {
   final Amal amal;
   const AmalDetailScreen({super.key, required this.amal});
-
   @override
   ConsumerState<AmalDetailScreen> createState() => _AmalDetailScreenState();
 }
-
 class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   late Amal _amal;
   Map<String, bool> _allRecords = {};
@@ -24,7 +21,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
   List<AmalCycle> _cycles = [];
   bool _loading = true;
   final _scrollController = ScrollController();
-
   static const double _rowH = 39.0;
   static const double _sepH = 30.0;
   static const double _headerH = 26.0;
@@ -35,13 +31,11 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     _amal = widget.amal;
     _loadData();
   }
-
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
   }
-
   Future<void> _loadData() async {
     setState(() => _loading = true);
     final repo = AmalRepository();
@@ -58,7 +52,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     final cycles = _amal.durationDays != null
         ? await repo.getCyclesForAmal(_amal.id)
         : <AmalCycle>[];
-
     if (!mounted) return;
     setState(() {
       _allRecords = records;
@@ -69,7 +62,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToToday());
   }
-
   void _scrollToToday() {
     if (!_scrollController.hasClients) return;
     final now = DateTime.now();
@@ -80,7 +72,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       final earliest = DateTime.parse(sortedKeys.first);
       if (earliest.isBefore(historyStart)) historyStart = earliest;
     }
-
     if (today.isBefore(historyStart)) return;
     final gridStart = historyStart.subtract(
       Duration(days: (historyStart.weekday - 1) % 7),
@@ -112,14 +103,11 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       curve: Curves.easeInOut,
     );
   }
-
   String _dateStr(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
-
   String get _todayStr => _dateStr(DateTime.now());
-
   Future<void> _showIntentionSheet() async {
     final ctrl = TextEditingController(text: _amal.intention ?? '');
     await showModalBottomSheet(
@@ -235,13 +223,11 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final streak = _amal.isActive
         ? (ref.watch(amalProvider).value?.streaks[_amal.id] ?? 0)
         : 0;
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: CustomScrollView(
@@ -298,14 +284,12 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
                 ),
             ],
           ),
-
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: _buildIntentionSection(),
             ),
           ),
-
           SliverPersistentHeader(
             pinned: true,
             delegate: _StickyTopDelegate(
@@ -318,9 +302,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               ),
             ),
           ),
-
           SliverToBoxAdapter(child: _buildCycleHistory()),
-
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
             sliver: SliverToBoxAdapter(
@@ -340,12 +322,9 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       ),
     );
   }
-
   // ─── NİYYƏT ──────────────────────────────────────────────────────────────
-
   Widget _buildIntentionSection() {
     final hasIntention = _amal.intention?.isNotEmpty == true;
-
     return GestureDetector(
       onTap: _showIntentionSheet,
       child: AnimatedContainer(
@@ -400,14 +379,11 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       ),
     );
   }
-
   // ─── STREAK ───────────────────────────────────────────────────────────────
-
   Widget _buildStreakSection(int streak) {
     final target = _amal.durationDays;
     final isProgramComplete = target != null && _cycleCompletedCount >= target;
     final isLoose = _amal.allowBreak;
-
     Widget? subLine;
     if (target != null && !isProgramComplete && !isLoose) {
       final remaining = _amal.remainingDaysFor(_cycleCompletedCount);
@@ -423,7 +399,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
       );
     }
-
     final String streakLabel;
     if (isProgramComplete) {
       streakLabel = 'Əhdinə vəfalı oldun — Allah qəbul etsin 🤲';
@@ -436,10 +411,8 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     } else {
       streakLabel = '$streak gün ardıcıl 🔥';
     }
-
     final showFireIcon =
         streak > 0 && !isProgramComplete && _amal.isActive && !isLoose;
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -469,9 +442,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       ],
     );
   }
-
   // ─── TƏQVİM ──────────────────────────────────────────────────────────────
-
   Widget _buildContinuousGrid() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -484,9 +455,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       final earliest = DateTime.parse(sortedKeys.first);
       if (earliest.isBefore(historyStart)) historyStart = earliest;
     }
-
     final startDate = historyStart;
-
     final DateTime gridEnd;
     if (_amal.durationDays != null) {
       final cycleEnd = activeCycleStart.add(
@@ -497,14 +466,11 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       final minEnd = activeCycleStart.add(const Duration(days: 39));
       gridEnd = today.isAfter(minEnd) ? today : minEnd;
     }
-
     final gridStart = startDate.subtract(
       Duration(days: (startDate.weekday - 1) % 7),
     );
     final totalWeeks = (gridEnd.difference(gridStart).inDays / 7).ceil() + 1;
-
     final rows = <Widget>[];
-
     rows.add(
       Row(
         children: AppConstants.weekdaysShort
@@ -526,13 +492,10 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       ),
     );
     rows.add(const SizedBox(height: 4));
-
     int? lastShownMonth;
     int? lastShownYear;
-
     for (int weekIdx = 0; weekIdx < totalWeeks; weekIdx++) {
       final weekStart = gridStart.add(Duration(days: weekIdx * 7));
-
       int? visibleMonth;
       int? visibleYear;
       for (int d = 0; d < 7; d++) {
@@ -543,7 +506,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
           break;
         }
       }
-
       if (visibleMonth != null && visibleMonth != lastShownMonth) {
         if (weekIdx != 0) rows.add(const SizedBox(height: 8));
         final showYear = visibleYear != lastShownYear;
@@ -552,7 +514,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         lastShownMonth = visibleMonth;
         lastShownYear = visibleYear;
       }
-
       rows.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 3),
@@ -562,13 +523,11 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               if (day.isBefore(startDate) || day.isAfter(gridEnd)) {
                 return const Expanded(child: SizedBox(height: 36));
               }
-
               final isFuture = day.isAfter(today);
               final ds = _dateStr(day);
               final isToday = ds == _todayStr;
               final completed = _allRecords[ds] ?? false;
               final isOldCycle = day.isBefore(activeCycleStart);
-
               return Expanded(
                 child: Container(
                   height: 36,
@@ -613,10 +572,8 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         ),
       );
     }
-
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
   }
-
   Widget _buildMonthSeparator(int month, int year, bool showYear) {
     return Row(
       children: [
@@ -637,16 +594,13 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       ],
     );
   }
-
   // ─── CƏHD TARİXÇƏSİ (yalnız ardıcıl rejim, 1-dən çox cəhd varsa) ───────────
-
   Widget _buildCycleHistory() {
     if (_amal.allowBreak || _amal.durationDays == null) {
       return const SizedBox.shrink();
     }
     final closed = _cycles.where((c) => !c.isOngoing).toList();
     if (closed.isEmpty) return const SizedBox.shrink();
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       child: Column(
@@ -673,7 +627,6 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
       ),
     );
   }
-
   String _cycleLine(AmalCycle c) {
     final target = _amal.durationDays ?? 0;
     final range = '${_shortDate(c.startedAt)} – ${_shortDate(c.endedAt!)}';
@@ -682,39 +635,31 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
     }
     return '$range  ·  ${c.daysDone} gün (yarımçıq qaldı)';
   }
-
   String _shortDate(String isoDate) {
     final d = DateTime.parse(isoDate.substring(0, 10));
     return '${d.day} ${AppConstants.monthsShort[d.month - 1]}';
   }
 }
-
 // ─── STICKY HEADER DELEGATE ──────────────────────────────────────────────────
-
 class _StickyTopDelegate extends SliverPersistentHeaderDelegate {
   final double minHeight;
   final double maxHeight;
   final Widget child;
-
   const _StickyTopDelegate({
     required this.minHeight,
     required this.maxHeight,
     required this.child,
   });
-
   @override
   double get minExtent => minHeight;
-
   @override
   double get maxExtent => maxHeight;
-
   @override
   Widget build(
     BuildContext context,
     double shrinkOffset,
     bool overlapsContent,
   ) => SizedBox.expand(child: child);
-
   @override
   bool shouldRebuild(_StickyTopDelegate old) =>
       old.minHeight != minHeight ||

@@ -6,7 +6,6 @@ import 'core/notifications/notification_service.dart';
 import 'features/amal/presentation/screens/onboarding_wrapper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-
 void main() async {
   if (kReleaseMode) {
     debugPrint = (String? message, {int? wrapWidth}) {};
@@ -16,21 +15,16 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-
   final notifService = NotificationService();
-
   try {
     await notifService.init();
   } catch (e) {
     debugPrint('Bildiriş init xətası: $e');
   }
-
   runApp(const ProviderScope(child: ZikrullahApp()));
 }
-
 class ZikrullahApp extends StatelessWidget {
   const ZikrullahApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

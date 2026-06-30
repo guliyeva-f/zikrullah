@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/settings/presentation/providers/settings_provider.dart';
 import 'notification_service.dart';
 import '../../../core/constants/app_colors.dart';
-
 Future<void> requestNotifIfNeeded(BuildContext context, WidgetRef ref) async {
   final service = NotificationService();
   final isFirst = await service.isFirstLaunch();
@@ -16,7 +15,6 @@ Future<void> requestNotifIfNeeded(BuildContext context, WidgetRef ref) async {
     ref.invalidate(notifDeclinedProvider);
     return;
   }
-
   if (!context.mounted) return;
   final shouldRequest = await showDialog<bool>(
     context: context,
@@ -63,7 +61,6 @@ Future<void> requestNotifIfNeeded(BuildContext context, WidgetRef ref) async {
       ],
     ),
   );
-
   if (shouldRequest == true) {
     final granted = await service.requestPermission();
     await service.markNotifAsked(granted: granted);

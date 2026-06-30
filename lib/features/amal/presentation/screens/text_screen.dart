@@ -5,28 +5,22 @@ import '../../domain/amal.dart';
 import '../../domain/amal_record.dart';
 import '../providers/amal_provider.dart';
 import 'amal_form_screen.dart';
-
 class TextScreen extends ConsumerStatefulWidget {
   final Amal amal;
   final AmalRecord? record;
-
   const TextScreen({super.key, required this.amal, required this.record});
-
   @override
   ConsumerState<TextScreen> createState() => _TextScreenState();
 }
-
 class _TextScreenState extends ConsumerState<TextScreen> {
   final _scrollController = ScrollController();
   double _scrollProgress = 0.0;
   bool _autoCompleted = false;
-
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
   }
-
   void _onScroll() {
     final pos = _scrollController.position;
     if (pos.maxScrollExtent <= 0) return;
@@ -43,32 +37,27 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       _markCompleted();
     }
   }
-
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
-
   Future<void> _markCompleted() async {
     await ref.read(amalProvider.notifier).completeCheckbox(widget.amal.id);
   }
-
   Future<void> _completeAndClose() async {
     await _markCompleted();
     if (mounted) {
       Navigator.pop(context);
     }
   }
-
   List<TextSpan> _buildMixedSpans(String text) {
     final arabicRegex = RegExp(
       r'[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]+',
     );
     final spans = <TextSpan>[];
     int lastEnd = 0;
-
     for (final match in arabicRegex.allMatches(text)) {
       if (match.start > lastEnd) {
         spans.add(
@@ -98,7 +87,6 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       );
       lastEnd = match.end;
     }
-
     if (lastEnd < text.length) {
       spans.add(
         TextSpan(
@@ -113,7 +101,6 @@ class _TextScreenState extends ConsumerState<TextScreen> {
         ),
       );
     }
-
     return spans.isEmpty
         ? [
             TextSpan(
@@ -129,19 +116,16 @@ class _TextScreenState extends ConsumerState<TextScreen> {
           ]
         : spans;
   }
-
   @override
   Widget build(BuildContext context) {
     final liveRecord = ref.watch(amalProvider).value?.records[widget.amal.id];
     final isCompleted =
         liveRecord?.isCompleted ?? widget.record?.isCompleted ?? false;
-
     final hasContent =
         widget.amal.content != null && widget.amal.content!.trim().isNotEmpty;
     final hasIntention =
         widget.amal.intention != null &&
         widget.amal.intention!.trim().isNotEmpty;
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: _buildAppBar(isCompleted),
@@ -154,7 +138,6 @@ class _TextScreenState extends ConsumerState<TextScreen> {
             valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
             minHeight: 1.5,
           ),
-
           Expanded(
             child: SingleChildScrollView(
               controller: _scrollController,
@@ -169,7 +152,6 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                     const Divider(color: AppColors.separator, thickness: 1),
                     const SizedBox(height: 20),
                   ],
-
                   // ── Əsas mətn və ya boş hal ───────────────────────────────
                   if (hasContent)
                     SelectableText.rich(
@@ -180,9 +162,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                     )
                   else
                     _EmptyContent(amal: widget.amal),
-
                   const SizedBox(height: 64),
-
                   // ── Tamamla düyməsi ───────────────────────────────────────
                   if (hasContent)
                     SizedBox(
@@ -217,7 +197,6 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       ),
     );
   }
-
   PreferredSizeWidget _buildAppBar(bool isCompleted) {
     return AppBar(
       backgroundColor: AppColors.bgBase,
@@ -259,13 +238,10 @@ class _TextScreenState extends ConsumerState<TextScreen> {
     );
   }
 }
-
 // ─── Niyyət bloku — məhdud hündürlük, görünməz scroll ────────────────────────
-
 class _IntentionBox extends StatelessWidget {
   final String intention;
   const _IntentionBox({required this.intention});
-
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
@@ -288,13 +264,10 @@ class _IntentionBox extends StatelessWidget {
     );
   }
 }
-
 // ─── Boş məzmun halı ──────────────────────────────────────────────────────────
-
 class _EmptyContent extends StatelessWidget {
   final Amal amal;
   const _EmptyContent({required this.amal});
-
   @override
   Widget build(BuildContext context) {
     return Padding(

@@ -6,8 +6,9 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:app_settings/app_settings.dart';
 import 'dart:convert';
+import 'notification_context.dart';
+import 'notification_engine.dart';
 import 'notification_messages.dart';
-
 class _NotifIds {
   static const int morning = 1;
   static const int noon = 2;
@@ -15,7 +16,6 @@ class _NotifIds {
   static const int night = 4;
   static const int returnReminder = 5;
 }
-
 class NotificationService {
   NotificationService._internal();
   static final NotificationService _instance = NotificationService._internal();
@@ -29,14 +29,11 @@ class NotificationService {
   static const _channelId = 'zikrullah_channel';
   static const _channelName = 'Zikrullah Xatırlatmaları';
   static const _channelDesc = 'Gündəlik zikrullah xatırlatmaları';
-
   AndroidFlutterLocalNotificationsPlugin? get _androidImpl => _plugin
       .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin
       >();
-
   // ─── INIT ────────────────────────────────────────────────────────────────
-
   Future<void> init() async {
     tz_data.initializeTimeZones();
     final tzInfo = await FlutterTimezone.getLocalTimezone();
@@ -68,7 +65,6 @@ class NotificationService {
       ),
     );
   }
-
   Future<bool> requestPermission() async {
     try {
       final granted =
@@ -80,11 +76,9 @@ class NotificationService {
       return false;
     }
   }
-
   Future<void> openSystemSettings() async {
     await AppSettings.openAppSettings(type: AppSettingsType.notification);
   }
-
   Future<bool> hasNotificationPermission() async {
     try {
       final granted = await _androidImpl?.areNotificationsEnabled() ?? false;
@@ -93,7 +87,6 @@ class NotificationService {
       return false;
     }
   }
-
   Future<bool> canScheduleExact() async {
     try {
       return await _androidImpl?.canScheduleExactNotifications() ?? false;
@@ -101,44 +94,36 @@ class NotificationService {
       return false;
     }
   }
-
   // ─── PREFERENCES ─────────────────────────────────────────────────────────
-
   Future<bool> isEnabled() async {
     final systemGranted = await hasNotificationPermission();
     if (!systemGranted) return false;
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyEnabled) ?? true;
   }
-
   Future<void> setEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEnabled, value);
     value ? await refreshTodayNotifications() : await _plugin.cancelAll();
   }
-
   Future<bool> isNightEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyNight) ?? true;
   }
-
   Future<void> setNightEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyNight, value);
     await refreshTodayNotifications();
   }
-
   Future<TimeOfDay> _getTime(String key, int defaultHour) async {
     final prefs = await SharedPreferences.getInstance();
     final minutes = prefs.getInt(key) ?? defaultHour * 60;
     return TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60);
   }
-
   Future<void> _setTime(String key, TimeOfDay time) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(key, time.hour * 60 + time.minute);
   }
-
   Future<TimeOfDay> getMorningTime() => _getTime(_keyMorning, 9);
   Future<TimeOfDay> getNoonTime() => _getTime(_keyNoon, 13);
   Future<TimeOfDay> getEveningTime() => _getTime(_keyEvening, 20);
@@ -146,17 +131,14 @@ class NotificationService {
     await _setTime(_keyMorning, t);
     await refreshTodayNotifications();
   }
-
   Future<void> setNoonTime(TimeOfDay t) async {
     await _setTime(_keyNoon, t);
     await refreshTodayNotifications();
   }
-
   Future<void> setEveningTime(TimeOfDay t) async {
     await _setTime(_keyEvening, t);
     await refreshTodayNotifications();
   }
-
   // ─── SCHEDULE ────────────────────────────────────────────────────────────
   Future<void> _cancelDailyOnly() async {
     await _plugin.cancel(id: _NotifIds.morning);
@@ -164,97 +146,106 @@ class NotificationService {
     await _plugin.cancel(id: _NotifIds.evening);
     await _plugin.cancel(id: _NotifIds.night);
   }
-
   // ─── KEŞLƏNMİŞ "BU GÜN NATAMAM ƏMƏLLƏR" ────────────────────────────────────
-
-  static const _keyCachedTitles = 'notif_cached_incomplete_titles';
-
-  Future<void> _cacheIncompleteTitles(List<String> titles) async {
+  static const _keyCachedSnapshots = 'notif_cached_snapshots';
+  static const _keyCachedTotalCount = 'notif_cached_total_count';
+  Future<void> _cacheSnapshots(
+    List<AmalSnapshot> remaining,
+    int totalCount,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyCachedTitles, jsonEncode(titles));
+    await prefs.setString(
+      _keyCachedSnapshots,
+      jsonEncode(remaining.map((s) => s.toJson()).toList()),
+    );
+    await prefs.setInt(_keyCachedTotalCount, totalCount);
   }
-
-  Future<List<String>> _getCachedIncompleteTitles() async {
+  Future<(List<AmalSnapshot>, int)> _getCachedSnapshots() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_keyCachedTitles);
-    if (raw == null) return [];
+    final raw = prefs.getString(_keyCachedSnapshots);
+    final totalCount = prefs.getInt(_keyCachedTotalCount) ?? 0;
+    if (raw == null) return (<AmalSnapshot>[], totalCount);
     try {
-      return List<String>.from(jsonDecode(raw) as List);
+      final list = (jsonDecode(raw) as List)
+          .map((m) => AmalSnapshot.fromJson(m as Map<String, dynamic>))
+          .toList();
+      return (list, totalCount);
     } catch (_) {
-      return [];
+      return (<AmalSnapshot>[], totalCount);
     }
   }
-
-  Future<void> updateTodayProgress(List<String> incompleteTitles) async {
-    await _cacheIncompleteTitles(incompleteTitles);
+  Future<void> updateTodayProgress(
+    List<AmalSnapshot> remaining,
+    int totalCount,
+  ) async {
+    await _cacheSnapshots(remaining, totalCount);
     await refreshTodayNotifications();
   }
-
   // ─── GÜNÜN BİLDİRİŞLƏRİNİ DİNAMİK YENİLƏ ────────────────────────────────────
-
   Future<void> refreshTodayNotifications() async {
     try {
       if (!await isEnabled()) return;
       await _cancelDailyOnly();
-
-      final titles = await _getCachedIncompleteTitles();
+      final (remaining, totalCount) = await _getCachedSnapshots();
       final morning = await getMorningTime();
       final noon = await getNoonTime();
       final evening = await getEveningTime();
-
-      final scheduleFn = titles.isEmpty
+      final scheduleFn = totalCount == 0
           ? _scheduleDailyFromTomorrow
           : _scheduleDaily;
-
       await scheduleFn(
         id: _NotifIds.morning,
         hour: morning.hour,
         minute: morning.minute,
-        body: await NotificationMessages.compose(
-          slotKey: 'morning',
-          incompleteTitles: titles,
-        ),
+        body: await _composeForSlot(NotifSlot.morning, remaining, totalCount),
+        title: NotificationMessages.titleFor(NotifSlot.morning),
       );
       await scheduleFn(
         id: _NotifIds.noon,
         hour: noon.hour,
         minute: noon.minute,
-        body: await NotificationMessages.compose(
-          slotKey: 'noon',
-          incompleteTitles: titles,
-        ),
+        body: await _composeForSlot(NotifSlot.noon, remaining, totalCount),
+        title: NotificationMessages.titleFor(NotifSlot.noon),
       );
       await scheduleFn(
         id: _NotifIds.evening,
         hour: evening.hour,
         minute: evening.minute,
-        body: await NotificationMessages.compose(
-          slotKey: 'evening',
-          incompleteTitles: titles,
-        ),
+        body: await _composeForSlot(NotifSlot.evening, remaining, totalCount),
+        title: NotificationMessages.titleFor(NotifSlot.evening),
       );
-
       if (await isNightEnabled()) {
         await scheduleFn(
           id: _NotifIds.night,
           hour: 23,
           minute: 0,
-          body: await NotificationMessages.compose(
-            slotKey: 'night',
-            incompleteTitles: titles,
-          ),
+          body: await _composeForSlot(NotifSlot.night, remaining, totalCount),
+          title: NotificationMessages.titleFor(NotifSlot.night),
         );
       }
     } catch (e) {
       debugPrint('refreshTodayNotifications xətası: $e');
     }
   }
-
+  Future<String> _composeForSlot(
+    NotifSlot slot,
+    List<AmalSnapshot> remaining,
+    int totalCount,
+  ) async {
+    final ctx = NotificationContext(
+      slot: slot,
+      remaining: remaining,
+      totalCount: totalCount,
+    );
+    final pick = NotificationEngine.decide(ctx);
+    return NotificationMessages.compose(pick, slot);
+  }
   Future<void> _scheduleDaily({
     required int id,
     required int hour,
     required int minute,
     required String body,
+    String title = 'Zikrullah',
   }) async {
     try {
       final now = tz.TZDateTime.now(tz.local);
@@ -269,14 +260,12 @@ class NotificationService {
       if (scheduled.isBefore(now)) {
         scheduled = scheduled.add(const Duration(days: 1));
       }
-
       final mode = await canScheduleExact()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
-
       await _plugin.zonedSchedule(
         id: id,
-        title: 'Zikrullah',
+        title: title,
         body: body,
         scheduledDate: scheduled,
         notificationDetails: const NotificationDetails(
@@ -295,16 +284,15 @@ class NotificationService {
       debugPrint('Schedule xətası (id=$id): $e');
     }
   }
-
   Future<void> _scheduleDailyFromTomorrow({
     required int id,
     required int hour,
     required int minute,
     required String body,
+    String title = 'Zikrullah',
   }) async {
     try {
       final now = tz.TZDateTime.now(tz.local);
-
       final scheduled = tz.TZDateTime(
         tz.local,
         now.year,
@@ -313,14 +301,12 @@ class NotificationService {
         hour,
         minute,
       ).add(const Duration(days: 1));
-
       final mode = await canScheduleExact()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
-
       await _plugin.zonedSchedule(
         id: id,
-        title: 'Zikrullah',
+        title: title,
         body: body,
         scheduledDate: scheduled,
         notificationDetails: const NotificationDetails(
@@ -339,20 +325,18 @@ class NotificationService {
       debugPrint('Schedule tomorrow xətası (id=$id): $e');
     }
   }
-
   // ─── GERİ QAYT BİLDİRİŞİ ─────────────────────────────────────────────────
-
-  Future<void> scheduleReturnNotifications(List<String> amalTitles) async {
+  Future<void> scheduleReturnNotifications(
+    List<String> amalTitles, {
+    int inactiveDays = 1,
+  }) async {
     if (amalTitles.isEmpty) {
       await _plugin.cancel(id: _NotifIds.returnReminder);
       return;
     }
-
     if (!await isEnabled()) return;
-
     try {
       final now = tz.TZDateTime.now(tz.local);
-
       var scheduled = tz.TZDateTime(
         tz.local,
         now.year,
@@ -364,19 +348,13 @@ class NotificationService {
       if (scheduled.isBefore(now)) {
         scheduled = scheduled.add(const Duration(days: 1));
       }
-
-      final body = await NotificationMessages.compose(
-        slotKey: 'return',
-        incompleteTitles: amalTitles,
-      );
-
+      final body = await NotificationMessages.composeReturn(inactiveDays);
       final mode = await canScheduleExact()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
-
       await _plugin.zonedSchedule(
         id: _NotifIds.returnReminder,
-        title: 'Zikrullah',
+        title: NotificationMessages.returnTitle,
         body: body,
         scheduledDate: scheduled,
         notificationDetails: const NotificationDetails(
@@ -395,16 +373,12 @@ class NotificationService {
       debugPrint('scheduleReturnNotifications xətası: $e');
     }
   }
-
   // ─── ONBOARDING ──────────────────────────────────────────────────────────
-
   static const _keyNotifAsked = 'notif_onboarding_asked';
-
   Future<bool> isFirstLaunch() async {
     final prefs = await SharedPreferences.getInstance();
     return !(prefs.getBool(_keyNotifAsked) ?? false);
   }
-
   Future<void> markNotifAsked({required bool granted}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyNotifAsked, true);

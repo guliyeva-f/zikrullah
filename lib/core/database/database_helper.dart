@@ -1,6 +1,5 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-
 class DatabaseHelper {
   DatabaseHelper._internal();
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -29,7 +28,6 @@ class DatabaseHelper {
       },
     );
   }
-
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
     CREATE TABLE amals (
@@ -48,7 +46,6 @@ class DatabaseHelper {
       allow_break      INTEGER DEFAULT 0
     )
   ''');
-
     await db.execute('''
     CREATE TABLE amal_records (
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +58,6 @@ class DatabaseHelper {
       UNIQUE (amal_id, record_date)
     )
   ''');
-
     await db.execute('''
     CREATE TABLE amal_cycles (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,13 +68,11 @@ class DatabaseHelper {
       FOREIGN KEY (amal_id) REFERENCES amals (id) ON DELETE CASCADE
     )
   ''');
-
     await db.execute(
       'CREATE INDEX idx_records_amal_date ON amal_records (amal_id, record_date)',
     );
     await db.execute('CREATE INDEX idx_cycles_amal ON amal_cycles (amal_id)');
   }
-
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('ALTER TABLE amals ADD COLUMN intention TEXT');
@@ -116,9 +110,7 @@ class DatabaseHelper {
       ''');
     }
   }
-
   // ─── TEST KÖMƏKÇI METODLAR ────────────────────────────────────────────────
-
   static void useInMemoryForTesting() {
     _overridePath = inMemoryDatabasePath;
   }

@@ -5,22 +5,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
-
 class CounterScreen extends ConsumerStatefulWidget {
   final Amal amal;
   const CounterScreen({super.key, required this.amal});
-
   @override
   ConsumerState<CounterScreen> createState() => _CounterScreenState();
 }
-
 class _CounterScreenState extends ConsumerState<CounterScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnim;
-
   bool _hintDismissed = false;
-
   @override
   void initState() {
     super.initState();
@@ -33,26 +28,22 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
       end: 1.04,
     ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeOut));
   }
-
   @override
   void dispose() {
     _pulseController.dispose();
     super.dispose();
   }
-
   void _onTap() {
     HapticFeedback.lightImpact();
     ref.read(amalProvider.notifier).incrementCounterBy(widget.amal.id, 1);
     if (!_hintDismissed) setState(() => _hintDismissed = true);
     _pulseController.forward(from: 0).then((_) => _pulseController.reverse());
   }
-
   void _onLongPress() {
     HapticFeedback.mediumImpact();
     ref.read(amalProvider.notifier).decrementCounterBy(widget.amal.id, 1);
     _pulseController.forward(from: 0).then((_) => _pulseController.reverse());
   }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(amalProvider).value;
@@ -62,9 +53,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
     final done = record?.isCompleted ?? false;
     final overTarget = done && count > target;
     final progress = (count / target).clamp(0.0, 1.0);
-
     final showHint = !done && count == 0 && !_hintDismissed;
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
@@ -135,7 +124,6 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                   ),
                 ),
                 const SizedBox(height: 36),
-
                 // ── Dairəvi progress + say ─────────────────────────────────
                 ScaleTransition(
                   scale: _pulseAnim,
@@ -173,7 +161,6 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                               child: Text('$count'),
                             ),
                             const SizedBox(height: 6),
-
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 250),
                               child: overTarget
@@ -212,9 +199,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 40),
-
                 // ── First-tap hint ─────────────────────────────────────────
                 AnimatedOpacity(
                   opacity: showHint ? 1.0 : 0.0,
@@ -230,7 +215,6 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                     ),
                   ),
                 ),
-
                 // ── Long-press hint ────────────────────────────────────────
                 AnimatedOpacity(
                   opacity: (!done && count > 0) ? 1.0 : 0.0,
@@ -257,22 +241,18 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
     );
   }
 }
-
 // ─── Ring Painter ─────────────────────────────────────────────────────────────
-
 class _RingPainter extends CustomPainter {
   final double progress;
   final Color trackColor;
   final Color progressColor;
   final double strokeWidth;
-
   const _RingPainter({
     required this.progress,
     required this.trackColor,
     required this.progressColor,
     required this.strokeWidth,
   });
-
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -281,10 +261,8 @@ class _RingPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
-
     paint.color = trackColor;
     canvas.drawCircle(center, radius, paint);
-
     if (progress > 0) {
       paint.color = progressColor;
       canvas.drawArc(
@@ -296,7 +274,6 @@ class _RingPainter extends CustomPainter {
       );
     }
   }
-
   @override
   bool shouldRepaint(_RingPainter old) =>
       old.progress != progress || old.progressColor != progressColor;

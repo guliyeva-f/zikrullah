@@ -7,16 +7,13 @@ import '../../data/amal_repository.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
 import '../../../../core/notifications/notification_permission_helper.dart';
-
 class AmalFormScreen extends ConsumerStatefulWidget {
   final Amal? amal;
   final bool focusContent;
   const AmalFormScreen({super.key, this.amal, this.focusContent = false});
-
   @override
   ConsumerState<AmalFormScreen> createState() => _AmalFormScreenState();
 }
-
 class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _countCtrl;
@@ -24,14 +21,11 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   late final TextEditingController _intentionCtrl;
   late final TextEditingController _customDurCtrl;
   final FocusNode _contentFocus = FocusNode();
-
   late AmalType _type;
   int? _durationPreset;
   bool _submitted = false;
   bool _strictMode = true;
-
   bool get _isEditing => widget.amal != null;
-
   static const _presets = [
     (null, 'Həmişəlik'),
     (7, '7 gün'),
@@ -39,7 +33,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     (40, '40 gün'),
     (-1, 'Fərdi'),
   ];
-
   @override
   void initState() {
     super.initState();
@@ -57,7 +50,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     _intentionCtrl = TextEditingController(text: a?.intention ?? '');
     _type = a?.type ?? AmalType.checkbox;
     _strictMode = !(a?.allowBreak ?? false);
-
     final dur = a?.durationDays;
     if (dur == null) {
       _durationPreset = null;
@@ -70,7 +62,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       _customDurCtrl = TextEditingController(text: dur.toString());
     }
   }
-
   @override
   void dispose() {
     _titleCtrl.dispose();
@@ -81,14 +72,11 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     _contentFocus.dispose();
     super.dispose();
   }
-
   // ─── VALİDASİYA ───────────────────────────────────────────────────────────
-
   String? get _titleError {
     if (!_submitted) return null;
     return _titleCtrl.text.trim().isEmpty ? 'Ad yazılmalıdır' : null;
   }
-
   String? get _countError {
     if (!_submitted || _type != AmalType.counter) return null;
     final v = int.tryParse(_countCtrl.text.trim());
@@ -97,7 +85,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     if (v > 40000) return 'Maksimum 40000 ola bilər';
     return null;
   }
-
   String? get _customDurError {
     if (!_submitted || _durationPreset != -1) return null;
     final v = int.tryParse(_customDurCtrl.text.trim());
@@ -105,13 +92,11 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     if (v > 365) return 'Maksimum 365 gün ola bilər';
     return null;
   }
-
   int? get _resolvedDuration {
     if (_durationPreset == null) return null;
     if (_durationPreset == -1) return int.tryParse(_customDurCtrl.text.trim());
     return _durationPreset;
   }
-
   bool get _isValid {
     if (_titleCtrl.text.trim().isEmpty) {
       return false;
@@ -126,7 +111,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     }
     return true;
   }
-
   bool get _willLoseData {
     final original = widget.amal;
     if (original == null) return false;
@@ -142,13 +126,10 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     }
     return false;
   }
-
   // ─── SAXLA ────────────────────────────────────────────────────────────────
-
   Future<void> _save() async {
     setState(() => _submitted = true);
     if (!_isValid) return;
-
     if (_isEditing && _willLoseData) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,7 +144,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       );
       return;
     }
-
     final title = _titleCtrl.text.trim();
     final intention = _intentionCtrl.text.trim().isEmpty
         ? null
@@ -174,7 +154,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     final content = _type == AmalType.text ? _contentCtrl.text.trim() : null;
     final resolvedDuration = _resolvedDuration;
     final allowBreak = resolvedDuration != null ? !_strictMode : false;
-
     if (_isEditing) {
       await ref
           .read(amalProvider.notifier)
@@ -213,12 +192,9 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       if (!mounted) return;
       await requestNotifIfNeeded(context, ref);
     }
-
     if (mounted) Navigator.pop(context);
   }
-
   // ─── BUILD ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -281,26 +257,22 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
             const SizedBox(height: 6),
             _titleField(),
             const SizedBox(height: 24),
-
             _label('Əməlin növü'),
             const SizedBox(height: 10),
             _typeSelector(),
             const SizedBox(height: 24),
-
             if (_type == AmalType.counter) ...[
               _label('Neçə dəfə?'),
               const SizedBox(height: 6),
               _countField(),
               const SizedBox(height: 24),
             ],
-
             if (_type == AmalType.text) ...[
               _label('Dua / ziyarətnamə mətni'),
               const SizedBox(height: 6),
               _contentField(),
               const SizedBox(height: 24),
             ],
-
             _label('Neçə gün əhd edirsən?'),
             const SizedBox(height: 10),
             _durationSelector(),
@@ -313,7 +285,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               _strictModeCheckbox(),
             ],
             const SizedBox(height: 24),
-
             _label('Niyyətin (nə üçün başlayırsan?)'),
             const SizedBox(height: 6),
             _intentionField(),
@@ -322,9 +293,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       ),
     );
   }
-
   // ─── FORM WİDGETS ─────────────────────────────────────────────────────────
-
   Widget _label(String text) => Text(
     text,
     style: const TextStyle(
@@ -333,7 +302,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       color: AppColors.textPrimary,
     ),
   );
-
   InputDecoration _dec({String? hint, String? error}) => InputDecoration(
     hintText: hint,
     hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
@@ -363,7 +331,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       borderSide: const BorderSide(color: AppColors.error, width: 1.5),
     ),
   );
-
   Widget _titleField() => TextField(
     controller: _titleCtrl,
     maxLength: 40,
@@ -395,14 +362,12 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
           ),
         ),
   );
-
   Widget _typeSelector() {
     final types = [
       (AmalType.checkbox, '✓', 'Sadə'),
       (AmalType.counter, '📿', 'Zikr'),
       (AmalType.text, '📖', 'Qiraət'),
     ];
-
     return Row(
       children: [
         for (int i = 0; i < types.length; i++) ...[
@@ -457,7 +422,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       ],
     );
   }
-
   Widget _countField() => SizedBox(
     width: double.infinity,
     child: TextField(
@@ -474,7 +438,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       ).copyWith(counterText: ''),
     ),
   );
-
   Widget _contentField() => TextField(
     controller: _contentCtrl,
     focusNode: _contentFocus,
@@ -491,7 +454,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       hint: 'Dua, ziyarətnamə, zikr və ya oxunacaq mətni bura yaz..',
     ).copyWith(contentPadding: const EdgeInsets.all(14)),
   );
-
   Widget _durationSelector() {
     return Wrap(
       spacing: 8,
@@ -526,7 +488,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       }).toList(),
     );
   }
-
   Widget _customDurationField() => SizedBox(
     width: double.infinity,
     child: TextField(
@@ -543,7 +504,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       ).copyWith(counterText: ''),
     ),
   );
-
   Widget _intentionField() => TextField(
     controller: _intentionCtrl,
     maxLines: 3,
@@ -558,7 +518,6 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       hint: 'Qəlbindəkini yaz — Allah üçün, özün üçün... 🤍',
     ).copyWith(contentPadding: const EdgeInsets.all(14)),
   );
-
   Widget _strictModeCheckbox() => GestureDetector(
     onTap: () => setState(() => _strictMode = !_strictMode),
     child: Container(

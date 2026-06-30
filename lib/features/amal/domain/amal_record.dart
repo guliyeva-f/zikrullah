@@ -5,7 +5,6 @@ class AmalRecord {
   final bool isCompleted;
   final int countDone;
   final String? completedAt;
-
   const AmalRecord({
     this.id,
     required this.amalId,
@@ -14,7 +13,6 @@ class AmalRecord {
     this.countDone = 0,
     this.completedAt,
   });
-
   factory AmalRecord.fromMap(Map<String, dynamic> map) {
     return AmalRecord(
       id: map['id'] as int?,
@@ -25,7 +23,6 @@ class AmalRecord {
       completedAt: map['completed_at'] as String?,
     );
   }
-
   Map<String, dynamic> toMap() => {
     if (id != null) 'id': id,
     'amal_id': amalId,
@@ -34,7 +31,6 @@ class AmalRecord {
     'count_done': countDone,
     'completed_at': completedAt,
   };
-
   AmalRecord copyWith({
     int? id,
     int? amalId,

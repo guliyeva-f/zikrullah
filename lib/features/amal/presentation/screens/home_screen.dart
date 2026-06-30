@@ -15,17 +15,13 @@ import 'manage_screen.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import 'text_screen.dart';
 import 'counter_screen.dart';
-
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
-
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
-
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _scrollController = ScrollController();
-
   String get _timeGreeting {
     final h = DateTime.now().hour;
     if (h >= 4 && h < 12) return 'Yeni günə Bismillah ☀️';
@@ -34,14 +30,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (h >= 18 && h < 21) return 'Axşamın xeyirlə dolsun ✨';
     return 'Gecən xeyirli keçsin 🌙';
   }
-
   String _timeGreetingOrDone(AmalState state) {
     final total = state.totalCount;
     final done = state.completedCount;
     if (total > 0 && done == total) return 'Günün əhdinə vəfalı oldun!';
     return _timeGreeting;
   }
-
   String _progressTitle(AmalState state) {
     final total = state.totalCount;
     final done = state.completedCount;
@@ -52,25 +46,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (ratio < 0.5) return 'Yolun yarısındasan';
     return 'Əhdinə vəfalı qal ✊';
   }
-
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final asyncAmals = ref.watch(amalProvider);
     final asyncHeatmap = ref.watch(heatmapProvider);
-
     ref.listen<AsyncValue<AmalState>>(amalProvider, (prev, next) {
       next.whenData((state) {
         final prevCount = prev?.value?.completedCount ?? 0;
         if (state.completedCount != prevCount) {
           ref.read(heatmapProvider.notifier).refresh();
         }
-
         if (state.recentlyArchived.isNotEmpty) {
           final titles = state.recentlyArchived.map((a) => a.title).join(', ');
           ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +75,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           );
           ref.read(amalProvider.notifier).clearArchived();
         }
-
         if (state.recentlyReset.isNotEmpty) {
           final titles = state.recentlyReset.map((a) => a.title).join(', ');
           ScaffoldMessenger.of(context).showSnackBar(
@@ -102,7 +91,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
       });
     });
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: SafeArea(
@@ -177,7 +165,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     )
                                     .toList();
                                 final sorted = [...incomplete, ...completed];
-
                                 return sorted.map((amal) {
                                   final isFirstCompleted =
                                       completed.isNotEmpty &&
@@ -186,7 +173,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   final streak = state.streaks[amal.id] ?? 0;
                                   final completedCount =
                                       state.completedCounts[amal.id] ?? 0;
-
                                   return Column(
                                     children: [
                                       if (isFirstCompleted)
@@ -239,7 +225,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           record: record,
                                           streak: streak,
                                           completedCount: completedCount,
-
                                           onCompleteTap: () => ref
                                               .read(amalProvider.notifier)
                                               .completeCheckbox(amal.id),
@@ -364,15 +349,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-
   // ─── HEADER ───────────────────────────────────────────────────────────────
-
   Widget _buildHeader(BuildContext context, AmalState state) {
     final total = state.totalCount;
     final done = state.completedCount;
     final progress = total == 0 ? 0.0 : done / total;
     final hasAmals = state.amals.isNotEmpty;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
       child: Column(
@@ -523,9 +505,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-
   // ─── EMPTY STATE ──────────────────────────────────────────────────────────
-
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
@@ -701,9 +681,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-
   // ─── HEATMAP ──────────────────────────────────────────────────────────────
-
   Widget _buildHeatmapSection(AsyncValue<HeatmapState> asyncHeatmap) {
     return Container(
       color: AppColors.bgBase,
@@ -788,9 +766,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 }
-
 // ─── AMAL CARD ────────────────────────────────────────────────────────────────
-
 class _AmalCard extends StatefulWidget {
   final Amal amal;
   final AmalRecord? record;
@@ -801,7 +777,6 @@ class _AmalCard extends StatefulWidget {
   final VoidCallback onCounterDecrement;
   final VoidCallback onOpenScreen;
   final VoidCallback onDetailTap;
-
   const _AmalCard({
     super.key,
     required this.amal,
@@ -814,21 +789,17 @@ class _AmalCard extends StatefulWidget {
     required this.onOpenScreen,
     required this.onDetailTap,
   });
-
   @override
   State<_AmalCard> createState() => _AmalCardState();
 }
-
 class _AmalCardState extends State<_AmalCard>
     with SingleTickerProviderStateMixin {
   bool _hintVisible = false;
   bool _leaving = false;
   bool _hintAlreadyShown = false;
-
   late final AnimationController _leaveCtrl;
   late final Animation<double> _leaveOpacity;
   late final Animation<Offset> _leaveSlide;
-
   @override
   void initState() {
     super.initState();
@@ -845,16 +816,13 @@ class _AmalCardState extends State<_AmalCard>
       end: const Offset(0, 0.12),
     ).animate(CurvedAnimation(parent: _leaveCtrl, curve: Curves.easeIn));
   }
-
   @override
   void dispose() {
     _leaveCtrl.dispose();
     super.dispose();
   }
-
   bool get _done => widget.record?.isCompleted ?? false;
   bool get _hasChevron => widget.amal.type == AmalType.text;
-
   Future<void> _checkAndShowHint() async {
     if (_hintAlreadyShown) return;
     final prefs = await SharedPreferences.getInstance();
@@ -869,7 +837,6 @@ class _AmalCardState extends State<_AmalCard>
       if (mounted) setState(() => _hintVisible = false);
     }
   }
-
   Future<void> _handleComplete() async {
     if (_done) {
       widget.onCompleteTap();
@@ -883,7 +850,6 @@ class _AmalCardState extends State<_AmalCard>
     if (!mounted) return;
     widget.onCompleteTap();
   }
-
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
@@ -954,10 +920,8 @@ class _AmalCardState extends State<_AmalCard>
       ),
     );
   }
-
   Widget _buildLeading(BuildContext context) {
     final isChecked = _done || _leaving;
-
     Widget circle(VoidCallback onTap) => SizedBox(
       width: 44,
       height: 44,
@@ -983,17 +947,14 @@ class _AmalCardState extends State<_AmalCard>
         ),
       ),
     );
-
     switch (widget.amal.type) {
       case AmalType.checkbox:
       case AmalType.text:
         return circle(_handleComplete);
-
       case AmalType.counter:
         final cnt = widget.record?.countDone ?? 0;
         final target = widget.amal.countTarget ?? 1;
         final isSmall = target <= 10;
-
         return Center(
           child: GestureDetector(
             onTap: isSmall
@@ -1044,24 +1005,20 @@ class _AmalCardState extends State<_AmalCard>
         );
     }
   }
-
   Widget _buildMiddle() {
     final bool isProgramComplete =
         _done &&
         widget.amal.durationDays != null &&
         widget.completedCount >= widget.amal.durationDays!;
-
     String? milestoneText(int s) {
       if (s == 7) return 'bir həftə — MaşaAllah! 🔥';
       if (s == 21) return '21 gün — Əhsən sənə! 🌟';
       if (s == 40) return '40 gün — SubhanAllah! 🌿';
       return null;
     }
-
     final bool isLoose =
         widget.amal.durationDays != null && widget.amal.allowBreak;
     final int displayCount = isLoose ? widget.completedCount : widget.streak;
-
     final String? streakText;
     if (isProgramComplete) {
       streakText =
@@ -1078,10 +1035,8 @@ class _AmalCardState extends State<_AmalCard>
       streakText =
           milestoneText(displayCount) ?? '$displayCount gün davamlı 🔥';
     }
-
     final bool isMilestone =
         !isProgramComplete && !isLoose && milestoneText(displayCount) != null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,

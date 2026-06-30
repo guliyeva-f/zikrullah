@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
-
 class HeatmapWidget extends StatefulWidget {
   final Map<String, double> data;
   final void Function(DateTime)? onDayTap;
   final void Function(DateTime)? onMonthTap;
   final VoidCallback? onTitleTap;
-
   const HeatmapWidget({
     super.key,
     required this.data,
@@ -15,18 +13,14 @@ class HeatmapWidget extends StatefulWidget {
     this.onMonthTap,
     this.onTitleTap,
   });
-
   @override
   State<HeatmapWidget> createState() => _HeatmapWidgetState();
 }
-
 class _HeatmapWidgetState extends State<HeatmapWidget> {
   final _scrollCtrl = ScrollController();
-
   static const _cellSize = 11.0;
   static const _gap = 2.0;
   static const _total = _cellSize + _gap;
-
   @override
   void initState() {
     super.initState();
@@ -36,13 +30,11 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
       }
     });
   }
-
   @override
   void dispose() {
     _scrollCtrl.dispose();
     super.dispose();
   }
-
   Color _cellColor(double? ratio) {
     if (ratio == null || ratio == 0) return AppColors.bgElevated;
     if (ratio < 0.25) return AppColors.accentMuted.withValues(alpha: 0.35);
@@ -50,24 +42,19 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
     if (ratio < 0.75) return AppColors.accentLight;
     return AppColors.accent;
   }
-
   String _fmt(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
-
   List<List<DateTime?>> _buildWeeks() {
     final today = DateTime.now();
     final todayNorm = DateTime(today.year, today.month, today.day);
-
     final thisMonday = todayNorm.subtract(
       Duration(days: todayNorm.weekday - 1),
     );
     final start = thisMonday.subtract(const Duration(days: 52 * 7));
-
     final weeks = <List<DateTime?>>[];
     var cur = start;
-
     while (!cur.isAfter(thisMonday)) {
       final week = <DateTime?>[];
       for (int d = 0; d < 7; d++) {
@@ -79,13 +66,11 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
     }
     return weeks;
   }
-
   @override
   Widget build(BuildContext context) {
     final today = DateTime.now();
     final todayNorm = DateTime(today.year, today.month, today.day);
     final weeks = _buildWeeks();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -106,9 +91,7 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
       ],
     );
   }
-
   // ─── AY BAŞLIQLAR ────────────────────────────────────────────────────────
-
   Widget _buildMonthRow(List<List<DateTime?>> weeks) {
     String? lastKey;
     return Row(
@@ -147,9 +130,7 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
       }).toList(),
     );
   }
-
   // ─── GRID ─────────────────────────────────────────────────────────────────
-
   Widget _buildGrid(List<List<DateTime?>> weeks, DateTime todayNorm) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,7 +142,6 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
             }
             final ratio = widget.data[_fmt(day)];
             final isToday = day == todayNorm;
-
             return GestureDetector(
               onTap: widget.onDayTap != null
                   ? () => widget.onDayTap!(day)
@@ -184,9 +164,7 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
       }).toList(),
     );
   }
-
   // ─── LEGEND ───────────────────────────────────────────────────────────────
-
   Widget _buildLegend() {
     return Row(
       mainAxisSize: MainAxisSize.min,
