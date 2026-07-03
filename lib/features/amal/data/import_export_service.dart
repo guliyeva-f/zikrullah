@@ -26,17 +26,40 @@ class ImportExportService {
         'records': records.map((r) => r.toMap()).toList(),
       });
       final fileName = _buildFileName();
-      final file = await _saveToDownloads(fileName, jsonStr);
-      if (file == null) return null;
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/$fileName');
+      await tempFile.writeAsString(jsonStr, flush: true);
+      final savedFile = await _saveToDownloads(fileName, jsonStr);
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(file.path, mimeType: 'application/octet-stream')],
+          files: [XFile(tempFile.path, mimeType: 'application/json')],
           subject: 'Zikrullah yedəyi',
         ),
       );
-      return (path: file.path, saved: true);
+      return (path: savedFile?.path ?? tempFile.path, saved: savedFile != null);
     } catch (e) {
       debugPrint('Export xətası: $e');
+      return null;
+    }
+  }
+  Future<File?> _saveToDownloads(String fileName, String content) async {
+    try {
+      if (!Platform.isAndroid) {
+        final dir = await getApplicationDocumentsDirectory();
+        final file = File('${dir.path}/$fileName');
+        await file.writeAsString(content, flush: true);
+        return file;
+      }
+      final bytes = utf8.encode(content);
+      final savedPath = await FilePicker.saveFile(
+        fileName: fileName,
+        bytes: bytes,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      return savedPath != null ? File(savedPath) : null;
+    } catch (e) {
+      debugPrint('Downloads yazma xətası: $e');
       return null;
     }
   }
@@ -58,26 +81,6 @@ class ImportExportService {
     ];
     final month = az[now.month - 1];
     return 'zikrullah_${now.day}$month${now.year}.json';
-  }
-  Future<File?> _saveToDownloads(String fileName, String content) async {
-    try {
-      Directory? dir;
-      if (Platform.isAndroid) {
-        dir = Directory('/storage/emulated/0/Download');
-        if (!await dir.exists()) {
-          dir = await getExternalStorageDirectory();
-        }
-      } else {
-        dir = await getApplicationDocumentsDirectory();
-      }
-      if (dir == null) return null;
-      final file = File('${dir.path}/$fileName');
-      await file.writeAsString(content, flush: true);
-      return file;
-    } catch (e) {
-      debugPrint('Downloads yazma xətası: $e');
-      return null;
-    }
   }
   // ─── IMPORT PREVIEW ──────────────────────────────────────────────────────
   Future<PreviewResult> previewImport() async {

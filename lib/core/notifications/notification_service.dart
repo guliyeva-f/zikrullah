@@ -10,10 +10,11 @@ import 'notification_context.dart';
 import 'notification_engine.dart';
 import 'notification_messages.dart';
 class _NotifIds {
-  static const int morning = 1;
-  static const int noon = 2;
-  static const int evening = 3;
-  static const int night = 4;
+  static const int morningBase = 10; 
+  static const int noonBase = 20; 
+  static const int eveningBase = 30;
+  static const int nightBase = 40;
+  static const int seriesDays = 6;
   static const int returnReminder = 5;
 }
 class NotificationService {
@@ -141,10 +142,16 @@ class NotificationService {
   }
   // ─── SCHEDULE ────────────────────────────────────────────────────────────
   Future<void> _cancelDailyOnly() async {
-    await _plugin.cancel(id: _NotifIds.morning);
-    await _plugin.cancel(id: _NotifIds.noon);
-    await _plugin.cancel(id: _NotifIds.evening);
-    await _plugin.cancel(id: _NotifIds.night);
+    for (final base in [
+      _NotifIds.morningBase,
+      _NotifIds.noonBase,
+      _NotifIds.eveningBase,
+      _NotifIds.nightBase,
+    ]) {
+      for (var d = 0; d < _NotifIds.seriesDays; d++) {
+        await _plugin.cancel(id: base + d);
+      }
+    }
   }
   // ─── KEŞLƏNMİŞ "BU GÜN NATAMAM ƏMƏLLƏR" ────────────────────────────────────
   static const _keyCachedSnapshots = 'notif_cached_snapshots';
@@ -181,7 +188,6 @@ class NotificationService {
     await _cacheSnapshots(remaining, totalCount);
     await refreshTodayNotifications();
   }
-  // ─── GÜNÜN BİLDİRİŞLƏRİNİ DİNAMİK YENİLƏ ────────────────────────────────────
   Future<void> refreshTodayNotifications() async {
     try {
       if (!await isEnabled()) return;
@@ -190,37 +196,61 @@ class NotificationService {
       final morning = await getMorningTime();
       final noon = await getNoonTime();
       final evening = await getEveningTime();
-      final scheduleFn = totalCount == 0
-          ? _scheduleDailyFromTomorrow
-          : _scheduleDaily;
-      await scheduleFn(
-        id: _NotifIds.morning,
+      final pushToTomorrow = totalCount == 0;
+      final todayBody = <NotifSlot, String>{
+        NotifSlot.morning: await _composeForSlot(
+          NotifSlot.morning,
+          remaining,
+          totalCount,
+        ),
+        NotifSlot.noon: await _composeForSlot(
+          NotifSlot.noon,
+          remaining,
+          totalCount,
+        ),
+        NotifSlot.evening: await _composeForSlot(
+          NotifSlot.evening,
+          remaining,
+          totalCount,
+        ),
+        NotifSlot.night: await _composeForSlot(
+          NotifSlot.night,
+          remaining,
+          totalCount,
+        ),
+      };
+      await _scheduleSeries(
+        baseId: _NotifIds.morningBase,
+        slot: NotifSlot.morning,
         hour: morning.hour,
         minute: morning.minute,
-        body: await _composeForSlot(NotifSlot.morning, remaining, totalCount),
-        title: NotificationMessages.titleFor(NotifSlot.morning),
+        todayBody: todayBody[NotifSlot.morning]!,
+        pushToTomorrow: pushToTomorrow,
       );
-      await scheduleFn(
-        id: _NotifIds.noon,
+      await _scheduleSeries(
+        baseId: _NotifIds.noonBase,
+        slot: NotifSlot.noon,
         hour: noon.hour,
         minute: noon.minute,
-        body: await _composeForSlot(NotifSlot.noon, remaining, totalCount),
-        title: NotificationMessages.titleFor(NotifSlot.noon),
+        todayBody: todayBody[NotifSlot.noon]!,
+        pushToTomorrow: pushToTomorrow,
       );
-      await scheduleFn(
-        id: _NotifIds.evening,
+      await _scheduleSeries(
+        baseId: _NotifIds.eveningBase,
+        slot: NotifSlot.evening,
         hour: evening.hour,
         minute: evening.minute,
-        body: await _composeForSlot(NotifSlot.evening, remaining, totalCount),
-        title: NotificationMessages.titleFor(NotifSlot.evening),
+        todayBody: todayBody[NotifSlot.evening]!,
+        pushToTomorrow: pushToTomorrow,
       );
       if (await isNightEnabled()) {
-        await scheduleFn(
-          id: _NotifIds.night,
+        await _scheduleSeries(
+          baseId: _NotifIds.nightBase,
+          slot: NotifSlot.night,
           hour: 23,
           minute: 0,
-          body: await _composeForSlot(NotifSlot.night, remaining, totalCount),
-          title: NotificationMessages.titleFor(NotifSlot.night),
+          todayBody: todayBody[NotifSlot.night]!,
+          pushToTomorrow: pushToTomorrow,
         );
       }
     } catch (e) {
@@ -240,16 +270,18 @@ class NotificationService {
     final pick = NotificationEngine.decide(ctx);
     return NotificationMessages.compose(pick, slot);
   }
-  Future<void> _scheduleDaily({
-    required int id,
+  Future<void> _scheduleSeries({
+    required int baseId,
+    required NotifSlot slot,
     required int hour,
     required int minute,
-    required String body,
-    String title = 'Zikrullah',
+    required String todayBody,
+    required bool pushToTomorrow,
   }) async {
     try {
+      final title = NotificationMessages.titleFor(slot);
       final now = tz.TZDateTime.now(tz.local);
-      var scheduled = tz.TZDateTime(
+      var anchor = tz.TZDateTime(
         tz.local,
         now.year,
         now.month,
@@ -257,72 +289,38 @@ class NotificationService {
         hour,
         minute,
       );
-      if (scheduled.isBefore(now)) {
-        scheduled = scheduled.add(const Duration(days: 1));
+      if (anchor.isBefore(now)) {
+        anchor = anchor.add(const Duration(days: 1));
+      }
+      if (pushToTomorrow) {
+        anchor = anchor.add(const Duration(days: 1));
       }
       final mode = await canScheduleExact()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
-      await _plugin.zonedSchedule(
-        id: id,
-        title: title,
-        body: body,
-        scheduledDate: scheduled,
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            channelDescription: _channelDesc,
-            importance: Importance.high,
-            priority: Priority.high,
+      for (var d = 0; d < _NotifIds.seriesDays; d++) {
+        final body = d <= 1
+            ? todayBody
+            : await NotificationMessages.composeDecay(slot, d);
+        await _plugin.zonedSchedule(
+          id: baseId + d,
+          title: title,
+          body: body,
+          scheduledDate: anchor.add(Duration(days: d)),
+          notificationDetails: const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _channelId,
+              _channelName,
+              channelDescription: _channelDesc,
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
           ),
-        ),
-        androidScheduleMode: mode,
-        matchDateTimeComponents: DateTimeComponents.time,
-      );
+          androidScheduleMode: mode,
+        );
+      }
     } catch (e) {
-      debugPrint('Schedule xətası (id=$id): $e');
-    }
-  }
-  Future<void> _scheduleDailyFromTomorrow({
-    required int id,
-    required int hour,
-    required int minute,
-    required String body,
-    String title = 'Zikrullah',
-  }) async {
-    try {
-      final now = tz.TZDateTime.now(tz.local);
-      final scheduled = tz.TZDateTime(
-        tz.local,
-        now.year,
-        now.month,
-        now.day,
-        hour,
-        minute,
-      ).add(const Duration(days: 1));
-      final mode = await canScheduleExact()
-          ? AndroidScheduleMode.exactAllowWhileIdle
-          : AndroidScheduleMode.inexactAllowWhileIdle;
-      await _plugin.zonedSchedule(
-        id: id,
-        title: title,
-        body: body,
-        scheduledDate: scheduled,
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            channelDescription: _channelDesc,
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-        ),
-        androidScheduleMode: mode,
-        matchDateTimeComponents: DateTimeComponents.time,
-      );
-    } catch (e) {
-      debugPrint('Schedule tomorrow xətası (id=$id): $e');
+      debugPrint('Schedule series xətası (baseId=$baseId): $e');
     }
   }
   // ─── GERİ QAYT BİLDİRİŞİ ─────────────────────────────────────────────────

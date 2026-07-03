@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import '../../../../core/constants/app_colors.dart';
 import '../../../calendar/presentation/providers/heatmap_provider.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
@@ -20,8 +21,14 @@ class HomeScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   final _scrollController = ScrollController();
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
   String get _timeGreeting {
     final h = DateTime.now().hour;
     if (h >= 4 && h < 12) return 'Yeni günə Bismillah ☀️';
@@ -48,8 +55,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final cachedToday = ref.read(amalProvider).value?.today;
+      final actualToday = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      if (cachedToday != null && cachedToday != actualToday) {
+        ref.read(amalProvider.notifier).refresh();
+        ref.read(heatmapProvider.notifier).refresh();
+      }
+    }
   }
   @override
   Widget build(BuildContext context) {
@@ -713,7 +732,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'İllik yolun. Təqvimə bax ',
+                  'İllik yolun ',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,

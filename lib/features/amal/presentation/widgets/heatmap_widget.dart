@@ -165,11 +165,14 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
     );
   }
   // ─── LEGEND ───────────────────────────────────────────────────────────────
+  // ─── LEGEND ───────────────────────────────────────────────────────────────
   Widget _buildLegend() {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Az', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+        const Text(
+          'Az',
+          style: TextStyle(fontSize: 11, color: AppColors.textHint),
+        ),
         const SizedBox(width: 4),
         ...[null, 0.2, 0.4, 0.7, 1.0].map(
           (r) => Container(
@@ -183,7 +186,21 @@ class _HeatmapWidgetState extends State<HeatmapWidget> {
           ),
         ),
         const SizedBox(width: 4),
-        const Text('Çox', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+        const Text(
+          'Çox',
+          style: TextStyle(fontSize: 11, color: AppColors.textHint),
+        ),
+        const Spacer(),
+        const Icon(
+          Icons.calendar_today_outlined,
+          size: 11,
+          color: AppColors.textHint,
+        ),
+        const SizedBox(width: 3),
+        const Text(
+          'kvadrata toxun',
+          style: TextStyle(fontSize: 11, color: AppColors.textHint),
+        ),
       ],
     );
   }

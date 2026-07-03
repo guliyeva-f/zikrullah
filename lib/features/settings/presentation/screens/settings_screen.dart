@@ -259,12 +259,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   Future<void> _export(BuildContext context) async {
     final result = await ImportExportService.instance.exportData();
     if (!context.mounted) return;
-    if (result != null) {
-      final fileName = result.path.split('/').last;
-      _showSnack(context, 'İxrac edildi: Downloads/$fileName ✓');
-    } else {
+    if (result == null) {
       _showSnack(context, 'İxrac zamanı xəta baş verdi', isError: true);
+      return;
     }
+    final fileName = result.path.split('/').last;
+    final msg = result.saved
+        ? 'İxrac edildi: $fileName ✓'
+        : 'Paylaşıldı, lakin qovluğa saxlanılmadı ($fileName)';
+    _showSnack(context, msg);
   }
   // ─── IMPORT ──────────────────────────────────────────────────────────────
   Future<void> _import(BuildContext context, WidgetRef ref) async {

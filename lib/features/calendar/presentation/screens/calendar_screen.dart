@@ -469,7 +469,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             child: Text(
               isToday
                   ? 'gözlənilir'
-                  : (isPast ? 'tamamlanmadı' : 'gözlənilir'),
+                  : (isPast ? 'yerinə yetirilmədi' : 'gözlənilir'),
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -495,7 +495,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 10),
                         child: Text(
-                          'tamamlandı',
+                          'yerinə yetirildi',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.textSecondary,
@@ -506,7 +506,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     ],
                   )
                 : const Text(
-                    'tamamlandı',
+                    'yerinə yetirildi',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

@@ -64,6 +64,8 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
         broken.map((a) => a.title).toList(),
         inactiveDays: inactiveDays,
       );
+    } else {
+      await _notifService.scheduleReturnNotifications(const []);
     }
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final amals = await _repo.getActiveAmals();
@@ -105,8 +107,6 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
       recentlyReset: resetAmals,
     );
   }
-  /// Bu gün natamam qalan əməllər üçün bildiriş sistemi üçün lazım olan
-  /// sadə "snapshot" siyahısı qurur. Heç bir qərar vermir.
   List<AmalSnapshot> _buildSnapshots(
     List<Amal> amals,
     Map<int, AmalRecord> todayRecordsMap,

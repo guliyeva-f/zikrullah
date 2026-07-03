@@ -223,6 +223,11 @@ class NotificationMessages {
     final pool = returnReminder(inactiveDays);
     return _pickAvoidingRepeat(pool, 'notif_last_msg_return');
   }
+  static Future<String> composeDecay(NotifSlot slot, int dayOffset) async {
+    final pool = returnReminder(dayOffset);
+    final key = 'notif_last_msg_decay_${slot.name}_$dayOffset';
+    return _pickAvoidingRepeat(pool, key);
+  }
   static List<String> _poolFor(NotifPick pick, NotifSlot slot) {
     switch (pick.category) {
       case NotifCategory.allCompleted:
