@@ -64,10 +64,60 @@ Future<void> requestNotifIfNeeded(BuildContext context, WidgetRef ref) async {
   if (shouldRequest == true) {
     final granted = await service.requestPermission();
     await service.markNotifAsked(granted: granted);
-    if (granted) await service.refreshTodayNotifications();
+    if (granted) {
+      await service.refreshTodayNotifications();
+      if (context.mounted) {
+        await ensureExactAlarmPermission(context, service);
+      }
+    }
   } else {
-    await service.markNotifAsked(granted: false);
+    await service.markSoftDeclined();
   }
   ref.invalidate(settingsProvider);
   ref.invalidate(notifDeclinedProvider);
+}
+Future<void> ensureExactAlarmPermission(
+  BuildContext context,
+  NotificationService service,
+) async {
+  if (await service.canScheduleExact()) return;
+  if (!context.mounted) return;
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: AppColors.bgBase,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'Vaxtında çatsın deyə',
+        style: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      content: const Text(
+        'Bildirişlərin tam düşündüyün saatda gəlməsi üçün, '
+        'indi açılan səhifədə bir icazəni də aktiv et.',
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+          height: 1.5,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text(
+            'Davam et',
+            style: TextStyle(
+              color: AppColors.accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+  await service.requestExactAlarmPermission();
 }

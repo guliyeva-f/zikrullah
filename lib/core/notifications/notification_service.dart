@@ -10,8 +10,8 @@ import 'notification_context.dart';
 import 'notification_engine.dart';
 import 'notification_messages.dart';
 class _NotifIds {
-  static const int morningBase = 10; 
-  static const int noonBase = 20; 
+  static const int morningBase = 10;
+  static const int noonBase = 20;
   static const int eveningBase = 30;
   static const int nightBase = 40;
   static const int seriesDays = 6;
@@ -66,15 +66,20 @@ class NotificationService {
       ),
     );
   }
+  // ─── İCAZƏLƏR ────────────────────────────────────────────────────────────
   Future<bool> requestPermission() async {
     try {
-      final granted =
-          await _androidImpl?.requestNotificationsPermission() ?? false;
-      if (granted) await _androidImpl?.requestExactAlarmsPermission();
-      return granted;
+      return await _androidImpl?.requestNotificationsPermission() ?? false;
     } catch (e) {
-      debugPrint('İcazə xətası: $e');
+      await _logError('İcazə xətası: $e');
       return false;
+    }
+  }
+  Future<void> requestExactAlarmPermission() async {
+    try {
+      await _androidImpl?.requestExactAlarmsPermission();
+    } catch (e) {
+      await _logError('Dəqiq alarm icazə xətası: $e');
     }
   }
   Future<void> openSystemSettings() async {
@@ -153,6 +158,17 @@ class NotificationService {
       }
     }
   }
+  Future<void> _cancelTodayTomorrowOnly() async {
+    for (final base in [
+      _NotifIds.morningBase,
+      _NotifIds.noonBase,
+      _NotifIds.eveningBase,
+      _NotifIds.nightBase,
+    ]) {
+      await _plugin.cancel(id: base + 0);
+      await _plugin.cancel(id: base + 1);
+    }
+  }
   // ─── KEŞLƏNMİŞ "BU GÜN NATAMAM ƏMƏLLƏR" ────────────────────────────────────
   static const _keyCachedSnapshots = 'notif_cached_snapshots';
   static const _keyCachedTotalCount = 'notif_cached_total_count';
@@ -183,15 +199,20 @@ class NotificationService {
   }
   Future<void> updateTodayProgress(
     List<AmalSnapshot> remaining,
-    int totalCount,
-  ) async {
+    int totalCount, {
+    bool fullRefresh = true,
+  }) async {
     await _cacheSnapshots(remaining, totalCount);
-    await refreshTodayNotifications();
+    await refreshTodayNotifications(fullRefresh: fullRefresh);
   }
-  Future<void> refreshTodayNotifications() async {
+  Future<void> refreshTodayNotifications({bool fullRefresh = true}) async {
     try {
       if (!await isEnabled()) return;
-      await _cancelDailyOnly();
+      if (fullRefresh) {
+        await _cancelDailyOnly();
+      } else {
+        await _cancelTodayTomorrowOnly();
+      }
       final (remaining, totalCount) = await _getCachedSnapshots();
       final morning = await getMorningTime();
       final noon = await getNoonTime();
@@ -226,6 +247,7 @@ class NotificationService {
         minute: morning.minute,
         todayBody: todayBody[NotifSlot.morning]!,
         pushToTomorrow: pushToTomorrow,
+        onlyTodayTomorrow: !fullRefresh,
       );
       await _scheduleSeries(
         baseId: _NotifIds.noonBase,
@@ -234,6 +256,7 @@ class NotificationService {
         minute: noon.minute,
         todayBody: todayBody[NotifSlot.noon]!,
         pushToTomorrow: pushToTomorrow,
+        onlyTodayTomorrow: !fullRefresh,
       );
       await _scheduleSeries(
         baseId: _NotifIds.eveningBase,
@@ -242,6 +265,7 @@ class NotificationService {
         minute: evening.minute,
         todayBody: todayBody[NotifSlot.evening]!,
         pushToTomorrow: pushToTomorrow,
+        onlyTodayTomorrow: !fullRefresh,
       );
       if (await isNightEnabled()) {
         await _scheduleSeries(
@@ -251,10 +275,11 @@ class NotificationService {
           minute: 0,
           todayBody: todayBody[NotifSlot.night]!,
           pushToTomorrow: pushToTomorrow,
+          onlyTodayTomorrow: !fullRefresh,
         );
       }
     } catch (e) {
-      debugPrint('refreshTodayNotifications xətası: $e');
+      await _logError('refreshTodayNotifications xətası: $e');
     }
   }
   Future<String> _composeForSlot(
@@ -277,6 +302,7 @@ class NotificationService {
     required int minute,
     required String todayBody,
     required bool pushToTomorrow,
+    bool onlyTodayTomorrow = false,
   }) async {
     try {
       final title = NotificationMessages.titleFor(slot);
@@ -289,19 +315,33 @@ class NotificationService {
         hour,
         minute,
       );
+      var anchorIsToday = true;
       if (anchor.isBefore(now)) {
         anchor = anchor.add(const Duration(days: 1));
+        anchorIsToday = false;
       }
       if (pushToTomorrow) {
         anchor = anchor.add(const Duration(days: 1));
+        anchorIsToday = false;
       }
       final mode = await canScheduleExact()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
-      for (var d = 0; d < _NotifIds.seriesDays; d++) {
-        final body = d <= 1
-            ? todayBody
-            : await NotificationMessages.composeDecay(slot, d);
+      final lastDay = onlyTodayTomorrow ? 1 : _NotifIds.seriesDays - 1;
+      for (var d = 0; d <= lastDay; d++) {
+        final daysFromRealToday = anchorIsToday ? d : d + 1;
+        String body;
+        if (daysFromRealToday == 0) {
+          body = todayBody;
+        } else if (daysFromRealToday == 1) {
+          body = await NotificationMessages.composeGeneric(slot);
+        } else {
+          if (slot != NotifSlot.evening) continue;
+          body = await NotificationMessages.composeDecay(
+            slot,
+            daysFromRealToday,
+          );
+        }
         await _plugin.zonedSchedule(
           id: baseId + d,
           title: title,
@@ -320,7 +360,7 @@ class NotificationService {
         );
       }
     } catch (e) {
-      debugPrint('Schedule series xətası (baseId=$baseId): $e');
+      await _logError('Schedule series xətası (baseId=$baseId): $e');
     }
   }
   // ─── GERİ QAYT BİLDİRİŞİ ─────────────────────────────────────────────────
@@ -334,6 +374,11 @@ class NotificationService {
     }
     if (!await isEnabled()) return;
     try {
+      final pending = await _plugin.pendingNotificationRequests();
+      final alreadyScheduled = pending.any(
+        (p) => p.id == _NotifIds.returnReminder,
+      );
+      if (alreadyScheduled) return;
       final now = tz.TZDateTime.now(tz.local);
       var scheduled = tz.TZDateTime(
         tz.local,
@@ -346,7 +391,10 @@ class NotificationService {
       if (scheduled.isBefore(now)) {
         scheduled = scheduled.add(const Duration(days: 1));
       }
-      final body = await NotificationMessages.composeReturn(inactiveDays);
+      final body = await NotificationMessages.composeReturn(
+        amalTitles,
+        inactiveDays,
+      );
       final mode = await canScheduleExact()
           ? AndroidScheduleMode.exactAllowWhileIdle
           : AndroidScheduleMode.inexactAllowWhileIdle;
@@ -368,19 +416,45 @@ class NotificationService {
         matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {
-      debugPrint('scheduleReturnNotifications xətası: $e');
+      await _logError('scheduleReturnNotifications xətası: $e');
     }
   }
   // ─── ONBOARDING ──────────────────────────────────────────────────────────
   static const _keyNotifAsked = 'notif_onboarding_asked';
+  static const _keySoftDeclineAt = 'notif_soft_decline_at';
+  static const _softDeclineCooldownDays = 3;
   Future<bool> isFirstLaunch() async {
     final prefs = await SharedPreferences.getInstance();
-    return !(prefs.getBool(_keyNotifAsked) ?? false);
+    if (prefs.getBool(_keyNotifAsked) ?? false) return false;
+    final softDeclineMs = prefs.getInt(_keySoftDeclineAt);
+    if (softDeclineMs == null) return true;
+    final since = DateTime.now().difference(
+      DateTime.fromMillisecondsSinceEpoch(softDeclineMs),
+    );
+    return since.inDays >= _softDeclineCooldownDays;
+  }
+  Future<void> markSoftDeclined() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      _keySoftDeclineAt,
+      DateTime.now().millisecondsSinceEpoch,
+    );
   }
   Future<void> markNotifAsked({required bool granted}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyNotifAsked, true);
     await prefs.setBool(_keyEnabled, granted);
     if (!granted) await _plugin.cancelAll();
+  }
+  // ─── XƏTA LOQU ───────────────────────────────────────────────────────────
+  Future<void> _logError(String message) async {
+    debugPrint(message);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'notif_last_error',
+        '${DateTime.now().toIso8601String()} | $message',
+      );
+    } catch (_) {}
   }
 }

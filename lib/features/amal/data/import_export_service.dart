@@ -135,6 +135,7 @@ class ImportExportService {
       };
       final newAmals = <Amal>[];
       final conflicts = <AmalConflict>[];
+      final identicalIdMap = <int, int>{};
       int identicalCount = 0;
       for (final incoming in incomingAmals) {
         final key = '${incoming.title}__${incoming.type.name}';
@@ -143,6 +144,7 @@ class ImportExportService {
           newAmals.add(incoming);
         } else if (_isIdentical(existing, incoming)) {
           identicalCount++;
+          identicalIdMap[incoming.id] = existing.id;
         } else {
           final streak = await _repo.calculateStreak(existing.id);
           final completed = await _repo.countCompletedDays(existing.id);
@@ -162,6 +164,7 @@ class ImportExportService {
           conflicts: conflicts,
           identicalCount: identicalCount,
           records: incomingRecords,
+          identicalIdMap: identicalIdMap,
         ),
       );
     } on FormatException {

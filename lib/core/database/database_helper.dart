@@ -5,9 +5,12 @@ class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
   static Database? _db;
+  static Future<Database>? _dbFuture;
   static String? _overridePath;
   Future<Database> get database async {
-    _db ??= await _initDb();
+    if (_db != null) return _db!;
+    _dbFuture ??= _initDb();
+    _db = await _dbFuture;
     return _db!;
   }
   Future<Database> _initDb() async {
@@ -119,5 +122,6 @@ class DatabaseHelper {
       await _db!.close();
     }
     _db = null;
+    _dbFuture = null;
   }
 }

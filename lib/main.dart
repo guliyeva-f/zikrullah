@@ -11,6 +11,13 @@ void main() async {
     debugPrint = (String? message, {int? wrapWidth}) {};
   }
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (kReleaseMode) {
+      FlutterError.presentError(details);
+    } else {
+      FlutterError.presentError(details);
+    }
+  };
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

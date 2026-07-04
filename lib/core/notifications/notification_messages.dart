@@ -35,16 +35,21 @@ class NotificationMessages {
     'Kiçik görünür, amma Allah yanında böyük ola bilər — "$title".',
     'Bir addım qalıb. "$title" ilə gününü tamamla.',
   ];
-  static List<String> intention(String title, String intentionText) => [
-    'Bir vaxt "$title" üçün belə yazmışdın:\n"$intentionText"\nBu niyyətini bu gün də yaşat.',
-    '"$intentionText" — bunu "$title" üçün niyyət etmişdin. O hələ də səni gözləyir.',
-    'Allah üçün yazdığın niyyəti unutma:\n"$intentionText"',
-    'Niyyətini xatırla: "$intentionText".',
-    'Hər şey bir niyyətlə başlamışdı.\n"$intentionText"',
-    'Allah qəlbində olan niyyəti bilir.',
-    'Bəlkə də bu bildiriş sənə niyyətini yenidən xatırlatmaq üçündür.',
-    'Yazdığın niyyət sadəcə söz deyildi. Bu gün də onu yaşat.',
-  ];
+  static List<String> intention(String title, String intentionText) {
+    final text = intentionText.length > 100
+        ? '${intentionText.substring(0, 100)}…'
+        : intentionText;
+    return [
+      'Bir vaxt "$title" üçün belə yazmışdın:\n"$text"\nBu niyyətini bu gün də yaşat.',
+      '"$text" — bunu "$title" üçün niyyət etmişdin. O hələ də səni gözləyir.',
+      'Allah üçün yazdığın niyyəti unutma:\n"$text"',
+      'Niyyətini xatırla: "$text".',
+      'Hər şey bir niyyətlə başlamışdı.\n"$text"',
+      'Allah qəlbində olan niyyəti bilir.',
+      'Bəlkə də bu bildiriş sənə niyyətini yenidən xatırlatmaq üçündür.',
+      'Yazdığın niyyət sadəcə söz deyildi. Bu gün də onu yaşat.',
+    ];
+  }
   static List<String> streak(String title, int milestone) => [
     '🔥 "$title" üçün $milestone günlük ardıcıllığa bir addım qalıb.',
     'Bu gün də davam etsən, "$title" $milestone gün olacaq 🔥',
@@ -214,14 +219,32 @@ class NotificationMessages {
       'Səmimi bir niyyətlə yenidən başlamaq kifayətdir.',
     ];
   }
+  static List<String> returnReminderFor(List<String> titles, int inactiveDays) {
+    final base = returnReminder(inactiveDays);
+    if (titles.isEmpty) return base;
+    final title = titles.first;
+    final rest = titles.length - 1;
+    final personal = rest > 0
+        ? '"$title" və daha $rest əməlin ardıcıllığı kəsilib. Qayıtmaq üçün bu gün gözəl gündür 🌿'
+        : '"$title" əməlinin ardıcıllığı kəsilib. Qaldığın yerdən davam et 🌿';
+    return [personal, ...base];
+  }
   static Future<String> compose(NotifPick pick, NotifSlot slot) async {
     final pool = _poolFor(pick, slot);
     final key = 'notif_last_msg_${slot.name}_${pick.category.name}';
     return _pickAvoidingRepeat(pool, key);
   }
-  static Future<String> composeReturn(int inactiveDays) async {
-    final pool = returnReminder(inactiveDays);
+  static Future<String> composeReturn(
+    List<String> titles,
+    int inactiveDays,
+  ) async {
+    final pool = returnReminderFor(titles, inactiveDays);
     return _pickAvoidingRepeat(pool, 'notif_last_msg_return');
+  }
+  static Future<String> composeGeneric(NotifSlot slot) async {
+    final pool = [...spiritualFor(slot), ...verseHadith];
+    final key = 'notif_last_msg_generic_${slot.name}';
+    return _pickAvoidingRepeat(pool, key);
   }
   static Future<String> composeDecay(NotifSlot slot, int dayOffset) async {
     final pool = returnReminder(dayOffset);

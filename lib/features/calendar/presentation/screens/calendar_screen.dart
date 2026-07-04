@@ -55,8 +55,7 @@ final _amalCountProvider = FutureProvider.family<Map<String, int>, String>((
   final to = DateTime(year, month + 1, 0);
   return AmalRepository().getAmalCountPerDay(from: from, to: to);
 });
-// ── YENİ: ay üçün tək sorğu — gün rəngləri üçün ──────────────────────────────
-final _monthRecordsProvider = FutureProvider.family<Map<String, bool>, String>((
+final _monthRecordsProvider = FutureProvider.family<Map<String, double>, String>((
   ref,
   monthKey,
 ) async {
@@ -75,7 +74,7 @@ final _monthRecordsProvider = FutureProvider.family<Map<String, bool>, String>((
       }
     });
   }
-  final result = <String, bool>{};
+  final result = <String, double>{};
   for (int day = 1; day <= daysInMonth; day++) {
     final dateStr =
         '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
@@ -87,7 +86,7 @@ final _monthRecordsProvider = FutureProvider.family<Map<String, bool>, String>((
     }).toList();
     if (activeAmals.isEmpty) continue;
     final completedCount = completedByDate[dateStr]?.length ?? 0;
-    result[dateStr] = completedCount >= activeAmals.length;
+    result[dateStr] = completedCount / activeAmals.length;
   }
   return result;
 });
@@ -339,7 +338,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget _buildGrid(
     DateTime todayNorm,
     Map<String, int> amalCount,
-    Map<String, bool> monthDone,
+    Map<String, double> monthRatios,
   ) {
     final firstDay = _displayMonth;
     final daysInMonth = DateTime(firstDay.year, firstDay.month + 1, 0).day;
@@ -358,9 +357,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             final isToday = date == todayNorm;
             final isSelected = date == _selectedDate;
             final dateStr = _fmt(date);
-            final ratio = widget.heatmapData[dateStr];
+            final ratio = monthRatios[dateStr];
             final hasAmals = amalCount.containsKey(dateStr);
-            final isDoneFromMonth = monthDone[dateStr] == true;
+            final isDoneFromMonth = ratio != null && ratio >= 1.0;
             final isDone = !isFuture && isDoneFromMonth;
             final isMissed =
                 !isFuture &&

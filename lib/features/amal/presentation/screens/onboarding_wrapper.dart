@@ -9,6 +9,7 @@ class OnboardingWrapper extends ConsumerStatefulWidget {
 }
 class _OnboardingWrapperState extends ConsumerState<OnboardingWrapper>
     with WidgetsBindingObserver {
+  bool _refreshInFlight = false;
   @override
   void initState() {
     super.initState();
@@ -22,7 +23,16 @@ class _OnboardingWrapperState extends ConsumerState<OnboardingWrapper>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      ref.invalidate(amalProvider);
+      _safeRefresh();
+    }
+  }
+  Future<void> _safeRefresh() async {
+    if (_refreshInFlight) return;
+    _refreshInFlight = true;
+    try {
+      await ref.read(amalProvider.notifier).refresh();
+    } finally {
+      _refreshInFlight = false;
     }
   }
   @override

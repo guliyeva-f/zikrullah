@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/text_direction.dart';
 import '../../data/amal_repository.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
@@ -25,6 +27,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   int? _durationPreset;
   bool _submitted = false;
   bool _strictMode = true;
+  TextDirection _contentDirection = TextDirection.ltr;
   bool get _isEditing => widget.amal != null;
   static const _presets = [
     (null, 'Həmişəlik'),
@@ -47,6 +50,8 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       text: a?.countTarget != null ? '${a!.countTarget}' : '',
     );
     _contentCtrl = TextEditingController(text: a?.content ?? '');
+    _contentDirection = detectTextDirection(_contentCtrl.text);
+    _contentCtrl.addListener(_updateContentDirection);
     _intentionCtrl = TextEditingController(text: a?.intention ?? '');
     _type = a?.type ?? AmalType.checkbox;
     _strictMode = !(a?.allowBreak ?? false);
@@ -66,11 +71,18 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
   void dispose() {
     _titleCtrl.dispose();
     _countCtrl.dispose();
+    _contentCtrl.removeListener(_updateContentDirection);
     _contentCtrl.dispose();
     _intentionCtrl.dispose();
     _customDurCtrl.dispose();
     _contentFocus.dispose();
     super.dispose();
+  }
+  void _updateContentDirection() {
+    final dir = detectTextDirection(_contentCtrl.text);
+    if (dir != _contentDirection) {
+      setState(() => _contentDirection = dir);
+    }
   }
   // ─── VALİDASİYA ───────────────────────────────────────────────────────────
   String? get _titleError {
@@ -78,11 +90,15 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     return _titleCtrl.text.trim().isEmpty ? 'Ad yazılmalıdır' : null;
   }
   String? get _countError {
-    if (!_submitted || _type != AmalType.counter) return null;
-    final v = int.tryParse(_countCtrl.text.trim());
+    if (_type != AmalType.counter) return null;
+    final text = _countCtrl.text.trim();
+    if (text.isEmpty) return _submitted ? 'Say daxil et' : null;
+    final v = int.tryParse(text);
     if (v == null) return 'Say daxil et';
     if (v < 1) return 'Ən azı 1 dəfə daxil et';
-    if (v > 40000) return 'Maksimum 40000 ola bilər';
+    if (v > AppConstants.maxCounterValue) {
+      return 'Ən çoxu ${AppConstants.formatThousands(AppConstants.maxCounterValue)} ola bilər 🤍';
+    }
     return null;
   }
   String? get _customDurError {
@@ -103,7 +119,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     }
     if (_type == AmalType.counter) {
       final v = int.tryParse(_countCtrl.text.trim()) ?? 0;
-      if (v < 1 || v > 40000) return false;
+      if (v < 1 || v > AppConstants.maxCounterValue) return false;
     }
     if (_durationPreset == -1) {
       final v = int.tryParse(_customDurCtrl.text.trim()) ?? 0;
@@ -155,6 +171,8 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     final resolvedDuration = _resolvedDuration;
     final allowBreak = resolvedDuration != null ? !_strictMode : false;
     if (_isEditing) {
+      final isAddingDurationFresh =
+          widget.amal!.durationDays == null && resolvedDuration != null;
       await ref
           .read(amalProvider.notifier)
           .updateAmal(
@@ -166,6 +184,9 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
               intention: intention,
               durationDays: resolvedDuration,
               allowBreak: allowBreak,
+              cycleStartedAt: isAddingDurationFresh
+                  ? DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(DateTime.now())
+                  : widget.amal!.cycleStartedAt,
             ),
           );
     } else {
@@ -428,9 +449,7 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
       controller: _countCtrl,
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      onChanged: (_) {
-        if (_submitted) setState(() {});
-      },
+      onChanged: (_) => setState(() {}),
       style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
       decoration: _dec(
         hint: 'Say yaz.. məs: 100, 500',
@@ -443,10 +462,12 @@ class _AmalFormScreenState extends ConsumerState<AmalFormScreen> {
     focusNode: _contentFocus,
     maxLines: null,
     minLines: 8,
+    textDirection: _contentDirection,
+    textAlign: TextAlign.start,
     style: const TextStyle(
       fontFamily: 'Roboto',
       fontFamilyFallback: ['Scheherazade New'],
-      fontSize: 16,
+      fontSize: 18,
       height: 1.9,
       color: AppColors.textPrimary,
     ),

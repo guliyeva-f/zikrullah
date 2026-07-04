@@ -5,6 +5,7 @@ import '../../domain/amal_record.dart';
 import '../../data/amal_repository.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/notifications/notification_context.dart';
+import '../../../../core/constants/app_constants.dart';
 // ─── STATE ───────────────────────────────────────────────────────────────────
 class AmalState {
   final List<Amal> amals;
@@ -174,7 +175,12 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
     if (current == null) return;
     final amal = current.amals.firstWhere((a) => a.id == amalId);
     final existing = current.records[amalId];
-    final newCount = (existing?.countDone ?? 0) + amount;
+    final currentCount = existing?.countDone ?? 0;
+    if (currentCount >= AppConstants.maxCounterValue) return;
+    final newCount = (currentCount + amount).clamp(
+      0,
+      AppConstants.maxCounterValue,
+    );
     final target = amal.countTarget ?? 1;
     final done = newCount >= target;
     final record = AmalRecord(
@@ -251,6 +257,7 @@ class AmalNotifier extends AsyncNotifier<AmalState> {
           updated.completedCounts,
         ),
         updated.amals.length,
+        fullRefresh: false,
       );
     }
   }

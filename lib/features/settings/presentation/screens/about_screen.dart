@@ -1,25 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/constants/app_colors.dart';
-
-class AboutScreen extends StatefulWidget {
+class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
-  @override
-  State<AboutScreen> createState() => _AboutScreenState();
-}
-
-class _AboutScreenState extends State<AboutScreen> {
-  String _version = '';
-  @override
-  void initState() {
-    super.initState();
-    PackageInfo.fromPlatform().then((info) {
-      if (mounted) {
-        setState(() => _version = info.version);
-      }
-    });
-  }
-
+  static const String _version = '1.0.0';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,19 +30,16 @@ class _AboutScreenState extends State<AboutScreen> {
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 48),
-        children: [
-          // ── MƏNA: niyə bu app var ────────────────────────────────────
-          const _HeroManifesto(),
-          const SizedBox(height: 28),
-          // ── MƏXFİLİK ─────────────────────────────────────────────────
-          const _Label('Sənin məlumatın, sənin telefonunda'),
-          const SizedBox(height: 10),
-          const _PrivacyList(),
-          const SizedBox(height: 28),
-          // ── NECƏ İŞLƏYİR ─────────────────────────────────────────────
-          const _Label('Əməllərini necə izləyirsən'),
-          const SizedBox(height: 10),
-          const _TypeRow(
+        children: const [
+          _HeroManifesto(),
+          SizedBox(height: 28),
+          _Label('Sənin məlumatın, sənin telefonunda'),
+          SizedBox(height: 10),
+          _PrivacyList(),
+          SizedBox(height: 28),
+          _Label('Əməllərini necə izləyirsən'),
+          SizedBox(height: 10),
+          _TypeRow(
             items: [
               _TypeItem(
                 emoji: '✓',
@@ -78,20 +58,20 @@ class _AboutScreenState extends State<AboutScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          const _Block(child: _AhdContent()),
-          const SizedBox(height: 10),
-          const _Block(child: _StreakContent()),
-          const SizedBox(height: 10),
-          const _Block(child: _BackupContent()),
-          const SizedBox(height: 10),
-          const _Block(child: _NotifContent()),
-          const SizedBox(height: 32),
+          SizedBox(height: 10),
+          _Block(child: _AhdContent()),
+          SizedBox(height: 10),
+          _Block(child: _StreakContent()),
+          SizedBox(height: 10),
+          _Block(child: _BackupContent()),
+          SizedBox(height: 10),
+          _Block(child: _NotifContent()),
+          SizedBox(height: 32),
           // ── FOOTER ───────────────────────────────────────────────────
           Center(
             child: Text(
               'Zikrullah · v$_version',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textHint,
                 letterSpacing: 0.3,
@@ -103,11 +83,9 @@ class _AboutScreenState extends State<AboutScreen> {
     );
   }
 }
-
 // ─── HERO MANIFESTO ───────────────────────────────────────────────────────
 class _HeroManifesto extends StatelessWidget {
   const _HeroManifesto();
-
   Widget _dotsDivider() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -185,7 +163,6 @@ class _HeroManifesto extends StatelessWidget {
       ],
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -210,11 +187,11 @@ class _HeroManifesto extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             child: Image.asset(
               'assets/icon/icon.png',
-              width: 80,
-              height: 80,
+              width: 100,
+              height: 100,
               errorBuilder: (_, _, _) => Container(
-                width: 80,
-                height: 80,
+                width: 100,
+                height: 100,
                 decoration: BoxDecoration(
                   color: AppColors.accent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(18),
@@ -304,7 +281,6 @@ class _HeroManifesto extends StatelessWidget {
     );
   }
 }
-
 // ─── LABEL ───────────────────────────────────────────────────────────────────
 class _Label extends StatelessWidget {
   final String text;
@@ -322,7 +298,6 @@ class _Label extends StatelessWidget {
     );
   }
 }
-
 // ─── GENERIC BLOCK ───────────────────────────────────────────────────────────
 class _Block extends StatelessWidget {
   final Widget child;
@@ -340,7 +315,6 @@ class _Block extends StatelessWidget {
     );
   }
 }
-
 // ─── ƏMƏL NÖVLƏRİ: 3 SÜTUN ──────────────────────────────────────────────────
 class _TypeRow extends StatelessWidget {
   final List<_TypeItem> items;
@@ -362,7 +336,6 @@ class _TypeRow extends StatelessWidget {
     );
   }
 }
-
 class _TypeItem extends StatelessWidget {
   final String emoji;
   final String title;
@@ -409,7 +382,6 @@ class _TypeItem extends StatelessWidget {
     );
   }
 }
-
 // ─── ƏHD SİSTEMİ ─────────────────────────────────────────────────────────────
 class _AhdContent extends StatelessWidget {
   const _AhdContent();
@@ -462,7 +434,6 @@ class _AhdContent extends StatelessWidget {
     );
   }
 }
-
 class _ModeCard extends StatelessWidget {
   final String emoji;
   final String title;
@@ -521,7 +492,6 @@ class _ModeCard extends StatelessWidget {
     );
   }
 }
-
 // ─── STREAK ──────────────────────────────────────────────────────────────────
 class _StreakContent extends StatelessWidget {
   const _StreakContent();
@@ -552,7 +522,6 @@ class _StreakContent extends StatelessWidget {
     );
   }
 }
-
 // ─── BACKUP ──────────────────────────────────────────────────────────────────
 class _BackupContent extends StatelessWidget {
   const _BackupContent();
@@ -575,7 +544,6 @@ class _BackupContent extends StatelessWidget {
     );
   }
 }
-
 // ─── BİLDİRİŞLƏR ─────────────────────────────────────────────────────────────
 class _NotifContent extends StatelessWidget {
   const _NotifContent();
@@ -611,7 +579,6 @@ class _NotifContent extends StatelessWidget {
     );
   }
 }
-
 // ─── MƏXFİLİK ────────────────────────────────────────────────────────────────
 class _PrivacyList extends StatelessWidget {
   const _PrivacyList();
@@ -674,7 +641,6 @@ class _PrivacyList extends StatelessWidget {
     );
   }
 }
-
 // ─── INFO ROW ────────────────────────────────────────────────────────────────
 class _InfoRow extends StatelessWidget {
   final IconData icon;

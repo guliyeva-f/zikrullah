@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../domain/amal.dart';
 import '../providers/amal_provider.dart';
 class CounterScreen extends ConsumerStatefulWidget {
@@ -147,25 +148,31 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // ── Əsas say ──────────────────────────────────
-                            AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 200),
-                              style: TextStyle(
-                                fontSize: 78,
-                                fontWeight: FontWeight.w700,
-                                color: done
-                                    ? AppColors.success
-                                    : AppColors.textPrimary,
-                                height: 1,
+                            // ── Əsas say (dairənin içinə sığacaq şəkildə dinamik) ──
+                            SizedBox(
+                              width: 190,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 200),
+                                  style: TextStyle(
+                                    fontSize: 78,
+                                    fontWeight: FontWeight.w700,
+                                    color: done
+                                        ? AppColors.success
+                                        : AppColors.textPrimary,
+                                    height: 1,
+                                  ),
+                                  child: Text(AppConstants.formatThousands(count)),
+                                ),
                               ),
-                              child: Text('$count'),
                             ),
                             const SizedBox(height: 6),
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 250),
                               child: overTarget
                                   ? Text(
-                                      'hədəfdən ${count - target} artıq etdin ✨',
+                                      'hədəfdən ${AppConstants.formatThousands(count - target)} artıq etdin ✨',
                                       key: const ValueKey('over'),
                                       style: const TextStyle(
                                         fontSize: 14,
@@ -185,7 +192,7 @@ class _CounterScreenState extends ConsumerState<CounterScreen>
                                       ),
                                     )
                                   : Text(
-                                      '/ $target dəfə',
+                                      '/ ${AppConstants.formatThousands(target)} dəfə',
                                       key: const ValueKey('progress'),
                                       style: const TextStyle(
                                         fontSize: 16,

@@ -552,7 +552,7 @@ class AmalRepository {
   Future<({int imported, int updated, int skipped, List<String> errors})>
   applyImport({required ImportPreview preview}) async {
     final db = await _db;
-    final idMap = <int, int>{};
+    final idMap = <int, int>{...preview.identicalIdMap};
     int imported = 0;
     int updated = 0;
     int skipped = 0;

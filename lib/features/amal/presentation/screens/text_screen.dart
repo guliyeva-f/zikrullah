@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/providers/font_size_provider.dart';
 import '../../domain/amal.dart';
 import '../../domain/amal_record.dart';
 import '../providers/amal_provider.dart';
 import 'amal_form_screen.dart';
+import '../../../../core/utils/text_direction.dart';
 class TextScreen extends ConsumerStatefulWidget {
   final Amal amal;
   final AmalRecord? record;
@@ -52,7 +54,11 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       Navigator.pop(context);
     }
   }
-  List<TextSpan> _buildMixedSpans(String text) {
+  List<TextSpan> _buildMixedSpans(
+    String text,
+    double latinSize,
+    double arabicSize,
+  ) {
     final arabicRegex = RegExp(
       r'[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]+',
     );
@@ -63,10 +69,10 @@ class _TextScreenState extends ConsumerState<TextScreen> {
         spans.add(
           TextSpan(
             text: text.substring(lastEnd, match.start),
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Roboto',
               fontWeight: FontWeight.w400,
-              fontSize: 18,
+              fontSize: latinSize,
               height: 2.0,
               color: AppColors.textPrimary,
             ),
@@ -76,10 +82,10 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       spans.add(
         TextSpan(
           text: match.group(0),
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Scheherazade New',
             fontWeight: FontWeight.w400,
-            fontSize: 24,
+            fontSize: arabicSize,
             height: 2.5,
             color: AppColors.textPrimary,
           ),
@@ -91,10 +97,10 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       spans.add(
         TextSpan(
           text: text.substring(lastEnd),
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Roboto',
             fontWeight: FontWeight.w400,
-            fontSize: 18,
+            fontSize: latinSize,
             height: 2.0,
             color: AppColors.textPrimary,
           ),
@@ -105,16 +111,123 @@ class _TextScreenState extends ConsumerState<TextScreen> {
         ? [
             TextSpan(
               text: text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Roboto',
                 fontWeight: FontWeight.w400,
-                fontSize: 18,
+                fontSize: latinSize,
                 height: 2.0,
                 color: AppColors.textPrimary,
               ),
             ),
           ]
         : spans;
+  }
+  List<Widget> _buildParagraphs(
+    String text,
+    double latinSize,
+    double arabicSize,
+  ) {
+    final paragraphs = text.split('\n');
+    final widgets = <Widget>[];
+    for (var i = 0; i < paragraphs.length; i++) {
+      final para = paragraphs[i];
+      if (para.trim().isEmpty) {
+        widgets.add(const SizedBox(height: 12));
+        continue;
+      }
+      widgets.add(
+        SelectableText.rich(
+          TextSpan(children: _buildMixedSpans(para, latinSize, arabicSize)),
+          textAlign: TextAlign.justify,
+          textDirection: detectTextDirection(para),
+        ),
+      );
+      if (i < paragraphs.length - 1) {
+        widgets.add(const SizedBox(height: 12));
+      }
+    }
+    return widgets;
+  }
+  // ─── Font ölçüsü paneli ("Aa") ───────────────────────────────────────────
+  void _showFontSizeSheet(String content) {
+    final showArabic = hasArabicScript(content);
+    final showLatin = hasLatinScript(content);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgBase,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Consumer(
+        builder: (context, sheetRef, _) {
+          final sizes = sheetRef.watch(fontSizeProvider);
+          final latin = sizes.value?.latin ?? FontSizeLimits.defaultLatin;
+          final arabic = sizes.value?.arabic ?? FontSizeLimits.defaultArabic;
+          final notifier = sheetRef.read(fontSizeProvider.notifier);
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const Text(
+                    'Mətn ölçüsü',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Dəyişiklik dərhal tətbiq olunur və bütün mətnlərə aiddir',
+                    style: TextStyle(fontSize: 12, color: AppColors.textHint),
+                  ),
+                  if (showLatin) ...[
+                    const SizedBox(height: 20),
+                    _FontSizeRow(
+                      label: 'Azərbaycanca',
+                      valuePx: latin,
+                      onDecrease: latin <= FontSizeLimits.minLatin
+                          ? null
+                          : notifier.decreaseLatin,
+                      onIncrease: latin >= FontSizeLimits.maxLatin
+                          ? null
+                          : notifier.increaseLatin,
+                    ),
+                  ],
+                  if (showArabic) ...[
+                    const SizedBox(height: 16),
+                    _FontSizeRow(
+                      label: 'Ərəbcə',
+                      valuePx: arabic,
+                      onDecrease: arabic <= FontSizeLimits.minArabic
+                          ? null
+                          : notifier.decreaseArabic,
+                      onIncrease: arabic >= FontSizeLimits.maxArabic
+                          ? null
+                          : notifier.increaseArabic,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
   @override
   Widget build(BuildContext context) {
@@ -126,9 +239,12 @@ class _TextScreenState extends ConsumerState<TextScreen> {
     final hasIntention =
         widget.amal.intention != null &&
         widget.amal.intention!.trim().isNotEmpty;
+    final fontSizes = ref.watch(fontSizeProvider);
+    final latinSize = fontSizes.value?.latin ?? FontSizeLimits.defaultLatin;
+    final arabicSize = fontSizes.value?.arabic ?? FontSizeLimits.defaultArabic;
     return Scaffold(
       backgroundColor: AppColors.bgBase,
-      appBar: _buildAppBar(isCompleted),
+      appBar: _buildAppBar(isCompleted, hasContent),
       body: Column(
         children: [
           // ── İncə progress xətti ──────────────────────────────────────────
@@ -154,11 +270,10 @@ class _TextScreenState extends ConsumerState<TextScreen> {
                   ],
                   // ── Əsas mətn və ya boş hal ───────────────────────────────
                   if (hasContent)
-                    SelectableText.rich(
-                      TextSpan(
-                        children: _buildMixedSpans(widget.amal.content!),
-                      ),
-                      textAlign: TextAlign.justify,
+                    ..._buildParagraphs(
+                      widget.amal.content!,
+                      latinSize,
+                      arabicSize,
                     )
                   else
                     _EmptyContent(amal: widget.amal),
@@ -197,7 +312,7 @@ class _TextScreenState extends ConsumerState<TextScreen> {
       ),
     );
   }
-  PreferredSizeWidget _buildAppBar(bool isCompleted) {
+  PreferredSizeWidget _buildAppBar(bool isCompleted, bool hasContent) {
     return AppBar(
       backgroundColor: AppColors.bgBase,
       elevation: 0,
@@ -234,6 +349,93 @@ class _TextScreenState extends ConsumerState<TextScreen> {
               ),
             ),
         ],
+      ),
+      actions: [
+        if (hasContent)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              onPressed: () => _showFontSizeSheet(widget.amal.content!),
+              tooltip: 'Mətn ölçüsü',
+              icon: const Text(
+                'Aa',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.accent,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+// ─── Font ölçüsü sətri — A- / dəyər / A+ ─────────────────────────────────────
+class _FontSizeRow extends StatelessWidget {
+  final String label;
+  final double valuePx;
+  final VoidCallback? onDecrease;
+  final VoidCallback? onIncrease;
+  const _FontSizeRow({
+    required this.label,
+    required this.valuePx,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        _StepButton(icon: Icons.remove, onTap: onDecrease),
+        SizedBox(
+          width: 44,
+          child: Text(
+            '${valuePx.toInt()}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        _StepButton(icon: Icons.add, onTap: onIncrease),
+      ],
+    );
+  }
+}
+class _StepButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _StepButton({required this.icon, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return Material(
+      color: enabled ? AppColors.bgElevated : AppColors.bgCard,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Icon(
+            icon,
+            size: 18,
+            color: enabled ? AppColors.textPrimary : AppColors.textHint,
+          ),
+        ),
       ),
     );
   }

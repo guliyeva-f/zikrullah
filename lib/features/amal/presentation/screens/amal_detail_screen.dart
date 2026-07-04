@@ -222,6 +222,7 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
         ),
       ),
     );
+    ctrl.dispose();
   }
   @override
   Widget build(BuildContext context) {
@@ -620,7 +621,10 @@ class _AmalDetailScreenState extends ConsumerState<AmalDetailScreen> {
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
                 _cycleLine(c),
-                style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
         ],

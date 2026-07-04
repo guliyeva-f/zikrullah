@@ -238,6 +238,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       if (granted) {
         await ref.read(settingsProvider.notifier).setNotificationsEnabled(true);
         ref.invalidate(notifDeclinedProvider);
+        if (!context.mounted) return;
+        await ensureExactAlarmPermission(context, NotificationService());
       } else {
         _showSnack(
           context,

@@ -19,11 +19,13 @@ class ImportPreview {
   final List<AmalConflict> conflicts;
   final int identicalCount;
   final List<AmalRecord> records;
+  final Map<int, int> identicalIdMap;
   const ImportPreview({
     required this.newAmals,
     required this.conflicts,
     required this.identicalCount,
     required this.records,
+    this.identicalIdMap = const {},
   });
   bool get isEmpty => newAmals.isEmpty && conflicts.isEmpty;
 }
